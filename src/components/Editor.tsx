@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { Editor as TiptapEditor } from "@tiptap/core";
 import Block from "./Block";
 import type { Block as BlockType } from "../types/block";
 import { v4 as uuidv4 } from "uuid";
+import SlashMenu from "./SlashMenu";
 
 export default function Editor() {
   const [blocks, setBlocks] = useState<BlockType[]>([
@@ -13,12 +15,62 @@ export default function Editor() {
   ]);
 
   const [focusedBlockId, setFocusedBlockId] = useState<string | null>(blocks[0].id);
+  const [showMenu, setShowMenu] = useState(false);
+  const [menuBlockId, setMenuBlockId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const updateBlock = (id: string, content: string) => {
+  const editorByBlockId = useRef(new Map<string, TiptapEditor>());
+
+  const registerEditor = useCallback((id: string, instance: TiptapEditor | null) => {
+    if (instance) editorByBlockId.current.set(id, instance);
+    else editorByBlockId.current.delete(id);
+  }, []);
+
+  const updateBlockContent = (id: string, content: string) => {
     setBlocks((prev) =>
       prev.map((b) => (b.id === id ? { ...b, content } : b))
     );
   };
+
+  const updateBlockType = useCallback((id: string, type: BlockType["type"]) => {
+    setBlocks((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, type } : b))
+    );
+    setShowMenu(false);
+    setMenuBlockId(null);
+    setMenuPosition(null);
+  }, []);
+
+  const applySlashCommand = useCallback(
+    (type: BlockType["type"]) => {
+      if (!menuBlockId) return;
+      const blockId = menuBlockId;
+      const ed = editorByBlockId.current.get(blockId);
+      if (ed && !ed.isDestroyed) {
+        const chain = ed.chain().focus().command(({ tr, state }) => {
+          const pos = state.selection.$from.pos;
+          if (pos > 0 && state.doc.textBetween(pos - 1, pos) === "/") {
+            tr.delete(pos - 1, pos);
+            return true;
+          }
+          return false;
+        });
+        if (type === "heading") {
+          chain.setHeading({ level: 1 });
+        } else {
+          chain.setParagraph();
+        }
+        chain.run();
+      }
+      updateBlockType(blockId, type);
+      requestAnimationFrame(() => {
+        setFocusedBlockId(blockId);
+        editorByBlockId.current.get(blockId)?.commands.focus();
+      });
+    },
+    [menuBlockId, updateBlockType]
+  );
 
   const addBlockAfter = (id: string) => {
     const newBlock: BlockType = {
@@ -51,19 +103,65 @@ export default function Editor() {
     });
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!showMenu) return;
+
+      const options = ["paragraph", "heading"] as const satisfies readonly BlockType["type"][];
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        e.stopPropagation();
+        setSelectedIndex((prev) => (prev + 1) % options.length);
+      }
+
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        e.stopPropagation();
+        setSelectedIndex((prev) =>
+          prev === 0 ? options.length - 1 : prev - 1
+        );
+      }
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        applySlashCommand(options[selectedIndex]);
+      }
+
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        setShowMenu(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [showMenu, selectedIndex, menuBlockId, applySlashCommand]);
+
   return (
-    <div style={{ maxWidth: "700px", margin: "40px auto" }}>
+    <div style={{ maxWidth: "700px", margin: "40px auto", position: "relative" }}>
       {blocks.map((block) => (
         <Block
           key={block.id}
           block={block}
-          onChange={updateBlock}
+          menuBlockId={menuBlockId}
+          onContentChange={updateBlockContent}
           onEnter={addBlockAfter}
           onBackspace={deleteBlock}
           isFocused={focusedBlockId === block.id}
+          registerEditor={registerEditor}
           setFocusedBlockId={setFocusedBlockId}
+          setShowMenu={setShowMenu}
+          setMenuBlockId={setMenuBlockId}
+          setMenuPosition={setMenuPosition}
         />
       ))}
+
+      {showMenu && menuBlockId && menuPosition && (
+        <SlashMenu position={menuPosition} onSelect={applySlashCommand} selectedIndex={selectedIndex} />
+      )}
     </div>
   );
 }
