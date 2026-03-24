@@ -21,6 +21,14 @@ export default function Editor() {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const editorByBlockId = useRef(new Map<string, TiptapEditor>());
+  const slashMenuRef = useRef<HTMLDivElement>(null);
+
+  const closeSlashMenu = useCallback(() => {
+    setShowMenu(false);
+    setMenuBlockId(null);
+    setMenuPosition(null);
+    setSelectedIndex(0);
+  }, []);
 
   const registerEditor = useCallback((id: string, instance: TiptapEditor | null) => {
     if (instance) editorByBlockId.current.set(id, instance);
@@ -33,14 +41,15 @@ export default function Editor() {
     );
   };
 
-  const updateBlockType = useCallback((id: string, type: BlockType["type"]) => {
-    setBlocks((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, type } : b))
-    );
-    setShowMenu(false);
-    setMenuBlockId(null);
-    setMenuPosition(null);
-  }, []);
+  const updateBlockType = useCallback(
+    (id: string, type: BlockType["type"]) => {
+      setBlocks((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, type } : b))
+      );
+      closeSlashMenu();
+    },
+    [closeSlashMenu]
+  );
 
   const applySlashCommand = useCallback(
     (type: BlockType["type"]) => {
@@ -49,12 +58,14 @@ export default function Editor() {
       const ed = editorByBlockId.current.get(blockId);
       if (ed && !ed.isDestroyed) {
         const chain = ed.chain().focus().command(({ tr, state }) => {
-          const pos = state.selection.$from.pos;
-          if (pos > 0 && state.doc.textBetween(pos - 1, pos) === "/") {
-            tr.delete(pos - 1, pos);
-            return true;
-          }
-          return false;
+          const { from, $from } = state.selection;
+          const blockStart = $from.start();
+          if (from <= blockStart) return false;
+          const textBefore = state.doc.textBetween(blockStart, from);
+          const m = textBefore.match(/\/[^ \n]*$/);
+          if (!m) return false;
+          tr.delete(from - m[0].length, from);
+          return true;
         });
         if (type === "heading") {
           chain.setHeading({ level: 1 });
@@ -132,13 +143,25 @@ export default function Editor() {
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
-        setShowMenu(false);
+        closeSlashMenu();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [showMenu, selectedIndex, menuBlockId, applySlashCommand]);
+  }, [showMenu, selectedIndex, menuBlockId, applySlashCommand, closeSlashMenu]);
+
+  useEffect(() => {
+    if (!showMenu) return;
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (slashMenuRef.current?.contains(e.target as Node)) return;
+      closeSlashMenu();
+    };
+
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [showMenu, closeSlashMenu]);
 
   return (
     <div style={{ maxWidth: "700px", margin: "40px auto", position: "relative" }}>
@@ -160,7 +183,9 @@ export default function Editor() {
       ))}
 
       {showMenu && menuBlockId && menuPosition && (
-        <SlashMenu position={menuPosition} onSelect={applySlashCommand} selectedIndex={selectedIndex} />
+        <div ref={slashMenuRef}>
+          <SlashMenu position={menuPosition} onSelect={applySlashCommand} selectedIndex={selectedIndex} />
+        </div>
       )}
     </div>
   );

@@ -53,8 +53,13 @@ export default function Block({
                 if (ed.isDestroyed) return;
                 const open = isSlashMenuOpen(ed);
                 if (open) {
-                    const { from } = ed.state.selection;
-                    const coords = ed.view.coordsAtPos(from);
+                    const { from, $from } = ed.state.selection;
+                    const blockStart = $from.start();
+                    const textBefore = ed.state.doc.textBetween(blockStart, from);
+                    const m = textBefore.match(/\/[^ \n]*$/);
+                    if (!m) return;
+                    const slashPos = from - m[0].length;
+                    const coords = ed.view.coordsAtPos(slashPos);
                     setMenuPosition({
                         top: coords.bottom + 4,
                         left: coords.left,

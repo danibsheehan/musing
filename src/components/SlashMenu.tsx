@@ -11,8 +11,9 @@ export default function SlashMenu({ onSelect, position, selectedIndex }: Props) 
 
     return (
         <div
+            onMouseDown={(e) => e.preventDefault()}
             style={{
-                position: "absolute",
+                position: "fixed",
                 top: position.top,
                 left: position.left,
                 background: "white",
