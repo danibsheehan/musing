@@ -42,7 +42,10 @@ export default function Block({
     setMenuPosition,
 }: Props) {
     const menuBlockIdRef = useRef(menuBlockId);
-    menuBlockIdRef.current = menuBlockId;
+
+    useEffect(() => {
+        menuBlockIdRef.current = menuBlockId;
+    }, [menuBlockId]);
 
     const slashMenuRaf = useRef(0);
 

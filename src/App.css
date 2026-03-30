@@ -3,9 +3,248 @@
   display: flex;
   flex-direction: column;
   min-height: 100%;
-  padding: clamp(1rem, 4vw, 2.5rem);
+  padding: 0;
   text-align: left;
   box-sizing: border-box;
+}
+
+.app-shell {
+  display: flex;
+  flex: 1;
+  min-height: 100%;
+  align-items: stretch;
+}
+
+.app-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  background: var(--social-bg);
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem 0.65rem;
+  gap: 0.5rem;
+  box-sizing: border-box;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.15rem 0.25rem 0.5rem;
+}
+
+.sidebar-brand {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.sidebar-new-page {
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.35em 0.65em;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.sidebar-new-page:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.sidebar-tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar-tree-item {
+  margin: 0;
+}
+
+.sidebar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 2rem;
+  border-radius: 6px;
+  padding: 0.1rem 0.2rem;
+}
+
+.sidebar-row:hover {
+  background: var(--bg);
+}
+
+.sidebar-link {
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  color: var(--text-h);
+  font-size: 0.92rem;
+  padding: 0.25rem 0.35rem;
+  border-radius: 4px;
+}
+
+.sidebar-link:hover {
+  color: var(--accent);
+}
+
+.sidebar-link-active {
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
+
+.sidebar-link-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-rename-input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 0.92rem;
+  padding: 0.25rem 0.35rem;
+  border: 1px solid var(--accent-border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.sidebar-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.05rem;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.sidebar-row:hover .sidebar-row-actions,
+.sidebar-row:focus-within .sidebar-row-actions {
+  opacity: 1;
+}
+
+.sidebar-icon-btn {
+  font: inherit;
+  font-size: 0.72rem;
+  line-height: 1;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-icon-btn:hover:not(:disabled) {
+  background: var(--code-bg);
+  color: var(--text-h);
+}
+
+.sidebar-icon-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.sidebar-icon-btn.sidebar-danger:hover:not(:disabled) {
+  color: #b91c1c;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sidebar-icon-btn.sidebar-danger:hover:not(:disabled) {
+    color: #fca5a5;
+  }
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(1rem, 3vw, 1.75rem) clamp(1rem, 4vw, 2rem);
+}
+
+.page-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.page-chrome {
+  margin-bottom: 1rem;
+}
+
+.page-breadcrumbs {
+  font-size: 0.82rem;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.page-breadcrumb-sep {
+  color: var(--text);
+  opacity: 0.6;
+}
+
+.page-breadcrumb-link {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.page-breadcrumb-link:hover {
+  color: var(--accent);
+}
+
+.page-title-input {
+  width: 100%;
+  max-width: 42rem;
+  font-family: var(--heading);
+  font-size: 1.65rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0;
+  padding: 0.2rem 0.15rem;
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--text-h);
+  box-sizing: border-box;
+}
+
+.page-title-input:hover {
+  border-bottom-color: var(--border);
+}
+
+.page-title-input:focus {
+  outline: none;
+  border-bottom-color: var(--accent-border);
+}
+
+.page-editor-wrap {
+  flex: 1;
+  min-height: 0;
+}
+
+.editor-root {
+  max-width: 42rem;
+  margin: 0 auto;
+  position: relative;
+  width: 100%;
 }
 
 .editor-content {

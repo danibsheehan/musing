@@ -5,16 +5,17 @@ import type { Block as BlockType } from "../types/block";
 import { v4 as uuidv4 } from "uuid";
 import SlashMenu from "./SlashMenu";
 
-export default function Editor() {
-  const [blocks, setBlocks] = useState<BlockType[]>([
-    {
-      id: uuidv4(),
-      type: "paragraph",
-      content: "<p></p>",
-    },
-  ]);
+type Props = {
+  blocks: BlockType[];
+  onBlocksChange: (blocks: BlockType[]) => void;
+};
 
-  const [focusedBlockId, setFocusedBlockId] = useState<string | null>(blocks[0].id);
+export default function Editor({ blocks, onBlocksChange }: Props) {
+
+  const [localBlocks, setLocalBlocks] = useState<BlockType[]>(blocks);
+  const [focusedBlockId, setFocusedBlockId] = useState<string | null>(
+    blocks[0]?.id ?? null
+  );
   const [showMenu, setShowMenu] = useState(false);
   const [menuBlockId, setMenuBlockId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
@@ -22,6 +23,17 @@ export default function Editor() {
 
   const editorByBlockId = useRef(new Map<string, TiptapEditor>());
   const slashMenuRef = useRef<HTMLDivElement>(null);
+
+  const replaceBlocks = useCallback(
+    (updater: (prev: BlockType[]) => BlockType[]) => {
+      setLocalBlocks((prev) => {
+        const next = updater(prev);
+        if (next !== prev) onBlocksChange(next);
+        return next;
+      });
+    },
+    [onBlocksChange]
+  );
 
   const closeSlashMenu = useCallback(() => {
     setShowMenu(false);
@@ -36,19 +48,15 @@ export default function Editor() {
   }, []);
 
   const updateBlockContent = (id: string, content: string) => {
-    setBlocks((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, content } : b))
-    );
+    replaceBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, content } : b)));
   };
 
   const updateBlockType = useCallback(
     (id: string, type: BlockType["type"]) => {
-      setBlocks((prev) =>
-        prev.map((b) => (b.id === id ? { ...b, type } : b))
-      );
+      replaceBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, type } : b)));
       closeSlashMenu();
     },
-    [closeSlashMenu]
+    [closeSlashMenu, replaceBlocks]
   );
 
   const applySlashCommand = useCallback(
@@ -90,7 +98,7 @@ export default function Editor() {
       content: "<p></p>",
     };
 
-    setBlocks((prev) => {
+    replaceBlocks((prev) => {
       const index = prev.findIndex((b) => b.id === id);
       const copy = [...prev];
       copy.splice(index + 1, 0, newBlock);
@@ -101,7 +109,7 @@ export default function Editor() {
   };
 
   const deleteBlock = (id: string) => {
-    setBlocks((prev) => {
+    replaceBlocks((prev) => {
       if (prev.length === 1) return prev;
 
       const index = prev.findIndex((b) => b.id === id);
@@ -164,8 +172,8 @@ export default function Editor() {
   }, [showMenu, closeSlashMenu]);
 
   return (
-    <div style={{ maxWidth: "700px", margin: "40px auto", position: "relative" }}>
-      {blocks.map((block) => (
+    <div className="editor-root">
+      {localBlocks.map((block) => (
         <Block
           key={block.id}
           block={block}

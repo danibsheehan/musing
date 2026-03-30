@@ -7,7 +7,7 @@ type Props = {
 };
 
 export default function SlashMenu({ onSelect, position, selectedIndex }: Props) {
-    const options = ["paragraph", "heading"];
+    const options = ["paragraph", "heading"] as const satisfies readonly BlockType[];
 
     return (
         <div
