@@ -12,6 +12,7 @@ export default function PageView() {
     updatePageTitle,
     updatePageBlocks,
     ancestryFor,
+    externalWorkspaceRevision,
   } = useWorkspace();
 
   const page = pageId ? getPage(pageId) : undefined;
@@ -40,6 +41,7 @@ export default function PageView() {
           key={page.id}
           pageId={page.id}
           blocks={page.blocks}
+          externalWorkspaceRevision={externalWorkspaceRevision}
           onBlocksChange={(blocks) => updatePageBlocks(page.id, blocks)}
         />
       </div>

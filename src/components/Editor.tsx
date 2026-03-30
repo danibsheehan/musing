@@ -8,10 +8,17 @@ import SlashMenu from "./SlashMenu";
 type Props = {
   pageId: string;
   blocks: BlockType[];
+  /** When this changes (e.g. storage synced from another tab), mirror `blocks` into local state. */
+  externalWorkspaceRevision: number;
   onBlocksChange: (blocks: BlockType[]) => void;
 };
 
-export default function Editor({ pageId, blocks, onBlocksChange }: Props) {
+export default function Editor({
+  pageId,
+  blocks,
+  externalWorkspaceRevision,
+  onBlocksChange,
+}: Props) {
   const [localBlocks, setLocalBlocks] = useState<BlockType[]>(blocks);
   const [focusedBlockId, setFocusedBlockId] = useState<string | null>(
     blocks[0]?.id ?? null
@@ -20,6 +27,23 @@ export default function Editor({ pageId, blocks, onBlocksChange }: Props) {
   const [menuBlockId, setMenuBlockId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const blocksRef = useRef(blocks);
+  const lastExternalRevisionRef = useRef(externalWorkspaceRevision);
+
+  useEffect(() => {
+    blocksRef.current = blocks;
+  }, [blocks]);
+
+  useEffect(() => {
+    if (externalWorkspaceRevision === lastExternalRevisionRef.current) return;
+    lastExternalRevisionRef.current = externalWorkspaceRevision;
+    const next = blocksRef.current;
+    setLocalBlocks(next);
+    setFocusedBlockId((prev) =>
+      prev && next.some((b) => b.id === prev) ? prev : next[0]?.id ?? null
+    );
+  }, [externalWorkspaceRevision]);
 
   const editorByBlockId = useRef(new Map<string, TiptapEditor>());
   const slashMenuRef = useRef<HTMLDivElement>(null);

@@ -6,6 +6,8 @@ export type WorkspaceContextValue = {
   pages: Page[];
   homePageId: string;
   lastOpenedPageId: string | null;
+  /** Bumps when workspace is reloaded from localStorage (e.g. another tab); editors should resync. */
+  externalWorkspaceRevision: number;
   getPage: (id: string) => Page | undefined;
   setLastOpenedPageId: (id: string) => void;
   resolveOpenPageId: () => string;

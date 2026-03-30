@@ -1,9 +1,14 @@
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { v4 as uuidv4 } from "uuid";
 import type { Page, WorkspaceSnapshot } from "../types/page";
 import type { Block } from "../types/block";
 import { createEmptyBlocks } from "../lib/defaultBlocks";
-import { loadWorkspace, saveWorkspace } from "../lib/workspaceStorage";
+import {
+  loadWorkspace,
+  parseWorkspaceJson,
+  saveWorkspace,
+  STORAGE_KEY,
+} from "../lib/workspaceStorage";
 import { siblingsOf, subtreeIds, ancestryChain } from "../lib/workspaceTree";
 import { WorkspaceContext, type WorkspaceContextValue } from "./workspace-context";
 
@@ -17,6 +22,34 @@ function persist(snapshot: WorkspaceSnapshot) {
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [snapshot, setSnapshot] = useState<WorkspaceSnapshot>(() => loadWorkspace());
+  const [externalWorkspaceRevision, setExternalWorkspaceRevision] = useState(0);
+  const snapshotRef = useRef(snapshot);
+
+  useEffect(() => {
+    snapshotRef.current = snapshot;
+  }, [snapshot]);
+
+  useEffect(() => {
+    const flush = () => saveWorkspace(snapshotRef.current);
+    window.addEventListener("pagehide", flush);
+    window.addEventListener("beforeunload", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      window.removeEventListener("beforeunload", flush);
+    };
+  }, []);
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== STORAGE_KEY || e.newValue == null) return;
+      const next = parseWorkspaceJson(e.newValue);
+      if (!next) return;
+      setSnapshot(next);
+      setExternalWorkspaceRevision((n) => n + 1);
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   const commit = useCallback((updater: (prev: WorkspaceSnapshot) => WorkspaceSnapshot) => {
     setSnapshot((prev) => {
@@ -184,6 +217,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       pages: snapshot.pages,
       homePageId: snapshot.homePageId,
       lastOpenedPageId: snapshot.lastOpenedPageId,
+      externalWorkspaceRevision,
       getPage,
       setLastOpenedPageId,
       resolveOpenPageId,
@@ -199,6 +233,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       snapshot.pages,
       snapshot.homePageId,
       snapshot.lastOpenedPageId,
+      externalWorkspaceRevision,
       getPage,
       setLastOpenedPageId,
       resolveOpenPageId,
