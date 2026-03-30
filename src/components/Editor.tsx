@@ -4,6 +4,7 @@ import Block from "./Block";
 import type { Block as BlockType } from "../types/block";
 import { v4 as uuidv4 } from "uuid";
 import SlashMenu from "./SlashMenu";
+import { SLASH_MENU_ITEMS } from "../lib/slashMenuOptions";
 
 type Props = {
   pageId: string;
@@ -89,22 +90,19 @@ export default function Editor({
       const blockId = menuBlockId;
       const ed = editorByBlockId.current.get(blockId);
       if (ed && !ed.isDestroyed) {
-        const chain = ed.chain().focus().command(({ tr, state }) => {
-          const { from, $from } = state.selection;
-          const blockStart = $from.start();
-          if (from <= blockStart) return false;
-          const textBefore = state.doc.textBetween(blockStart, from);
-          const m = textBefore.match(/\/[^ \n]*$/);
-          if (!m) return false;
-          tr.delete(from - m[0].length, from);
-          return true;
-        });
-        if (type === "heading") {
-          chain.setHeading({ level: 1 });
-        } else {
-          chain.setParagraph();
-        }
-        chain.run();
+        ed.chain()
+          .focus()
+          .command(({ tr, state }) => {
+            const { from, $from } = state.selection;
+            const blockStart = $from.start();
+            if (from <= blockStart) return false;
+            const textBefore = state.doc.textBetween(blockStart, from);
+            const m = textBefore.match(/\/[^ \n]*$/);
+            if (!m) return false;
+            tr.delete(from - m[0].length, from);
+            return true;
+          })
+          .run();
       }
       updateBlockType(blockId, type);
       requestAnimationFrame(() => {
@@ -150,26 +148,24 @@ export default function Editor({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!showMenu) return;
 
-      const options = ["paragraph", "heading"] as const satisfies readonly BlockType["type"][];
+      const n = SLASH_MENU_ITEMS.length;
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
         e.stopPropagation();
-        setSelectedIndex((prev) => (prev + 1) % options.length);
+        setSelectedIndex((prev) => (prev + 1) % n);
       }
 
       if (e.key === "ArrowUp") {
         e.preventDefault();
         e.stopPropagation();
-        setSelectedIndex((prev) =>
-          prev === 0 ? options.length - 1 : prev - 1
-        );
+        setSelectedIndex((prev) => (prev === 0 ? n - 1 : prev - 1));
       }
 
       if (e.key === "Enter") {
         e.preventDefault();
         e.stopPropagation();
-        applySlashCommand(options[selectedIndex]);
+        applySlashCommand(SLASH_MENU_ITEMS[selectedIndex].type);
       }
 
       if (e.key === "Escape") {

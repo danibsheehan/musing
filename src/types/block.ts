@@ -1,4 +1,12 @@
-export type BlockType = "paragraph" | "heading";
+export type BlockType =
+  | "paragraph"
+  | "heading"
+  | "heading2"
+  | "blockquote"
+  | "codeBlock"
+  | "bulletList"
+  | "orderedList"
+  | "horizontalRule";
 
 export type Block = {
   id: string;

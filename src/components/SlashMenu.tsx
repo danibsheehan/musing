@@ -1,4 +1,5 @@
 import type { BlockType } from "../types/block";
+import { SLASH_MENU_ITEMS } from "../lib/slashMenuOptions";
 
 type Props = {
     position: { top: number; left: number };
@@ -7,8 +8,6 @@ type Props = {
 };
 
 export default function SlashMenu({ onSelect, position, selectedIndex }: Props) {
-    const options = ["paragraph", "heading"] as const satisfies readonly BlockType[];
-
     return (
         <div
             onMouseDown={(e) => e.preventDefault()}
@@ -24,10 +23,10 @@ export default function SlashMenu({ onSelect, position, selectedIndex }: Props) 
                 zIndex: 1000,
             }}
         >
-            {options.map((option, index) => (
+            {SLASH_MENU_ITEMS.map((item, index) => (
                 <div
-                    key={option}
-                    onClick={() => onSelect(option)}
+                    key={item.type}
+                    onClick={() => onSelect(item.type)}
                     style={{
                         padding: "4px 8px",
                         backgroundColor: selectedIndex === index ? "#eee" : "transparent",
@@ -35,7 +34,7 @@ export default function SlashMenu({ onSelect, position, selectedIndex }: Props) 
                         cursor: "pointer",
                     }}
                 >
-                    {option}
+                    {item.label}
                 </div>
             ))}
         </div>

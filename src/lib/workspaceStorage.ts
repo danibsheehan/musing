@@ -27,12 +27,24 @@ function seedWorkspace(): WorkspaceSnapshot {
   };
 }
 
+const VALID_BLOCK_TYPES = new Set<Block["type"]>([
+  "paragraph",
+  "heading",
+  "heading2",
+  "blockquote",
+  "codeBlock",
+  "bulletList",
+  "orderedList",
+  "horizontalRule",
+]);
+
 function isValidBlock(b: unknown): b is Block {
   if (typeof b !== "object" || b === null) return false;
   const x = b as Record<string, unknown>;
   return (
     typeof x.id === "string" &&
-    (x.type === "paragraph" || x.type === "heading") &&
+    typeof x.type === "string" &&
+    VALID_BLOCK_TYPES.has(x.type as Block["type"]) &&
     typeof x.content === "string"
   );
 }

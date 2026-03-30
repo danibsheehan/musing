@@ -1,6 +1,7 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import type { Editor as TiptapEditor } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
+import { applyBlockTypeToEditor } from "../lib/blockEditorCommands";
 import type { Block as BlockType } from "../types/block";
 
 import { useCallback, useEffect, useRef } from "react";
@@ -44,6 +45,8 @@ export default function Block({
     setMenuPosition,
 }: Props) {
     const menuBlockIdRef = useRef(menuBlockId);
+    const prevBlockTypeRef = useRef<{ id: string; type: BlockType["type"] } | null>(null);
+    const editorRef = useRef<TiptapEditor | null>(null);
 
     useEffect(() => {
         menuBlockIdRef.current = menuBlockId;
@@ -110,6 +113,18 @@ export default function Block({
                             event.preventDefault();
                             return true;
                         }
+                        const ed = editorRef.current;
+                        if (
+                            ed &&
+                            !ed.isDestroyed &&
+                            (ed.isActive("codeBlock") ||
+                                ed.isActive("bulletList") ||
+                                ed.isActive("orderedList") ||
+                                ed.isActive("blockquote") ||
+                                ed.isActive("horizontalRule"))
+                        ) {
+                            return false;
+                        }
                         event.preventDefault();
                         onEnter(block.id);
                         return true;
@@ -133,13 +148,20 @@ export default function Block({
 
     useEffect(() => {
         if (!editor) return;
-
-        if (block.type === "heading") {
-            editor.commands.setHeading({ level: 1 });
-        } else {
-            editor.commands.setParagraph();
+        const prev = prevBlockTypeRef.current;
+        if (
+            prev !== null &&
+            prev.id === block.id &&
+            prev.type !== block.type
+        ) {
+            applyBlockTypeToEditor(editor, block.type);
         }
-    }, [block.type, editor]);
+        prevBlockTypeRef.current = { id: block.id, type: block.type };
+    }, [block.type, block.id, editor]);
+
+    useEffect(() => {
+        editorRef.current = editor ?? null;
+    }, [editor]);
 
     useEffect(() => {
         if (!editor) return;
