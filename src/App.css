@@ -344,3 +344,21 @@
   border-top: 1px solid var(--border);
   margin: 1em 0;
 }
+
+.editor-content a.wiki-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  text-underline-offset: 0.12em;
+}
+
+.editor-content a.wiki-link:hover {
+  text-decoration-color: var(--accent);
+}
+
+.editor-content span.wiki-link-missing {
+  color: var(--text);
+  opacity: 0.55;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.12em;
+}

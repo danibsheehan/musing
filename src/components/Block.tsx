@@ -3,8 +3,11 @@ import type { Editor as TiptapEditor } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import { applyBlockTypeToEditor } from "../lib/blockEditorCommands";
 import type { Block as BlockType } from "../types/block";
+import { WikiLink } from "../extensions/wikiLink";
+import { useWorkspace } from "../context/useWorkspace";
+import { useNavigate } from "react-router-dom";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 /** True when the caret is right after `/` or still typing the slash-query (e.g. `/p`), without a closing space. */
 function isSlashMenuOpen(editor: TiptapEditor): boolean {
@@ -15,10 +18,20 @@ function isSlashMenuOpen(editor: TiptapEditor): boolean {
     return /\/[^ \n]*$/.test(textBefore);
 }
 
+/** `@query` at end of block text (Obsidian-style page link picker). */
+function isPagePickerOpen(editor: TiptapEditor): boolean {
+    const { from, $from } = editor.state.selection;
+    const start = $from.start();
+    if (from <= start) return false;
+    const textBefore = editor.state.doc.textBetween(start, from);
+    return /@([^ \n]*)$/.test(textBefore);
+}
+
 type Props = {
     pageId: string;
     block: BlockType;
     menuBlockId: string | null;
+    pagePickerBlockId: string | null;
     onContentChange: (id: string, content: string) => void;
     onEnter: (id: string) => void;
     onBackspace: (id: string) => void;
@@ -28,12 +41,20 @@ type Props = {
     setShowMenu: (show: boolean) => void;
     setMenuBlockId: (id: string | null) => void;
     setMenuPosition: (pos: { top: number; left: number } | null) => void;
+    setShowPagePicker: (show: boolean) => void;
+    setPagePickerBlockId: (id: string | null) => void;
+    setPagePickerPosition: (pos: { top: number; left: number } | null) => void;
+    setPagePickerQuery: (query: string) => void;
+    closePagePickerMenu: () => void;
+    closeSlashMenu: () => void;
+    otherPageCount: number;
 };
 
 export default function Block({
     pageId,
     block,
     menuBlockId,
+    pagePickerBlockId,
     onContentChange,
     onEnter,
     onBackspace,
@@ -43,14 +64,41 @@ export default function Block({
     setShowMenu,
     setMenuBlockId,
     setMenuPosition,
+    setShowPagePicker,
+    setPagePickerBlockId,
+    setPagePickerPosition,
+    setPagePickerQuery,
+    closePagePickerMenu,
+    closeSlashMenu,
+    otherPageCount,
 }: Props) {
+    const navigate = useNavigate();
+    const { pages } = useWorkspace();
+    /** TipTap reads this from input rules only, not during React render. */
+    const pagesBox = useRef(pages);
+    useEffect(() => {
+        pagesBox.current = pages;
+    }, [pages]);
+
+    const wikiLinkExtension = useMemo(() => {
+        // eslint-disable-next-line react-hooks/refs -- getPages runs in TipTap input rules only
+        return WikiLink.configure({
+            getPages: () => pagesBox.current,
+        });
+    }, []);
+
     const menuBlockIdRef = useRef(menuBlockId);
+    const pagePickerBlockIdRef = useRef(pagePickerBlockId);
     const prevBlockTypeRef = useRef<{ id: string; type: BlockType["type"] } | null>(null);
     const editorRef = useRef<TiptapEditor | null>(null);
 
     useEffect(() => {
         menuBlockIdRef.current = menuBlockId;
     }, [menuBlockId]);
+
+    useEffect(() => {
+        pagePickerBlockIdRef.current = pagePickerBlockId;
+    }, [pagePickerBlockId]);
 
     const slashMenuRaf = useRef(0);
 
@@ -61,6 +109,7 @@ export default function Block({
                 if (ed.isDestroyed) return;
                 const open = isSlashMenuOpen(ed);
                 if (open) {
+                    closePagePickerMenu();
                     const { from, $from } = ed.state.selection;
                     const blockStart = $from.start();
                     const textBefore = ed.state.doc.textBetween(blockStart, from);
@@ -81,7 +130,68 @@ export default function Block({
                 }
             });
         },
-        [block.id, setMenuBlockId, setMenuPosition, setShowMenu]
+        [
+            block.id,
+            closePagePickerMenu,
+            setMenuBlockId,
+            setMenuPosition,
+            setShowMenu,
+        ]
+    );
+
+    const pagePickerRaf = useRef(0);
+
+    const queuePagePickerSync = useCallback(
+        (ed: TiptapEditor) => {
+            cancelAnimationFrame(pagePickerRaf.current);
+            pagePickerRaf.current = requestAnimationFrame(() => {
+                if (ed.isDestroyed) return;
+                if (otherPageCount === 0) {
+                    if (pagePickerBlockIdRef.current === block.id) {
+                        setShowPagePicker(false);
+                        setPagePickerBlockId(null);
+                        setPagePickerPosition(null);
+                    }
+                    return;
+                }
+                const open = isPagePickerOpen(ed);
+                if (open) {
+                    closeSlashMenu();
+                    const { from, $from } = ed.state.selection;
+                    const blockStart = $from.start();
+                    const textBefore = ed.state.doc.textBetween(blockStart, from);
+                    const m = textBefore.match(/@([^ \n]*)$/);
+                    if (!m) return;
+                    const atPos = from - m[0].length;
+                    const coords = ed.view.coordsAtPos(atPos);
+                    setPagePickerPosition({
+                        top: coords.bottom + 4,
+                        left: coords.left,
+                    });
+                    setPagePickerQuery(m[1] ?? "");
+                    setShowPagePicker(true);
+                    setPagePickerBlockId(block.id);
+                } else if (pagePickerBlockIdRef.current === block.id) {
+                    setShowPagePicker(false);
+                    setPagePickerBlockId(null);
+                    setPagePickerPosition(null);
+                }
+            });
+        },
+        [
+            block.id,
+            closeSlashMenu,
+            otherPageCount,
+            setPagePickerBlockId,
+            setPagePickerPosition,
+            setPagePickerQuery,
+            setShowPagePicker,
+        ]
+    );
+
+    useEffect(
+        () => () => cancelAnimationFrame(pagePickerRaf.current),
+        []
     );
 
     useEffect(
@@ -97,19 +207,42 @@ export default function Block({
                         levels: [1, 2],
                     },
                 }),
+                wikiLinkExtension,
             ],
             content: block.content,
             onUpdate: ({ editor }) => {
                 onContentChange(block.id, editor.getHTML());
                 queueSlashMenuSync(editor);
+                queuePagePickerSync(editor);
             },
             onSelectionUpdate: ({ editor }) => {
                 queueSlashMenuSync(editor);
+                queuePagePickerSync(editor);
             },
             editorProps: {
+                handleClick(_view, _pos, event) {
+                    if (event.button !== 0) return false;
+                    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                        return false;
+                    }
+                    const target = event.target as HTMLElement | null;
+                    const a = target?.closest?.("a.wiki-link");
+                    if (a instanceof HTMLAnchorElement) {
+                        const href = a.getAttribute("href");
+                        if (href?.startsWith("/page/")) {
+                            event.preventDefault();
+                            navigate(href);
+                            return true;
+                        }
+                    }
+                    return false;
+                },
                 handleKeyDown(view, event) {
                     if (event.key === "Enter") {
-                        if (menuBlockIdRef.current === block.id) {
+                        if (
+                            menuBlockIdRef.current === block.id ||
+                            pagePickerBlockIdRef.current === block.id
+                        ) {
                             event.preventDefault();
                             return true;
                         }
@@ -143,7 +276,7 @@ export default function Block({
                 },
             },
         },
-        [pageId, block.id]
+        [pageId, block.id, wikiLinkExtension, navigate]
     );
 
     useEffect(() => {
