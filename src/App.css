@@ -41,6 +41,11 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text);
+  text-decoration: none;
+}
+
+.sidebar-brand:hover {
+  color: var(--accent);
 }
 
 .sidebar-new-page {

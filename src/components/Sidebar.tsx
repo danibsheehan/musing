@@ -174,7 +174,9 @@ export default function Sidebar() {
   return (
     <aside className="app-sidebar">
       <div className="sidebar-header">
-        <span className="sidebar-brand">Pages</span>
+        <NavLink to="/" className="sidebar-brand" end>
+          Pages
+        </NavLink>
         <button
           type="button"
           className="sidebar-new-page"

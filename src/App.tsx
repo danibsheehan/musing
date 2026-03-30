@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import AppLayout from "./components/AppLayout";
 import HomeRedirect from "./components/HomeRedirect";
 import PageView from "./components/PageView";
@@ -11,6 +11,7 @@ function App() {
         <Route element={<AppLayout />}>
           <Route index element={<HomeRedirect />} />
           <Route path="page/:pageId" element={<PageView />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </main>

@@ -30,7 +30,7 @@ export default function PageView() {
   return (
     <div className="page-view">
       <PageChrome
-        key={page.id}
+        key={`${page.id}:${page.title}`}
         page={page}
         ancestors={breadcrumbAncestors}
         onTitleCommit={(title) => updatePageTitle(page.id, title)}
