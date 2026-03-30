@@ -2,15 +2,28 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { v4 as uuidv4 } from "uuid";
 import type { Page, WorkspaceSnapshot } from "../types/page";
 import type { Block } from "../types/block";
+import type { WorkspaceDatabase } from "../types/database";
 import { createEmptyBlocks } from "../lib/defaultBlocks";
+import { createWorkspaceDatabase } from "../lib/databaseFactory";
+import { parseDatabaseEmbedPayload } from "../lib/databaseEmbed";
 import {
   loadWorkspace,
   parseWorkspaceJson,
   saveWorkspace,
   STORAGE_KEY,
 } from "../lib/workspaceStorage";
+import { getSupabase, isSupabaseConfigured } from "../lib/supabaseClient";
+import {
+  fetchWorkspaceRow,
+  snapshotFromRemoteJson,
+  upsertWorkspaceRow,
+} from "../lib/supabaseWorkspace";
 import { siblingsOf, subtreeIds, ancestryChain } from "../lib/workspaceTree";
-import { WorkspaceContext, type WorkspaceContextValue } from "./workspace-context";
+import {
+  WorkspaceContext,
+  type RemoteSyncStatus,
+  type WorkspaceContextValue,
+} from "./workspace-context";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -23,7 +36,15 @@ function persist(snapshot: WorkspaceSnapshot) {
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [snapshot, setSnapshot] = useState<WorkspaceSnapshot>(() => loadWorkspace());
   const [externalWorkspaceRevision, setExternalWorkspaceRevision] = useState(0);
+  const [remoteSyncStatus, setRemoteSyncStatus] = useState<RemoteSyncStatus>(() =>
+    isSupabaseConfigured() ? "connecting" : "disabled"
+  );
+  const [remoteSyncError, setRemoteSyncError] = useState<string | null>(null);
+
   const snapshotRef = useRef(snapshot);
+  const remoteReadyRef = useRef(false);
+  const remoteUserIdRef = useRef<string | null>(null);
+  const remoteSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     snapshotRef.current = snapshot;
@@ -51,13 +72,107 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  const commit = useCallback((updater: (prev: WorkspaceSnapshot) => WorkspaceSnapshot) => {
-    setSnapshot((prev) => {
-      const next = updater(prev);
-      persist(next);
-      return next;
-    });
+  const scheduleRemoteSave = useCallback(() => {
+    if (!isSupabaseConfigured() || !remoteReadyRef.current) return;
+    const uid = remoteUserIdRef.current;
+    if (!uid) return;
+    if (remoteSaveTimerRef.current) clearTimeout(remoteSaveTimerRef.current);
+    remoteSaveTimerRef.current = setTimeout(() => {
+      remoteSaveTimerRef.current = null;
+      void (async () => {
+        try {
+          const client = getSupabase();
+          await upsertWorkspaceRow(client, uid, snapshotRef.current);
+          setRemoteSyncError(null);
+          setRemoteSyncStatus("synced");
+        } catch (e) {
+          setRemoteSyncStatus("error");
+          setRemoteSyncError(e instanceof Error ? e.message : "Cloud save failed");
+        }
+      })();
+    }, 800);
   }, []);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+
+    let cancelled = false;
+    const client = getSupabase();
+
+    remoteReadyRef.current = false;
+
+    void (async () => {
+      try {
+        const {
+          data: { session },
+        } = await client.auth.getSession();
+        let s = session;
+        if (!s) {
+          const { data, error } = await client.auth.signInAnonymously();
+          if (error || !data.session) {
+            if (!cancelled) {
+              setRemoteSyncStatus("error");
+              setRemoteSyncError(
+                error?.message ?? "Anonymous sign-in failed. Enable it under Authentication → Providers in Supabase."
+              );
+            }
+            return;
+          }
+          s = data.session;
+        }
+
+        if (!s?.user || cancelled) return;
+        remoteUserIdRef.current = s.user.id;
+
+        const row = await fetchWorkspaceRow(client, s.user.id);
+        if (cancelled) return;
+
+        if (row?.snapshot != null) {
+          const snap = snapshotFromRemoteJson(row.snapshot);
+          if (snap) {
+            setSnapshot(snap);
+            saveWorkspace(snap);
+            setExternalWorkspaceRevision((n) => n + 1);
+          }
+        } else {
+          await upsertWorkspaceRow(client, s.user.id, snapshotRef.current);
+        }
+
+        if (!cancelled) {
+          remoteReadyRef.current = true;
+          setRemoteSyncStatus("synced");
+          setRemoteSyncError(null);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setRemoteSyncStatus("error");
+          setRemoteSyncError(e instanceof Error ? e.message : "Cloud sync failed");
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (remoteSaveTimerRef.current) {
+        clearTimeout(remoteSaveTimerRef.current);
+        remoteSaveTimerRef.current = null;
+      }
+      remoteReadyRef.current = false;
+      remoteUserIdRef.current = null;
+    };
+  }, []);
+
+  const commit = useCallback(
+    (updater: (prev: WorkspaceSnapshot) => WorkspaceSnapshot) => {
+      setSnapshot((prev) => {
+        const next = updater(prev);
+        persist(next);
+        scheduleRemoteSave();
+        return next;
+      });
+    },
+    [scheduleRemoteSave]
+  );
 
   const getPage = useCallback(
     (id: string) => snapshot.pages.find((p) => p.id === id),
@@ -83,12 +198,22 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const updatePageTitle = useCallback(
     (id: string, title: string) => {
       const trimmed = title.trim() || "Untitled";
-      commit((prev) => ({
-        ...prev,
-        pages: prev.pages.map((p) =>
-          p.id === id ? { ...p, title: trimmed, updatedAt: nowIso() } : p
-        ),
-      }));
+      commit((prev) => {
+        const page = prev.pages.find((p) => p.id === id);
+        const dbId = page?.databaseId ?? null;
+        return {
+          ...prev,
+          pages: prev.pages.map((p) =>
+            p.id === id ? { ...p, title: trimmed, updatedAt: nowIso() } : p
+          ),
+          databases:
+            dbId != null
+              ? prev.databases.map((d) =>
+                  d.id === dbId ? { ...d, title: trimmed } : d
+                )
+              : prev.databases,
+        };
+      });
     },
     [commit]
   );
@@ -118,6 +243,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           parentId,
           order: nextOrder,
           updatedAt: nowIso(),
+          layout: "document",
+          databaseId: null,
           blocks: createEmptyBlocks(),
         };
         return {
@@ -131,6 +258,54 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     [commit]
   );
 
+  const createDatabasePage = useCallback(
+    (parentId: string | null): string => {
+      const dbId = uuidv4();
+      const pageId = uuidv4();
+      const db = createWorkspaceDatabase(dbId);
+      commit((prev) => {
+        const sibs = siblingsOf(prev.pages, parentId);
+        const nextOrder =
+          sibs.length === 0 ? 0 : Math.max(...sibs.map((p) => p.order)) + 1;
+        const page: Page = {
+          id: pageId,
+          title: db.title,
+          parentId,
+          order: nextOrder,
+          updatedAt: nowIso(),
+          layout: "database",
+          databaseId: dbId,
+          blocks: createEmptyBlocks(),
+        };
+        return {
+          ...prev,
+          pages: [...prev.pages, page],
+          databases: [...prev.databases, db],
+          lastOpenedPageId: pageId,
+        };
+      });
+      return pageId;
+    },
+    [commit]
+  );
+
+  const getDatabase = useCallback(
+    (databaseId: string) => snapshot.databases.find((d) => d.id === databaseId),
+    [snapshot.databases]
+  );
+
+  const updateDatabase = useCallback(
+    (databaseId: string, updater: (prev: WorkspaceDatabase) => WorkspaceDatabase) => {
+      commit((prev) => ({
+        ...prev,
+        databases: prev.databases.map((d) =>
+          d.id === databaseId ? updater(d) : d
+        ),
+      }));
+    },
+    [commit]
+  );
+
   const deletePageSubtree = useCallback(
     (id: string): { removedIds: Set<string>; fallbackPageId: string | null } => {
       const removed = subtreeIds(snapshot.pages, id);
@@ -139,7 +314,27 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       commit((prev) => {
         const target = prev.pages.find((p) => p.id === id);
         const parentId = target?.parentId ?? null;
-        const remaining = prev.pages.filter((p) => !removed.has(p.id));
+        const removedDbIds = new Set<string>();
+        for (const rid of removed) {
+          const pg = prev.pages.find((p) => p.id === rid);
+          if (pg?.layout === "database" && pg.databaseId) {
+            removedDbIds.add(pg.databaseId);
+          }
+        }
+
+        let remaining = prev.pages.filter((p) => !removed.has(p.id));
+        remaining = remaining.map((page) => ({
+          ...page,
+          blocks: page.blocks.map((b) => {
+            if (b.type !== "databaseEmbed") return b;
+            const pl = parseDatabaseEmbedPayload(b.content);
+            if (!pl || removedDbIds.has(pl.databaseId)) {
+              return { ...b, type: "paragraph" as const, content: "<p></p>" };
+            }
+            return b;
+          }),
+        }));
+
         if (remaining.length === 0) return prev;
 
         const pickFallback = (): string | null => {
@@ -160,9 +355,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           lastOpened = fallbackPageId;
         }
 
+        const databases = prev.databases.filter((d) => !removedDbIds.has(d.id));
+
         return {
           ...prev,
           pages: remaining,
+          databases,
           homePageId,
           lastOpenedPageId: lastOpened,
         };
@@ -215,15 +413,21 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const value = useMemo<WorkspaceContextValue>(
     () => ({
       pages: snapshot.pages,
+      databases: snapshot.databases,
       homePageId: snapshot.homePageId,
       lastOpenedPageId: snapshot.lastOpenedPageId,
       externalWorkspaceRevision,
+      remoteSyncStatus,
+      remoteSyncError,
       getPage,
+      getDatabase,
       setLastOpenedPageId,
       resolveOpenPageId,
       updatePageTitle,
       updatePageBlocks,
+      updateDatabase,
       createPage,
+      createDatabasePage,
       deletePageSubtree,
       movePageWithinSiblings,
       ancestryFor,
@@ -231,15 +435,21 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }),
     [
       snapshot.pages,
+      snapshot.databases,
       snapshot.homePageId,
       snapshot.lastOpenedPageId,
       externalWorkspaceRevision,
+      remoteSyncStatus,
+      remoteSyncError,
       getPage,
+      getDatabase,
       setLastOpenedPageId,
       resolveOpenPageId,
       updatePageTitle,
       updatePageBlocks,
+      updateDatabase,
       createPage,
+      createDatabasePage,
       deletePageSubtree,
       movePageWithinSiblings,
       ancestryFor,

@@ -29,6 +29,8 @@ export function applyBlockTypeToEditor(editor: Editor, type: BlockType): void {
     case "horizontalRule":
       chain.setHorizontalRule();
       break;
+    case "databaseEmbed":
+      return;
   }
   chain.run();
 }

@@ -15,6 +15,40 @@
   align-items: stretch;
 }
 
+.app-main-header {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 0 0.35rem;
+  margin-bottom: -0.25rem;
+}
+
+.remote-sync-badge {
+  font-size: 0.72rem;
+  color: var(--text-muted, #666);
+  max-width: 100%;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remote-sync-synced {
+  color: var(--text-muted, #666);
+}
+
+.remote-sync-connecting {
+  color: var(--accent, #0366d6);
+}
+
+.remote-sync-error {
+  color: #b42318;
+}
+
+.remote-sync-detail {
+  font-weight: 400;
+}
+
 .app-sidebar {
   width: 260px;
   flex-shrink: 0;
@@ -29,10 +63,16 @@
 
 .sidebar-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   gap: 0.5rem;
   padding: 0.15rem 0.25rem 0.5rem;
+}
+
+.sidebar-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
 }
 
 .sidebar-brand {
@@ -48,20 +88,180 @@
   color: var(--accent);
 }
 
-.sidebar-new-page {
+.sidebar-new-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.sidebar-new-dropdown[open] > .sidebar-new-summary {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.sidebar-new-summary {
   font: inherit;
   font-size: 0.8rem;
+  list-style: none;
   padding: 0.35em 0.65em;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text-h);
   cursor: pointer;
+  text-align: center;
 }
 
-.sidebar-new-page:hover {
+.sidebar-new-summary::-webkit-details-marker {
+  display: none;
+}
+
+.sidebar-new-summary:hover {
   border-color: var(--accent-border);
   background: var(--accent-bg);
+}
+
+.sidebar-new-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin-top: 0.35rem;
+  padding: 0.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.sidebar-new-option {
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.sidebar-new-option:hover {
+  background: var(--accent-bg);
+}
+
+.sidebar-new-option-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.sidebar-new-option-hint {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--text-muted, #666);
+  font-weight: 400;
+}
+
+.database-canvas {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 0.5rem 2rem;
+}
+
+.database-table-view {
+  margin-top: 0.5rem;
+}
+
+.database-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.database-table th,
+.database-table td {
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+}
+
+.database-table th {
+  font-weight: 600;
+  background: var(--social-bg);
+}
+
+.database-table-empty {
+  color: var(--text-muted, #666);
+  font-style: italic;
+}
+
+.database-cell-input {
+  width: 100%;
+  min-width: 6rem;
+  font: inherit;
+  border: none;
+  background: transparent;
+  padding: 0.15rem 0;
+  box-sizing: border-box;
+}
+
+.database-cell-input:focus {
+  outline: 1px solid var(--accent-border);
+  outline-offset: 1px;
+}
+
+.database-add-row {
+  margin-top: 0.65rem;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.35em 0.75em;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.database-add-row:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.database-missing,
+.database-embed-broken {
+  color: var(--text-muted, #666);
+  padding: 0.5rem 0;
+}
+
+.database-embed-block {
+  margin: 0.35rem 0;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--social-bg);
+}
+
+.database-embed-focused {
+  outline: 2px solid var(--accent-border);
+  outline-offset: 2px;
+}
+
+.database-embed-toolbar {
+  margin-bottom: 0.35rem;
+}
+
+.database-embed-open-link {
+  font-size: 0.8rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.database-embed-open-link:hover {
+  text-decoration: underline;
 }
 
 .sidebar-tree {
@@ -180,7 +380,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  padding: clamp(1rem, 3vw, 1.75rem) clamp(1rem, 4vw, 2rem);
+  padding: clamp(0.65rem, 2vw, 1rem) clamp(1rem, 4vw, 2rem) clamp(1rem, 3vw, 1.75rem);
 }
 
 .page-view {

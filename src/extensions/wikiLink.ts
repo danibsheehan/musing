@@ -51,11 +51,13 @@ export const WikiLink = Mark.create<WikiLinkOptions>({
         0,
       ];
     }
+    const href = `${import.meta.env.BASE_URL}page/${pageId}`;
+
     return [
       "a",
       mergeAttributes(HTMLAttributes, {
         class: "wiki-link",
-        href: `/page/${pageId}`,
+        href,
         "data-wiki-page-id": pageId,
         rel: "noopener noreferrer",
       }),

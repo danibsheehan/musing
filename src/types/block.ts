@@ -6,7 +6,8 @@ export type BlockType =
   | "codeBlock"
   | "bulletList"
   | "orderedList"
-  | "horizontalRule";
+  | "horizontalRule"
+  | "databaseEmbed";
 
 export type Block = {
   id: string;

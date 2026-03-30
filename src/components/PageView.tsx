@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { useWorkspace } from "../context/useWorkspace";
+import DatabaseCanvas from "./DatabaseCanvas";
 import Editor from "./Editor";
 import PageChrome from "./PageChrome";
 
@@ -37,13 +38,17 @@ export default function PageView() {
         onTitleCommit={(title) => updatePageTitle(page.id, title)}
       />
       <div className="page-editor-wrap">
-        <Editor
-          key={page.id}
-          pageId={page.id}
-          blocks={page.blocks}
-          externalWorkspaceRevision={externalWorkspaceRevision}
-          onBlocksChange={(blocks) => updatePageBlocks(page.id, blocks)}
-        />
+        {page.layout === "database" && page.databaseId ? (
+          <DatabaseCanvas key={page.databaseId} databaseId={page.databaseId} />
+        ) : (
+          <Editor
+            key={page.id}
+            pageId={page.id}
+            blocks={page.blocks}
+            externalWorkspaceRevision={externalWorkspaceRevision}
+            onBlocksChange={(blocks) => updatePageBlocks(page.id, blocks)}
+          />
+        )}
       </div>
     </div>
   );

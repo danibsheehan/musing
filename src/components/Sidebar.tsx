@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
 import { useWorkspace } from "../context/useWorkspace";
 import { subtreeIds } from "../lib/workspaceTree";
@@ -79,7 +79,10 @@ function PageTreeRows({
                     `sidebar-link${isActive ? " sidebar-link-active" : ""}`
                   }
                 >
-                  <span className="sidebar-link-text">{p.title || "Untitled"}</span>
+                  <span className="sidebar-link-text">
+                    {p.layout === "database" ? "▦ " : ""}
+                    {p.title || "Untitled"}
+                  </span>
                 </NavLink>
               )}
               <span className="sidebar-row-actions">
@@ -166,10 +169,16 @@ function PageTreeRows({
 }
 
 export default function Sidebar() {
-  const { createPage } = useWorkspace();
+  const { createPage, createDatabasePage } = useWorkspace();
   const navigate = useNavigate();
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
+  const newMenuRef = useRef<HTMLDetailsElement>(null);
+
+  const closeNewMenu = () => {
+    const el = newMenuRef.current;
+    if (el) el.open = false;
+  };
 
   return (
     <aside className="app-sidebar">
@@ -177,16 +186,43 @@ export default function Sidebar() {
         <NavLink to="/" className="sidebar-brand" end>
           Pages
         </NavLink>
-        <button
-          type="button"
-          className="sidebar-new-page"
-          onClick={() => {
-            const id = createPage(null);
-            navigate(`/page/${id}`);
-          }}
-        >
-          New page
-        </button>
+        <div className="sidebar-header-actions">
+          <details ref={newMenuRef} className="sidebar-new-dropdown">
+            <summary className="sidebar-new-summary" aria-label="Create something new">
+              New
+            </summary>
+            <div className="sidebar-new-panel">
+              <button
+                type="button"
+                className="sidebar-new-option"
+                onClick={() => {
+                  const id = createPage(null);
+                  navigate(`/page/${id}`);
+                  closeNewMenu();
+                }}
+              >
+                <span className="sidebar-new-option-label">Page</span>
+                <span className="sidebar-new-option-hint">
+                  Write with blocks, headings, and lists
+                </span>
+              </button>
+              <button
+                type="button"
+                className="sidebar-new-option"
+                onClick={() => {
+                  const id = createDatabasePage(null);
+                  navigate(`/page/${id}`);
+                  closeNewMenu();
+                }}
+              >
+                <span className="sidebar-new-option-label">Table</span>
+                <span className="sidebar-new-option-hint">
+                  Rows and columns; link this table on other pages
+                </span>
+              </button>
+            </div>
+          </details>
+        </div>
       </div>
       <PageTreeRows
         parentId={null}

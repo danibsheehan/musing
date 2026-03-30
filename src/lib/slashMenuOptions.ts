@@ -21,4 +21,8 @@ const batch2: SlashMenuItem[] = [
   { type: "horizontalRule", label: "Divider" },
 ];
 
-export const SLASH_MENU_ITEMS: SlashMenuItem[] = [...batch1, ...batch2];
+const batch3: SlashMenuItem[] = [
+  { type: "databaseEmbed", label: "Linked database" },
+];
+
+export const SLASH_MENU_ITEMS: SlashMenuItem[] = [...batch1, ...batch2, ...batch3];
