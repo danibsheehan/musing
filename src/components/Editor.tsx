@@ -6,12 +6,12 @@ import { v4 as uuidv4 } from "uuid";
 import SlashMenu from "./SlashMenu";
 
 type Props = {
+  pageId: string;
   blocks: BlockType[];
   onBlocksChange: (blocks: BlockType[]) => void;
 };
 
-export default function Editor({ blocks, onBlocksChange }: Props) {
-
+export default function Editor({ pageId, blocks, onBlocksChange }: Props) {
   const [localBlocks, setLocalBlocks] = useState<BlockType[]>(blocks);
   const [focusedBlockId, setFocusedBlockId] = useState<string | null>(
     blocks[0]?.id ?? null
@@ -175,7 +175,8 @@ export default function Editor({ blocks, onBlocksChange }: Props) {
     <div className="editor-root">
       {localBlocks.map((block) => (
         <Block
-          key={block.id}
+          key={`${pageId}:${block.id}`}
+          pageId={pageId}
           block={block}
           menuBlockId={menuBlockId}
           onContentChange={updateBlockContent}

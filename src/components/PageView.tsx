@@ -38,6 +38,7 @@ export default function PageView() {
       <div className="page-editor-wrap">
         <Editor
           key={page.id}
+          pageId={page.id}
           blocks={page.blocks}
           onBlocksChange={(blocks) => updatePageBlocks(page.id, blocks)}
         />

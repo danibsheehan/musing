@@ -15,6 +15,7 @@ function isSlashMenuOpen(editor: TiptapEditor): boolean {
 }
 
 type Props = {
+    pageId: string;
     block: BlockType;
     menuBlockId: string | null;
     onContentChange: (id: string, content: string) => void;
@@ -29,6 +30,7 @@ type Props = {
 };
 
 export default function Block({
+    pageId,
     block,
     menuBlockId,
     onContentChange,
@@ -126,7 +128,7 @@ export default function Block({
                 },
             },
         },
-        [block.id]
+        [pageId, block.id]
     );
 
     useEffect(() => {
