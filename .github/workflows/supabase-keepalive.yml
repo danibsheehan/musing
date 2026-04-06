@@ -1,0 +1,40 @@
+# Free-tier Supabase projects pause after ~7 days without activity. A short daily
+# request to the Auth health endpoint counts as activity and uses only the public
+# anon key (same values as VITE_* in .env.local). See: Settings → Secrets → Actions.
+
+name: Supabase keepalive
+
+on:
+  schedule:
+    # Daily 06:00 UTC — adjust if you prefer a different window.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Auth health endpoint
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "Skipping keepalive: add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY as repository secrets (same as for Pages builds)."
+            exit 0
+          fi
+          HEALTH_URL="${SUPABASE_URL%/}/auth/v1/health"
+          echo "GET $HEALTH_URL"
+          code=$(curl -sS -o /dev/null -w "%{http_code}" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            "$HEALTH_URL")
+          echo "HTTP $code"
+          if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then
+            exit 0
+          fi
+          echo "Unexpected HTTP status; confirm project URL and anon key in repository secrets."
+          exit 1

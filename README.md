@@ -4,7 +4,7 @@
 
 ## Overview
 
-**musing** is a single-page React app: you edit block-based notes, link pages together, and embed lightweight databases. Data lives in **localStorage** by default. When you add Supabase credentials, the same workspace syncs to the cloud using anonymous sign-in and a JSON snapshot stored per user. The repo includes a GitHub Actions workflow that builds with the correct asset base path for project Pages (`https://<user>.github.io/<repo>/`) and copies `index.html` to `404.html` so client-side routes survive a refresh.
+**musing** is a single-page React app: you edit block-based notes, link pages together, and embed lightweight databases. Data lives in **localStorage** by default. When you add Supabase credentials, the same workspace syncs to the cloud using anonymous sign-in and a JSON snapshot stored per user. The repo includes GitHub Actions workflows: one **deploys** to Pages with the correct asset base path (`https://<user>.github.io/<repo>/`) and copies `index.html` to `404.html` so client-side routes survive a refresh; another **pings** Supabase daily (optional) so a free-tier project is less likely to pause from inactivity.
 
 ## Features
 
@@ -19,7 +19,7 @@
 ## Installation
 
 ```bash
-git clone https://github.com/danibsheehan/musing.git>
+git clone https://github.com/danibsheehan/musing.git
 cd musing
 npm install
 ```
@@ -58,7 +58,7 @@ There is no published npm package; the app is the product.
 | `VITE_SUPABASE_ANON_KEY` | Cloud sync            | Supabase anon (publishable) key |
 | `VITE_BASE_PATH`      | Custom base path in builds | Optional override, e.g. `/custom/` — trailing slash preferred |
 
-Local development uses `.env.local`. **GitHub Actions** should define the same Supabase variables as **repository secrets** if you want sync on the live site.
+Local development uses `.env.local`. **GitHub Actions** should define the same Supabase variables as **repository secrets** if you want sync on the live site or the **Supabase keepalive** workflow to run against your project.
 
 ## Supabase (optional cloud sync)
 
@@ -71,6 +71,18 @@ Without those env vars, the app still runs using **localStorage** only.
 
 If auth misbehaves on the deployed URL, open **Authentication → URL Configuration** in Supabase and set **Site URL** and **Redirect URLs** to your GitHub Pages origin, e.g. `https://<user>.github.io/<repo>/`.
 
+### Keep free-tier projects active (optional)
+
+Supabase can **pause** free-tier projects after roughly a week without activity. The **Supabase keepalive** workflow (`.github/workflows/supabase-keepalive.yml`) sends a daily `GET` to your project’s `/auth/v1/health` endpoint using the **anon** key only—no service role key.
+
+| Item | Detail |
+| ---- | ------ |
+| Secrets | Same as Pages: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. If either is missing, the job **skips** and succeeds so the repo stays green without Supabase. |
+| Schedule | Daily at **06:00 UTC**; edit the `cron` expression in the workflow file to change the time. |
+| Manual run | **Actions** → **Supabase keepalive** → **Run workflow**. |
+
+Scheduled workflows run from the **default branch** (typically `main`). If a repository has no activity for a long time, GitHub may disable scheduled workflows until the repo is active again.
+
 ## Deploy to GitHub Pages
 
 1. Repo **Settings → Pages** → **Build and deployment**: source **GitHub Actions**.
@@ -78,7 +90,7 @@ If auth misbehaves on the deployed URL, open **Authentication → URL Configurat
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
    The build completes without them; the published app then behaves like local dev with no Supabase config (local-only persistence in the browser).
-3. Push to `main`. The **Deploy to GitHub Pages** workflow runs `npm ci`, `npm run build`, copies `dist/index.html` to `dist/404.html`, and publishes `dist`.
+3. Push to `main`. The **Deploy to GitHub Pages** workflow runs `npm ci`, `npm run build`, copies `dist/index.html` to `dist/404.html`, and publishes `dist`. **Supabase keepalive** is scheduled from the default branch as well; it only performs the health ping when both Supabase secrets above are set (otherwise it skips).
 
 For a **user site** (`https://<username>.github.io` from a repo named `<username>.github.io`), `vite.config.ts` uses base path `/` automatically when `GITHUB_ACTIONS` and `GITHUB_REPOSITORY` indicate that naming convention.
 
