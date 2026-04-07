@@ -9,10 +9,38 @@ const PDF_EXPORT_STYLES = `
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
   font-size: 14px;
   line-height: 1.45;
-  color: #111;
+  color: #111827;
   background: #fff;
   padding: 8px 12px;
   max-width: 720px;
+}
+/* Override index.css h1,h2/code (dark theme uses light text) so PDF is always dark-on-light */
+.pdf-root .pdf-block h1,
+.pdf-root .pdf-block h2 {
+  color: #0f172a;
+  font-weight: 600;
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+}
+.pdf-root .pdf-block h1 {
+  font-size: 1.65em;
+  line-height: 1.25;
+  margin: 0.5em 0 0.3em;
+}
+.pdf-root .pdf-block h2 {
+  font-size: 1.3em;
+  line-height: 1.3;
+  margin: 0.45em 0 0.25em;
+}
+.pdf-root .pdf-block p {
+  color: #111827;
+}
+.pdf-root a,
+.pdf-root a:visited {
+  color: #1d4ed8;
+}
+.pdf-root .wiki-link-missing {
+  color: #4b5563;
+  opacity: 1;
 }
 .pdf-page-title {
   font-size: 32px;
@@ -56,14 +84,26 @@ const PDF_EXPORT_STYLES = `
 .pdf-db-embed { overflow-x: auto; }
 .pdf-db-full { margin-top: 0.5rem; }
 .pdf-block pre {
+  color: #1a1a1a;
   background: #f4f3ec;
   padding: 0.65rem 0.85rem;
   border-radius: 4px;
   overflow-x: auto;
   font-size: 0.88em;
 }
+.pdf-block pre code {
+  color: inherit;
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+}
 .pdf-block code {
   font-family: ui-monospace, Consolas, monospace;
+  color: #1a1a1a;
+  background: #f0efea;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
 }
 .pdf-block blockquote {
   margin: 0.5rem 0;
