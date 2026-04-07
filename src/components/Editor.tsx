@@ -13,6 +13,10 @@ import { filterPagesForPicker } from "../lib/resolveWikiPage";
 import { stringifyDatabaseEmbedPayload } from "../lib/databaseEmbed";
 import { useWorkspace } from "../context/useWorkspace";
 
+const BLOCK_DND_MIME = "application/x-musing-block-id";
+
+type DropIndicator = { blockId: string; after: boolean };
+
 type Props = {
   pageId: string;
   blocks: BlockType[];
@@ -53,6 +57,8 @@ export default function Editor({
     left: number;
   } | null>(null);
   const [databasePickerSelectedIndex, setDatabasePickerSelectedIndex] = useState(0);
+
+  const [dropIndicator, setDropIndicator] = useState<DropIndicator | null>(null);
 
   const otherPageCount = useMemo(
     () => pages.filter((p) => p.id !== pageId).length,
@@ -276,6 +282,39 @@ export default function Editor({
     });
   };
 
+  const reorderAfterDrop = useCallback(
+    (fromId: string, toId: string, placeAfter: boolean) => {
+      replaceBlocks((prev) => {
+        const fromIdx = prev.findIndex((b) => b.id === fromId);
+        const toIdx = prev.findIndex((b) => b.id === toId);
+        if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return prev;
+        const copy = [...prev];
+        const [item] = copy.splice(fromIdx, 1);
+        let insertIdx = toIdx;
+        if (fromIdx < toIdx) insertIdx--;
+        if (placeAfter) insertIdx++;
+        copy.splice(insertIdx, 0, item);
+        return copy;
+      });
+    },
+    [replaceBlocks]
+  );
+
+  const moveBlockDelta = useCallback(
+    (id: string, delta: -1 | 1) => {
+      replaceBlocks((prev) => {
+        const i = prev.findIndex((b) => b.id === id);
+        const j = i + delta;
+        if (i === -1 || j < 0 || j >= prev.length) return prev;
+        const copy = [...prev];
+        const [item] = copy.splice(i, 1);
+        copy.splice(j, 0, item);
+        return copy;
+      });
+    },
+    [replaceBlocks]
+  );
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!showMenu) return;
@@ -450,33 +489,110 @@ export default function Editor({
     closeDatabasePicker,
   ]);
 
+  const canReorder = localBlocks.length > 1;
+
   return (
     <div className="editor-root">
-      {localBlocks.map((block) => (
-        <Block
-          key={`${pageId}:${block.id}`}
-          pageId={pageId}
-          block={block}
-          menuBlockId={menuBlockId}
-          pagePickerBlockId={pagePickerBlockId}
-          onContentChange={updateBlockContent}
-          onEnter={addBlockAfter}
-          onBackspace={deleteBlock}
-          isFocused={focusedBlockId === block.id}
-          registerEditor={registerEditor}
-          setFocusedBlockId={setFocusedBlockId}
-          setShowMenu={setShowMenu}
-          setMenuBlockId={setMenuBlockId}
-          setMenuPosition={setMenuPosition}
-          setShowPagePicker={setShowPagePicker}
-          setPagePickerBlockId={setPagePickerBlockId}
-          setPagePickerPosition={setPagePickerPosition}
-          setPagePickerQuery={setPagePickerQuery}
-          closePagePickerMenu={closePagePickerMenu}
-          closeSlashMenu={closeSlashMenu}
-          otherPageCount={otherPageCount}
-        />
-      ))}
+      {localBlocks.map((block, index) => {
+        const rowDropBefore =
+          dropIndicator?.blockId === block.id && !dropIndicator.after;
+        const rowDropAfter =
+          dropIndicator?.blockId === block.id && dropIndicator.after;
+
+        return (
+          <div
+            key={`${pageId}:${block.id}`}
+            className={[
+              "editor-block-row",
+              rowDropBefore ? "editor-block-row--drop-before" : "",
+              rowDropAfter ? "editor-block-row--drop-after" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            onDragOver={(e) => {
+              if (!canReorder) return;
+              const types = Array.from(e.dataTransfer.types);
+              if (
+                !types.includes(BLOCK_DND_MIME) &&
+                !types.includes("text/plain")
+              ) {
+                return;
+              }
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              const rect = e.currentTarget.getBoundingClientRect();
+              const after = e.clientY > rect.top + rect.height / 2;
+              setDropIndicator({ blockId: block.id, after });
+            }}
+            onDragLeave={(e) => {
+              const related = e.relatedTarget as Node | null;
+              if (related && e.currentTarget.contains(related)) return;
+              setDropIndicator(null);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              const fromId =
+                e.dataTransfer.getData(BLOCK_DND_MIME) ||
+                e.dataTransfer.getData("text/plain");
+              if (!fromId || fromId === block.id) {
+                setDropIndicator(null);
+                return;
+              }
+              const rect = e.currentTarget.getBoundingClientRect();
+              const placeAfter = e.clientY > rect.top + rect.height / 2;
+              reorderAfterDrop(fromId, block.id, placeAfter);
+              setDropIndicator(null);
+            }}
+          >
+            <button
+              type="button"
+              className="editor-block-grip"
+              aria-label="Drag to reorder block"
+              title="Drag to reorder (Alt + ↑ / ↓)"
+              disabled={!canReorder}
+              draggable={canReorder}
+              onPointerDown={(ev) => ev.stopPropagation()}
+              onDragStart={(e) => {
+                e.dataTransfer.setData(BLOCK_DND_MIME, block.id);
+                e.dataTransfer.setData("text/plain", block.id);
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              onDragEnd={() => setDropIndicator(null)}
+            >
+              <span className="editor-block-grip-icon" aria-hidden>
+                ⋮⋮
+              </span>
+            </button>
+            <div className="editor-block-body">
+              <Block
+                pageId={pageId}
+                block={block}
+                menuBlockId={menuBlockId}
+                pagePickerBlockId={pagePickerBlockId}
+                onContentChange={updateBlockContent}
+                onEnter={addBlockAfter}
+                onBackspace={deleteBlock}
+                isFocused={focusedBlockId === block.id}
+                registerEditor={registerEditor}
+                setFocusedBlockId={setFocusedBlockId}
+                setShowMenu={setShowMenu}
+                setMenuBlockId={setMenuBlockId}
+                setMenuPosition={setMenuPosition}
+                setShowPagePicker={setShowPagePicker}
+                setPagePickerBlockId={setPagePickerBlockId}
+                setPagePickerPosition={setPagePickerPosition}
+                setPagePickerQuery={setPagePickerQuery}
+                closePagePickerMenu={closePagePickerMenu}
+                closeSlashMenu={closeSlashMenu}
+                otherPageCount={otherPageCount}
+                canMoveUp={index > 0}
+                canMoveDown={index < localBlocks.length - 1}
+                onMoveBlockDelta={moveBlockDelta}
+              />
+            </div>
+          </div>
+        );
+      })}
 
       {showMenu && menuBlockId && menuPosition && (
         <div ref={slashMenuRef}>

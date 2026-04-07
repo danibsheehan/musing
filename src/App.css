@@ -238,7 +238,7 @@
 }
 
 .database-embed-block {
-  margin: 0.35rem 0;
+  margin: 0.0625rem 0;
   padding: 0.5rem;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -450,6 +450,69 @@
   margin: 0 auto;
   position: relative;
   width: 100%;
+  min-height: calc(70vh - 5rem);
+}
+
+.editor-block-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.2rem;
+  border-radius: 6px;
+  transition: box-shadow 0.08s ease;
+}
+
+.editor-block-row--drop-before {
+  box-shadow: 0 -2px 0 0 var(--accent);
+}
+
+.editor-block-row--drop-after {
+  box-shadow: 0 2px 0 0 var(--accent);
+}
+
+.editor-block-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.editor-block-grip {
+  flex-shrink: 0;
+  width: 1.4rem;
+  margin-top: 0.48rem;
+  padding: 0.15rem 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted, #888);
+  cursor: grab;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+.editor-block-row:hover .editor-block-grip:not(:disabled),
+.editor-block-grip:focus-visible {
+  opacity: 1;
+}
+
+.editor-block-grip:hover:not(:disabled) {
+  background: var(--code-bg, rgba(0, 0, 0, 0.06));
+  color: var(--text-h);
+}
+
+.editor-block-grip:active:not(:disabled) {
+  cursor: grabbing;
+}
+
+.editor-block-grip:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+.editor-block-grip-icon {
+  display: block;
+  font-size: 0.65rem;
+  letter-spacing: -0.12em;
+  user-select: none;
 }
 
 .editor-content {
@@ -457,14 +520,13 @@
   width: 100%;
   max-width: 42rem;
   margin: 0 auto;
-  min-height: 70vh;
-  padding: 1rem 0.25rem;
+  padding: 0.125rem 0.25rem;
   color: var(--text-h);
   caret-color: var(--accent);
 }
 
 .editor-content .ProseMirror {
-  min-height: 1.35em;
+  min-height: 1.3em;
 }
 
 .editor-content .ProseMirror:focus {
@@ -472,11 +534,12 @@
 }
 
 .editor-content p {
-  margin: 0 0 0.85em;
+  margin: 0;
+  min-height: 1.5em;
 }
 
-.editor-content p:last-child {
-  margin-bottom: 0;
+.editor-content p + p {
+  margin-top: 0.35em;
 }
 
 .editor-content h1,
@@ -484,7 +547,7 @@
 .editor-content h3 {
   font-weight: 600;
   line-height: 1.25;
-  margin: 1.25em 0 0.5em;
+  margin: 0.75em 0 0.2em;
 }
 
 .editor-content h1:first-child,
@@ -507,12 +570,12 @@
 
 .editor-content ul,
 .editor-content ol {
-  margin: 0 0 0.85em;
+  margin: 0.2em 0;
   padding-left: 1.35em;
 }
 
 .editor-content blockquote {
-  margin: 0 0 0.85em;
+  margin: 0.2em 0;
   padding-left: 1em;
   border-left: 3px solid var(--border);
   color: var(--text);
@@ -527,7 +590,7 @@
 }
 
 .editor-content pre {
-  margin: 0 0 0.85em;
+  margin: 0.25em 0;
   padding: 0.75em 1em;
   border-radius: 6px;
   background: var(--code-bg);

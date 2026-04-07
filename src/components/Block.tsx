@@ -49,6 +49,9 @@ type DocumentBlockProps = {
   closePagePickerMenu: () => void;
   closeSlashMenu: () => void;
   otherPageCount: number;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMoveBlockDelta: (id: string, delta: -1 | 1) => void;
 };
 
 function DocumentBlock({
@@ -72,6 +75,9 @@ function DocumentBlock({
   closePagePickerMenu,
   closeSlashMenu,
   otherPageCount,
+  canMoveUp,
+  canMoveDown,
+  onMoveBlockDelta,
 }: DocumentBlockProps) {
   const navigate = useNavigate();
   const { pages } = useWorkspace();
@@ -90,6 +96,8 @@ function DocumentBlock({
 
   const menuBlockIdRef = useRef(menuBlockId);
   const pagePickerBlockIdRef = useRef(pagePickerBlockId);
+  const canMoveUpRef = useRef(canMoveUp);
+  const canMoveDownRef = useRef(canMoveDown);
   const prevBlockTypeRef = useRef<{ id: string; type: BlockType["type"] } | null>(null);
   const editorRef = useRef<TiptapEditor | null>(null);
 
@@ -100,6 +108,14 @@ function DocumentBlock({
   useEffect(() => {
     pagePickerBlockIdRef.current = pagePickerBlockId;
   }, [pagePickerBlockId]);
+
+  useEffect(() => {
+    canMoveUpRef.current = canMoveUp;
+  }, [canMoveUp]);
+
+  useEffect(() => {
+    canMoveDownRef.current = canMoveDown;
+  }, [canMoveDown]);
 
   const slashMenuRaf = useRef(0);
 
@@ -239,6 +255,19 @@ function DocumentBlock({
           return false;
         },
         handleKeyDown(view, event) {
+          if (event.altKey && !event.metaKey && !event.ctrlKey) {
+            if (event.key === "ArrowUp" && canMoveUpRef.current) {
+              event.preventDefault();
+              onMoveBlockDelta(block.id, -1);
+              return true;
+            }
+            if (event.key === "ArrowDown" && canMoveDownRef.current) {
+              event.preventDefault();
+              onMoveBlockDelta(block.id, 1);
+              return true;
+            }
+          }
+
           if (event.key === "Enter") {
             if (
               menuBlockIdRef.current === block.id ||
@@ -277,7 +306,7 @@ function DocumentBlock({
         },
       },
     },
-    [pageId, block.id, wikiLinkExtension, navigate]
+    [pageId, block.id, wikiLinkExtension, navigate, onMoveBlockDelta]
   );
 
   useEffect(() => {

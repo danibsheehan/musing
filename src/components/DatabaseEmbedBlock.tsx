@@ -11,6 +11,9 @@ type Props = {
   setFocusedBlockId: (id: string) => void;
   onBackspace: (id: string) => void;
   onEnter: (id: string) => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMoveBlockDelta: (id: string, delta: -1 | 1) => void;
 };
 
 export default function DatabaseEmbedBlock({
@@ -19,6 +22,9 @@ export default function DatabaseEmbedBlock({
   setFocusedBlockId,
   onBackspace,
   onEnter,
+  canMoveUp,
+  canMoveDown,
+  onMoveBlockDelta,
 }: Props) {
   const { pages, getDatabase, updateDatabase } = useWorkspace();
   const payload = parseDatabaseEmbedPayload(block.content);
@@ -33,6 +39,18 @@ export default function DatabaseEmbedBlock({
       aria-label="Linked database"
       onClick={() => setFocusedBlockId(block.id)}
       onKeyDown={(e) => {
+        if (e.altKey && !e.metaKey && !e.ctrlKey) {
+          if (e.key === "ArrowUp" && canMoveUp) {
+            e.preventDefault();
+            onMoveBlockDelta(block.id, -1);
+            return;
+          }
+          if (e.key === "ArrowDown" && canMoveDown) {
+            e.preventDefault();
+            onMoveBlockDelta(block.id, 1);
+            return;
+          }
+        }
         if (e.key === "Enter") {
           e.preventDefault();
           onEnter(block.id);

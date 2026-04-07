@@ -8,9 +8,9 @@
 
 ## Features
 
-- Block editor built on **TipTap** with a **slash menu** for inserting block types
+- Block editor built on **TipTap** with a **slash menu** for block types; reorder blocks by dragging the **grip** or with **Alt + ↑ / ↓**
 - **Pages** with client-side routes (`/page/:pageId`) and a sidebar for navigation
-- **Wiki-style links** between pages
+- **Wiki-style links** in text plus an **`@` page picker** to insert links while typing
 - **Database embeds** with table and canvas-style views
 - **localStorage** persistence; **cross-tab** updates via the `storage` event
 - Optional **Supabase** sync (workspace snapshot in Postgres, RLS-scoped to the signed-in user)
