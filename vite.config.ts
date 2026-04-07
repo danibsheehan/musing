@@ -1,5 +1,5 @@
-import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { defineConfig } from "vitest/config";
 
 /**
  * GitHub project pages: https://<user>.github.io/<repo>/
@@ -26,4 +26,10 @@ function pagesBase(): string {
 export default defineConfig({
   base: pagesBase(),
   plugins: [react()],
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: ["./src/test/setup.ts"],
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+  },
 });
