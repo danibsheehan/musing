@@ -12,6 +12,7 @@
 - **Pages** with client-side routes (`/page/:pageId`) and a sidebar for navigation
 - **Wiki-style links** in text plus an **`@` page picker** to insert links while typing
 - **Database embeds** with table and canvas-style views
+- **Export** pages to **PDF** or **.docx** (Word) from the page chrome menu
 - **localStorage** persistence; **cross-tab** updates via the `storage` event
 - Optional **Supabase** sync (workspace snapshot in Postgres, RLS-scoped to the signed-in user)
 - **Vite** + **TypeScript**; **React Router** with `basename` derived from `import.meta.env.BASE_URL` for subpath hosting
@@ -32,6 +33,16 @@ npm run dev
 
 Open the URL Vite prints (usually `http://localhost:5173`). With no Supabase env vars, the app runs entirely offline in the browser.
 
+Other useful scripts:
+
+| Command | Purpose |
+| ------- | ------- |
+| `npm run build` | Production build (`dist/`) |
+| `npm run preview` | Serve the production build locally |
+| `npm run lint` | ESLint |
+| `npm run test` | Vitest in watch mode |
+| `npm run test:run` | Vitest once (CI-style) |
+
 Optional: copy `.env.example` to **`.env.local` in the repo root** (next to `package.json`), set the variables below, then restart `npm run dev`.
 
 ```bash
@@ -49,6 +60,10 @@ cp .env.example .env.local
 | Backend (opt.) | Supabase (`@supabase/supabase-js`)     |
 
 There is no published npm package; the app is the product.
+
+## Code layout
+
+This repo is an application, not a library: there is no separate package API. The React UI and editor live under `src/` (routes, TipTap extensions, Supabase client, export helpers). Database shape and RLS for sync are in `supabase/schema.sql`.
 
 ## Configuration
 
