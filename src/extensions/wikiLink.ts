@@ -35,8 +35,8 @@ export const WikiLink = Mark.create<WikiLinkOptions>({
     return [
       {
         tag: "a[data-wiki-page-id]",
-        getAttrs: (el) => ({
-          pageId: (el as HTMLElement).getAttribute("data-wiki-page-id"),
+        getAttrs: (el: HTMLElement) => ({
+          pageId: el.getAttribute("data-wiki-page-id"),
         }),
       },
     ];

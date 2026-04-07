@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import DatabaseEmbedBlock from "./DatabaseEmbedBlock";
+import EditorTextFormatBubble from "./EditorTextFormatBubble";
 import { textBeforeCursorInBlock } from "../lib/editorBlockText";
 
 /** True when the caret is right after `/` or still typing the slash-query (e.g. `/p`), without a closing space. */
@@ -360,6 +361,7 @@ function DocumentBlock({
 
   return (
     <div onClick={() => setFocusedBlockId(block.id)}>
+      {editor ? <EditorTextFormatBubble editor={editor} blockId={block.id} /> : null}
       <EditorContent editor={editor} className="editor-content" />
     </div>
   );

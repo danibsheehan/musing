@@ -1,4 +1,4 @@
-import type { ResolvedPos } from "@tiptap/pm/model";
+import type { ResolvedPos } from "prosemirror-model";
 import { describe, expect, it, vi } from "vitest";
 import { textBeforeCursorInBlock } from "./editorBlockText";
 

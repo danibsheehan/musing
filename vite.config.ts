@@ -26,6 +26,32 @@ function pagesBase(): string {
 export default defineConfig({
   base: pagesBase(),
   plugins: [react()],
+  /**
+   * Rolldown does not resolve `@tiptap/pm/*` export subpaths (see tiptap pm package.json
+   * `exports`). Each subpath re-exports a `prosemirror-*` package — alias explicitly.
+   */
+  resolve: {
+    alias: {
+      "@tiptap/pm/changeset": "prosemirror-changeset",
+      "@tiptap/pm/collab": "prosemirror-collab",
+      "@tiptap/pm/commands": "prosemirror-commands",
+      "@tiptap/pm/dropcursor": "prosemirror-dropcursor",
+      "@tiptap/pm/gapcursor": "prosemirror-gapcursor",
+      "@tiptap/pm/history": "prosemirror-history",
+      "@tiptap/pm/inputrules": "prosemirror-inputrules",
+      "@tiptap/pm/keymap": "prosemirror-keymap",
+      "@tiptap/pm/markdown": "prosemirror-markdown",
+      "@tiptap/pm/menu": "prosemirror-menu",
+      "@tiptap/pm/model": "prosemirror-model",
+      "@tiptap/pm/schema-basic": "prosemirror-schema-basic",
+      "@tiptap/pm/schema-list": "prosemirror-schema-list",
+      "@tiptap/pm/state": "prosemirror-state",
+      "@tiptap/pm/tables": "prosemirror-tables",
+      "@tiptap/pm/trailing-node": "prosemirror-trailing-node",
+      "@tiptap/pm/transform": "prosemirror-transform",
+      "@tiptap/pm/view": "prosemirror-view",
+    },
+  },
   test: {
     environment: "jsdom",
     globals: true,

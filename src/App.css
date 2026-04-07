@@ -759,3 +759,255 @@
   text-decoration: underline dotted;
   text-underline-offset: 0.12em;
 }
+
+/* External URL links (StarterKit link mark) — distinct from wiki links */
+.editor-content .ProseMirror a[href]:not(.wiki-link) {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  text-underline-offset: 0.12em;
+}
+
+.editor-content .ProseMirror a[href]:not(.wiki-link):hover {
+  text-decoration-color: var(--accent);
+}
+
+/* Floating selection toolbar (Notion / Google Docs–style) */
+#editor-bubble-menu-portal .editor-format-bubble-root {
+  pointer-events: auto;
+}
+
+.editor-format-bubble-root {
+  z-index: 1001;
+  /* Avoid max-content + nested % widths collapsing; keep room for link field */
+  min-width: min(18rem, calc(100vw - 1.5rem));
+  overflow: visible;
+}
+
+.editor-format-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.35rem 0.4rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  font-size: 0.8125rem;
+  overflow: visible;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.editor-format-bubble-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+
+.editor-format-btn {
+  min-width: 1.85rem;
+  height: 1.85rem;
+  padding: 0 0.35rem;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-h);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.editor-format-btn:hover {
+  background: var(--accent-bg);
+}
+
+.editor-format-btn.is-active {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.editor-format-btn-link {
+  min-width: auto;
+  padding: 0 0.5rem;
+  font-weight: 500;
+  font-size: 0.78rem;
+}
+
+.editor-format-sep {
+  width: 1px;
+  height: 1.1rem;
+  margin: 0 0.2rem;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.editor-format-more {
+  position: relative;
+}
+
+.editor-format-more-summary {
+  list-style: none;
+  height: 1.85rem;
+  padding: 0 0.45rem;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  user-select: none;
+}
+
+.editor-format-more-summary::-webkit-details-marker {
+  display: none;
+}
+
+.editor-format-more-summary::after {
+  content: "";
+  width: 0;
+  height: 0;
+  margin-left: 0.28rem;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--text-muted, #888);
+}
+
+.editor-format-more[open] > .editor-format-more-summary {
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
+
+.editor-format-more-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 11.5rem;
+  padding: 0.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  z-index: 5;
+}
+
+.editor-format-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.editor-format-menu-item:hover {
+  background: var(--accent-bg);
+}
+
+.editor-format-menu-item.is-active {
+  color: var(--accent);
+}
+
+.editor-format-menu-hint {
+  font-size: 0.68rem;
+  color: var(--text-muted, #888);
+  font-variant-numeric: tabular-nums;
+}
+
+.editor-format-menu-divider {
+  height: 1px;
+  margin: 0.2rem 0;
+  background: var(--border);
+}
+
+.editor-format-link-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-top: 0.35rem;
+  margin-top: 0.1rem;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 4;
+  background: var(--bg);
+  border-radius: 0 0 6px 6px;
+}
+
+.editor-format-link-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #888);
+}
+
+.editor-format-link-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.editor-format-link-input:focus {
+  outline: none;
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 2px var(--accent-bg);
+}
+
+.editor-format-link-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.editor-format-link-primary,
+.editor-format-link-secondary {
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.editor-format-link-primary {
+  border: none;
+  background: var(--accent);
+  color: #fff;
+}
+
+.editor-format-link-primary:hover {
+  filter: brightness(1.05);
+}
+
+.editor-format-link-secondary {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.editor-format-link-secondary:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}

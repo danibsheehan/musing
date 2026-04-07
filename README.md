@@ -8,7 +8,7 @@
 
 ## Features
 
-- Block editor built on **TipTap** with a **slash menu** for block types; reorder blocks by dragging the **grip** or with **Alt + ↑ / ↓**
+- Block editor built on **TipTap** with a **slash menu** for block types; **floating toolbar** on selected text for bold, italic, underline, links, and related styles (keyboard shortcuts still work); reorder blocks by dragging the **grip** or with **Alt + ↑ / ↓**
 - **Pages** with client-side routes (`/page/:pageId`) and a sidebar for navigation
 - **Wiki-style links** in text plus an **`@` page picker** to insert links while typing
 - **Database embeds** with table and canvas-style views
@@ -55,7 +55,7 @@ cp .env.example .env.local
 | Area        | Choice                                      |
 | ----------- | ------------------------------------------- |
 | UI          | React 19, React Router 7                    |
-| Editor      | TipTap (`@tiptap/react`, starter-kit)       |
+| Editor      | TipTap (`@tiptap/react`, starter-kit, bubble menu on selection) |
 | Build       | Vite 8, TypeScript 5.9                      |
 | Backend (opt.) | Supabase (`@supabase/supabase-js`)     |
 
@@ -63,7 +63,7 @@ There is no published npm package; the app is the product.
 
 ## Code layout
 
-This repo is an application, not a library: there is no separate package API. The React UI and editor live under `src/` (routes, TipTap extensions, Supabase client, export helpers). Database shape and RLS for sync are in `supabase/schema.sql`.
+This repo is an application, not a library: there is no separate package API. The React UI and editor live under `src/` (routes, TipTap extensions including wiki links and the selection format bubble, Supabase client, export helpers). Database shape and RLS for sync are in `supabase/schema.sql`. `vite.config.ts` aliases `@tiptap/pm/*` to `prosemirror-*` packages so Vite 8 (Rolldown) resolves TipTap imports.
 
 ## Configuration
 
