@@ -25,19 +25,20 @@ export default function PageView() {
     if (page) setLastOpenedPageId(page.id);
   }, [page, setLastOpenedPageId]);
 
+  const handleBlocksChange = useCallback(
+    (blocks: Block[]) => {
+      if (!pageId) return;
+      updatePageBlocks(pageId, blocks);
+    },
+    [pageId, updatePageBlocks]
+  );
+
   if (!pageId || !page) {
     return <Navigate to="/" replace />;
   }
 
   const fullChain = ancestryFor(page.id);
   const breadcrumbAncestors = fullChain.slice(0, -1);
-
-  const handleBlocksChange = useCallback(
-    (blocks: Block[]) => {
-      updatePageBlocks(page.id, blocks);
-    },
-    [page.id, updatePageBlocks]
-  );
 
   return (
     <div className="page-view">
