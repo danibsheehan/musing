@@ -12,6 +12,7 @@ import { SLASH_MENU_ITEMS } from "../lib/slashMenuOptions";
 import { filterPagesForPicker } from "../lib/resolveWikiPage";
 import { stringifyDatabaseEmbedPayload } from "../lib/databaseEmbed";
 import { useWorkspace } from "../context/useWorkspace";
+import { textBeforeCursorInBlock } from "../lib/editorBlockText";
 
 const BLOCK_DND_MIME = "application/x-musing-block-id";
 
@@ -161,13 +162,11 @@ export default function Editor({
           ed.chain()
             .focus()
             .command(({ tr, state }) => {
-              const { from, $from } = state.selection;
-              const blockStart = $from.start();
-              if (from <= blockStart) return false;
-              const textBefore = state.doc.textBetween(blockStart, from);
+              const { $from } = state.selection;
+              const textBefore = textBeforeCursorInBlock($from);
               const m = textBefore.match(/\/[^ \n]*$/);
               if (!m) return false;
-              tr.delete(from - m[0].length, from);
+              tr.delete($from.pos - m[0].length, $from.pos);
               return true;
             })
             .run();
@@ -225,19 +224,17 @@ export default function Editor({
         ed.chain()
           .focus()
           .command(({ tr, state }) => {
-            const { from, $from } = state.selection;
-            const blockStart = $from.start();
-            if (from <= blockStart) return false;
-            const textBefore = state.doc.textBetween(blockStart, from);
+            const { $from } = state.selection;
+            const textBefore = textBeforeCursorInBlock($from);
             const m = textBefore.match(/@([^ \n]*)$/);
             if (!m) return false;
-            const delFrom = from - m[0].length;
+            const delFrom = $from.pos - m[0].length;
             const markType = state.schema.marks.wikiLink;
             if (!markType) return false;
             const textNode = state.schema.text(page.title, [
               markType.create({ pageId: page.id }),
             ]);
-            tr.replaceWith(delFrom, from, textNode);
+            tr.replaceWith(delFrom, $from.pos, textNode);
             return true;
           })
           .run();

@@ -16,7 +16,7 @@ const validParagraph = (id: string): Block => ({
 
 const minimalPage = (overrides: Partial<Page> = {}): Page => ({
   id: "page-1",
-  title: "Home",
+  title: "Untitled",
   parentId: null,
   order: 0,
   updatedAt: "2020-01-01T00:00:00.000Z",
@@ -56,7 +56,7 @@ describe("parseWorkspaceJson", () => {
       pages: [
         {
           id: "h1",
-          title: "Home",
+          title: "Untitled",
           parentId: null,
           order: 0,
           updatedAt: "2020-01-01T00:00:00.000Z",

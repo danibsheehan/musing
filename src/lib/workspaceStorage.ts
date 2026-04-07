@@ -15,7 +15,7 @@ function seedWorkspace(): WorkspaceSnapshot {
   const id = uuidv4();
   const page: Page = {
     id,
-    title: "Home",
+    title: "Untitled",
     parentId: null,
     order: 0,
     updatedAt: nowIso(),

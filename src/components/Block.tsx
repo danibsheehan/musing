@@ -1,5 +1,6 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import type { Editor as TiptapEditor } from "@tiptap/core";
+import Placeholder from "@tiptap/extension-placeholder";
 import StarterKit from "@tiptap/starter-kit";
 import { applyBlockTypeToEditor } from "../lib/blockEditorCommands";
 import type { Block as BlockType } from "../types/block";
@@ -9,22 +10,17 @@ import { useNavigate } from "react-router-dom";
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import DatabaseEmbedBlock from "./DatabaseEmbedBlock";
+import { textBeforeCursorInBlock } from "../lib/editorBlockText";
 
 /** True when the caret is right after `/` or still typing the slash-query (e.g. `/p`), without a closing space. */
 function isSlashMenuOpen(editor: TiptapEditor): boolean {
-  const { from, $from } = editor.state.selection;
-  const start = $from.start();
-  if (from <= start) return false;
-  const textBefore = editor.state.doc.textBetween(start, from);
+  const textBefore = textBeforeCursorInBlock(editor.state.selection.$from);
   return /\/[^ \n]*$/.test(textBefore);
 }
 
 /** `@query` at end of block text (Obsidian-style page link picker). */
 function isPagePickerOpen(editor: TiptapEditor): boolean {
-  const { from, $from } = editor.state.selection;
-  const start = $from.start();
-  if (from <= start) return false;
-  const textBefore = editor.state.doc.textBetween(start, from);
+  const textBefore = textBeforeCursorInBlock(editor.state.selection.$from);
   return /@([^ \n]*)$/.test(textBefore);
 }
 
@@ -98,8 +94,11 @@ function DocumentBlock({
   const pagePickerBlockIdRef = useRef(pagePickerBlockId);
   const canMoveUpRef = useRef(canMoveUp);
   const canMoveDownRef = useRef(canMoveDown);
+  const navigateRef = useRef(navigate);
+  const onMoveBlockDeltaRef = useRef(onMoveBlockDelta);
   const prevBlockTypeRef = useRef<{ id: string; type: BlockType["type"] } | null>(null);
   const editorRef = useRef<TiptapEditor | null>(null);
+  const prevIsFocusedRef = useRef(false);
 
   useEffect(() => {
     menuBlockIdRef.current = menuBlockId;
@@ -117,6 +116,14 @@ function DocumentBlock({
     canMoveDownRef.current = canMoveDown;
   }, [canMoveDown]);
 
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
+
+  useEffect(() => {
+    onMoveBlockDeltaRef.current = onMoveBlockDelta;
+  }, [onMoveBlockDelta]);
+
   const slashMenuRaf = useRef(0);
 
   const queueSlashMenuSync = useCallback(
@@ -128,8 +135,7 @@ function DocumentBlock({
         if (open) {
           closePagePickerMenu();
           const { from, $from } = ed.state.selection;
-          const blockStart = $from.start();
-          const textBefore = ed.state.doc.textBetween(blockStart, from);
+          const textBefore = textBeforeCursorInBlock($from);
           const m = textBefore.match(/\/[^ \n]*$/);
           if (!m) return;
           const slashPos = from - m[0].length;
@@ -175,8 +181,7 @@ function DocumentBlock({
         if (open) {
           closeSlashMenu();
           const { from, $from } = ed.state.selection;
-          const blockStart = $from.start();
-          const textBefore = ed.state.doc.textBetween(blockStart, from);
+          const textBefore = textBeforeCursorInBlock($from);
           const m = textBefore.match(/@([^ \n]*)$/);
           if (!m) return;
           const atPos = from - m[0].length;
@@ -218,11 +223,18 @@ function DocumentBlock({
 
   const editor = useEditor(
     {
+      parseOptions: {
+        preserveWhitespace: "full",
+      },
       extensions: [
         StarterKit.configure({
           heading: {
             levels: [1, 2],
           },
+        }),
+        Placeholder.configure({
+          placeholder: "Press '/' for commands",
+          showOnlyCurrent: false,
         }),
         wikiLinkExtension,
       ],
@@ -248,7 +260,7 @@ function DocumentBlock({
             const wikiPageId = a.getAttribute("data-wiki-page-id");
             if (wikiPageId) {
               event.preventDefault();
-              navigate(`/page/${wikiPageId}`);
+              navigateRef.current(`/page/${wikiPageId}`);
               return true;
             }
           }
@@ -258,12 +270,12 @@ function DocumentBlock({
           if (event.altKey && !event.metaKey && !event.ctrlKey) {
             if (event.key === "ArrowUp" && canMoveUpRef.current) {
               event.preventDefault();
-              onMoveBlockDelta(block.id, -1);
+              onMoveBlockDeltaRef.current(block.id, -1);
               return true;
             }
             if (event.key === "ArrowDown" && canMoveDownRef.current) {
               event.preventDefault();
-              onMoveBlockDelta(block.id, 1);
+              onMoveBlockDeltaRef.current(block.id, 1);
               return true;
             }
           }
@@ -306,7 +318,7 @@ function DocumentBlock({
         },
       },
     },
-    [pageId, block.id, wikiLinkExtension, navigate, onMoveBlockDelta]
+    [pageId, block.id, wikiLinkExtension]
   );
 
   useEffect(() => {
@@ -333,7 +345,16 @@ function DocumentBlock({
   }, [editor, block.id, registerEditor]);
 
   useEffect(() => {
-    if (!editor || !isFocused) return;
+    prevIsFocusedRef.current = false;
+  }, [editor]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const becameFocused = isFocused && !prevIsFocusedRef.current;
+    prevIsFocusedRef.current = isFocused;
+    if (!becameFocused) return;
+    // Before mount, `editor.view.hasFocus()` throws (view proxy is not ready).
+    if (editor.isInitialized && editor.view.hasFocus()) return;
     editor.commands.focus();
   }, [editor, isFocused]);
 

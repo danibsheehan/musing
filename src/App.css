@@ -394,6 +394,122 @@
   margin-bottom: 1rem;
 }
 
+.page-chrome-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.page-chrome-title-row .page-title-input {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.page-export-dropdown {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.page-export-dropdown[open] > .page-export-summary {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.page-export-summary {
+  font: inherit;
+  font-size: 0.88rem;
+  list-style: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.page-export-summary::-webkit-details-marker {
+  display: none;
+}
+
+.page-export-summary:hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.page-export-summary[aria-busy="true"] {
+  opacity: 0.85;
+  pointer-events: none;
+  cursor: default;
+}
+
+.page-export-panel {
+  position: absolute;
+  right: 0;
+  z-index: 30;
+  margin-top: 0.35rem;
+  min-width: 12.5rem;
+  padding: 0.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.page-export-menu-option {
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.page-export-menu-option:hover:not(:disabled) {
+  background: var(--accent-bg);
+}
+
+.page-export-menu-option:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.page-export-menu-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.page-export-menu-hint {
+  display: block;
+  margin-top: 0.12rem;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--text);
+  opacity: 0.9;
+  font-weight: 400;
+}
+
+.page-export-error {
+  margin: 0.4rem 0 0;
+  max-width: 42rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: #b42318;
+}
+
+@media (prefers-color-scheme: dark) {
+  .page-export-error {
+    color: #fca5a5;
+  }
+}
+
 .page-breadcrumbs {
   font-size: 0.82rem;
   margin-bottom: 0.5rem;
@@ -527,10 +643,27 @@
 
 .editor-content .ProseMirror {
   min-height: 1.3em;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
 
 .editor-content .ProseMirror:focus {
   outline: none;
+}
+
+/* Out-of-flow placeholder so the caret and inline layout match typed text (float breaks this with pre-wrap). */
+.editor-content .ProseMirror .is-empty {
+  position: relative;
+}
+
+.editor-content .ProseMirror .is-empty::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  user-select: none;
+  color: var(--text-muted, #888);
 }
 
 .editor-content p {
@@ -595,6 +728,7 @@
   border-radius: 6px;
   background: var(--code-bg);
   overflow-x: auto;
+  white-space: pre;
 }
 
 .editor-content pre code {

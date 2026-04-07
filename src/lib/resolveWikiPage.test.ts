@@ -3,7 +3,7 @@ import { filterPagesForPicker, resolveWikiTarget } from "./resolveWikiPage";
 
 const samplePage = (overrides: Partial<Page> = {}): Page => ({
   id: "p1",
-  title: "Home",
+  title: "Untitled",
   parentId: null,
   order: 0,
   updatedAt: "",
@@ -19,9 +19,9 @@ describe("resolveWikiTarget", () => {
   });
 
   it("matches title case-insensitively", () => {
-    expect(resolveWikiTarget([samplePage()], "home")).toEqual({
+    expect(resolveWikiTarget([samplePage()], "untitled")).toEqual({
       id: "p1",
-      title: "Home",
+      title: "Untitled",
     });
   });
 
