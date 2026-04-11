@@ -63,7 +63,7 @@ There is no published npm package; the app is the product.
 
 ## Code layout
 
-This repo is an application, not a library: there is no separate package API. The React UI and editor live under `src/` (routes, TipTap extensions including wiki links and the selection format bubble, Supabase client, export helpers). Database shape and RLS for sync are in `supabase/schema.sql`. `vite.config.ts` aliases `@tiptap/pm/*` to `prosemirror-*` packages so Vite 8 (Rolldown) resolves TipTap imports.
+This repo is an application, not a library: there is no separate package API. The React UI and editor live under `src/` (routes, TipTap extensions including wiki links and the selection format bubble, Supabase client, export helpers). Database shape and RLS for sync are in `supabase/schema.sql`. `vite.config.ts` aliases `@tiptap/pm/*` to `prosemirror-*` packages so Vite 8 (Rolldown) resolves TipTap imports. Cursor agent rules live in `.cursor/rules/`; optional skills in `.cursor/skills/`.
 
 ## Configuration
 

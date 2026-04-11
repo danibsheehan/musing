@@ -1,0 +1,30 @@
+---
+description: Stack, layout, Vite/TipTap aliases, Supabase, and GitHub Pages routing for musing
+alwaysApply: true
+---
+
+# musing — project context
+
+## Stack
+
+Vite 8, React 19, TypeScript, React Router 7; TipTap 3 (block-per-editor, not one doc — see `.cursor/skills/editor-tiptap/`). Optional Supabase.
+
+## `src/` (where to look)
+
+Routes: `main.tsx`, `App.tsx`. Workspace: `context/WorkspaceContext.tsx`, `useWorkspace.ts`, `lib/workspaceStorage.ts`. Editor: `Editor.tsx`, `Block.tsx`, `SlashMenu.tsx`, `PagePickerMenu.tsx`. Extensions: `extensions/` (e.g. `wikiLink.ts`). Slash/commands: `lib/slashMenuOptions.ts`, `lib/blockEditorCommands.ts`. Types: `types/block.ts`, `types/page.ts`. Supabase client/sync: `lib/supabaseClient.ts`, `lib/supabaseWorkspace.ts` (not the `supabase/` SQL folder).
+
+## Vite: `@tiptap/pm/*` aliases
+
+Rolldown won’t resolve `@tiptap/pm/*` subpaths — keep the full `resolve.alias` map in `vite.config.ts` → `prosemirror-*`. New PM subpath? Add the alias.
+
+## Pages / `BASE_URL`
+
+`pagesBase()` + optional `VITE_BASE_PATH` set Vite `base` → `import.meta.env.BASE_URL`. `BrowserRouter` `basename` in `main.tsx` strips a trailing slash. Any app URL (wiki links, exports) must use `BASE_URL`, not assume `/` at the host root.
+
+## Supabase (optional)
+
+Schema/RLS: `supabase/schema.sql`. Env: `VITE_SUPABASE_*` in `.env.local`; same names as GitHub **repository secrets** for deploy/keepalive (README). No Supabase → localStorage only; don’t assume DB in all paths.
+
+## Edits
+
+Minimal, task-focused changes; match local patterns. If setup, env, or deploy behavior changes, update README.
