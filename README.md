@@ -9,6 +9,7 @@
 ## Features
 
 - Block editor built on **TipTap** with a **slash menu** for block types; **floating toolbar** on selected text for bold, italic, underline, links, and related styles (keyboard shortcuts still work); reorder blocks by dragging the **grip** or with **Alt + ↑ / ↓**
+- **Emoji**: type **`:`** for inline emoji suggestions, or pick **Emoji** from the slash menu
 - **Pages** with client-side routes (`/page/:pageId`) and a sidebar for navigation
 - **Wiki-style links** in text plus an **`@` page picker** to insert links while typing
 - **Database embeds** with table and canvas-style views
@@ -38,6 +39,7 @@ Other useful scripts:
 
 | Command | Purpose |
 | ------- | ------- |
+| `npm run dev:clean` | Same as `npm run dev`, but unsets `NODE_OPTIONS` for this run (handy if inherited flags break Vite) |
 | `npm run build` | Production build (`dist/`) |
 | `npm run preview` | Serve the production build locally |
 | `npm run lint` | ESLint |
