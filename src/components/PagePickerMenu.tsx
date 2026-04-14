@@ -16,37 +16,26 @@ export default function PagePickerMenu({
   return (
     <div
       data-musing-page-picker-menu
+      className="musing-dropdown musing-dropdown--picker"
       onMouseDown={(e) => e.preventDefault()}
       style={{
         position: "fixed",
         top: position.top,
         left: position.left,
-        background: "white",
-        border: "1px solid #ddd",
-        borderRadius: "8px",
-        padding: "8px",
-        boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-        zIndex: 1000,
-        minWidth: "12rem",
-        maxHeight: "240px",
-        overflowY: "auto",
       }}
     >
       {pages.length === 0 ? (
-        <div style={{ padding: "4px 8px", color: "#666", fontSize: "0.85rem" }}>
+        <div className="musing-dropdown-empty musing-dropdown-empty--sm">
           No matching pages
         </div>
       ) : (
         pages.map((page, index) => (
           <div
             key={page.id}
+            role="option"
+            aria-selected={selectedIndex === index}
+            className="musing-dropdown-option"
             onClick={() => onSelect(page)}
-            style={{
-              padding: "4px 8px",
-              backgroundColor: selectedIndex === index ? "#eee" : "transparent",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
           >
             {page.title}
           </div>

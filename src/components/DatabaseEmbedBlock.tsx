@@ -19,9 +19,15 @@ type Props = {
   isPostSlashNewRowLocked?: (blockId: string) => boolean;
   /** Unused; accepted so `Block` can spread document props. */
   slashTypeSyncedInEditorRef?: RefObject<string | null>;
+  /** Unused; accepted so `Block` can spread document props. */
+  setSlashMenuQuery?: (query: string) => void;
   canMoveUp: boolean;
   canMoveDown: boolean;
   onMoveBlockDelta: (id: string, delta: -1 | 1) => void;
+  /** Passed through from `Block`; unused for embed rows. */
+  pageBlockCount?: number;
+  /** Passed through from `Block`. */
+  onClearBlockSelection?: () => void;
 };
 
 export default function DatabaseEmbedBlock({
@@ -34,6 +40,7 @@ export default function DatabaseEmbedBlock({
   canMoveUp,
   canMoveDown,
   onMoveBlockDelta,
+  onClearBlockSelection,
 }: Props) {
   const { pages, getDatabase, updateDatabase } = useWorkspace();
   const payload = parseDatabaseEmbedPayload(block.content);
@@ -78,6 +85,7 @@ export default function DatabaseEmbedBlock({
       tabIndex={0}
       role="group"
       aria-label="Linked database"
+      onPointerDownCapture={() => onClearBlockSelection?.()}
       onClick={() => setFocusedBlockId(block.id)}
       onKeyDown={(e) => {
         if (e.altKey && !e.metaKey && !e.ctrlKey) {

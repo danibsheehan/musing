@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { flushSync } from "react-dom";
 import type { Editor as TiptapEditor } from "@tiptap/core";
 import Block from "./Block";
@@ -12,7 +20,11 @@ import { v4 as uuidv4 } from "uuid";
 import SlashMenu from "./SlashMenu";
 import PagePickerMenu from "./PagePickerMenu";
 import DatabasePickerMenu from "./DatabasePickerMenu";
-import { SLASH_MENU_ITEMS } from "../lib/slashMenuOptions";
+import {
+  filterSlashMenuItems,
+  SLASH_MENU_ITEMS,
+  type SlashMenuChoice,
+} from "../lib/slashMenuOptions";
 import { filterPagesForPicker } from "../lib/resolveWikiPage";
 import { stringifyDatabaseEmbedPayload } from "../lib/databaseEmbed";
 import { useWorkspace } from "../context/useWorkspace";
@@ -92,10 +104,15 @@ export default function Editor({
   const [focusedBlockId, setFocusedBlockId] = useState<string | null>(
     blocks[0]?.id ?? null
   );
+  /** Multi-select for batch delete (gutter: ⌘/Ctrl+click toggle, Shift+click range). */
+  const [selectedBlockIds, setSelectedBlockIds] = useState<Set<string>>(() => new Set());
+  const selectionAnchorIndexRef = useRef<number | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [menuBlockId, setMenuBlockId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  /** Text after `/` in the block (drives filtering; typed in the editor, not a separate input). */
+  const [slashMenuQuery, setSlashMenuQuery] = useState("");
 
   /** Avoid stale closures on `window` keydown (effect timing vs `flushSync` / menu open). */
   const showMenuRef = useRef(false);
@@ -144,13 +161,16 @@ export default function Editor({
   } | null>(null);
   const [databasePickerSelectedIndex, setDatabasePickerSelectedIndex] = useState(0);
 
+  const slashMenuQueryRef = useRef("");
+
   useLayoutEffect(() => {
     showMenuRef.current = showMenu;
     menuBlockIdRef.current = menuBlockId;
     slashSelectedIndexRef.current = selectedIndex;
+    slashMenuQueryRef.current = slashMenuQuery;
     showPagePickerRef.current = showPagePicker;
     showDatabasePickerRef.current = showDatabasePicker;
-  }, [showMenu, menuBlockId, selectedIndex, showPagePicker, showDatabasePicker]);
+  }, [showMenu, menuBlockId, selectedIndex, slashMenuQuery, showPagePicker, showDatabasePicker]);
 
   const [dropIndicator, setDropIndicator] = useState<DropIndicator | null>(null);
 
@@ -186,6 +206,21 @@ export default function Editor({
     [pages, pageId]
   );
 
+  const filteredSlashItems = useMemo(
+    () => filterSlashMenuItems(SLASH_MENU_ITEMS, slashMenuQuery),
+    [slashMenuQuery]
+  );
+
+  const safeSlashIndex =
+    filteredSlashItems.length === 0
+      ? 0
+      : Math.min(selectedIndex, filteredSlashItems.length - 1);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    setSelectedIndex(0);
+  }, [slashMenuQuery, showMenu]);
+
   const pickerPages = useMemo(
     () =>
       filterPagesForPicker(pages, {
@@ -199,6 +234,20 @@ export default function Editor({
   /** Latest `localBlocks` for synchronous reads inside `addBlockAfter` (must see inserts before chained PM handlers run). */
   const localBlocksRef = useRef(localBlocks);
   localBlocksRef.current = localBlocks;
+  const selectedBlockIdsRef = useRef(selectedBlockIds);
+  selectedBlockIdsRef.current = selectedBlockIds;
+  const focusedBlockIdRef = useRef(focusedBlockId);
+  focusedBlockIdRef.current = focusedBlockId;
+  /**
+   * Native `draggable` + grip often never fires `click` (browser reserves the gesture for DnD).
+   * We treat a short pointer press as “select this row” instead of relying on `click`.
+   */
+  const gutterPointerRef = useRef<{
+    blockId: string;
+    index: number;
+    x: number;
+    y: number;
+  } | null>(null);
   const lastExternalRevisionRef = useRef(externalWorkspaceRevision);
   /** Set in `replaceBlocks` when local edits need persisting — flushed in `useLayoutEffect`, not inside `setLocalBlocks`. */
   const shouldPersistToWorkspaceRef = useRef(false);
@@ -215,6 +264,7 @@ export default function Editor({
     setFocusedBlockId((prev) =>
       prev && next.some((b) => b.id === prev) ? prev : next[0]?.id ?? null
     );
+    setSelectedBlockIds(new Set());
   }, [externalWorkspaceRevision]);
 
   const editorByBlockId = useRef(new Map<string, TiptapEditor>());
@@ -282,10 +332,15 @@ export default function Editor({
 
   const closeSlashMenu = useCallback(() => {
     slashAnchorBlockIdRef.current = null;
+    /** Same-tick as Backspace / pointer close so `window` capture listeners see a closed menu immediately. */
+    showMenuRef.current = false;
+    menuBlockIdRef.current = null;
+    slashMenuQueryRef.current = "";
     setShowMenu(false);
     setMenuBlockId(null);
     setMenuPosition(null);
     setSelectedIndex(0);
+    setSlashMenuQuery("");
   }, []);
 
   const onSlashMenuOpenChange = useCallback((blockId: string | null) => {
@@ -322,7 +377,7 @@ export default function Editor({
   const slashCommandDedupeRef = useRef<{
     at: number;
     blockId: string;
-    type: BlockType["type"] | "";
+    type: SlashMenuChoice | "";
   }>({ at: 0, blockId: "", type: "" });
 
   const updateBlockContent = (id: string, content: string) => {
@@ -338,7 +393,7 @@ export default function Editor({
   );
 
   const applySlashCommand = useCallback(
-    (type: BlockType["type"], slashBlockId?: string) => {
+    (type: SlashMenuChoice, slashBlockId?: string) => {
       const blockId =
         slashBlockId ?? menuBlockIdRef.current ?? slashAnchorBlockIdRef.current;
       if (!blockId) return;
@@ -372,6 +427,19 @@ export default function Editor({
             .run();
         }
       };
+
+      if (type === "emoji") {
+        removeSlash();
+        closeSlashMenu();
+        requestAnimationFrame(() => {
+          const e = editorByBlockId.current.get(blockId);
+          if (e && !e.isDestroyed) {
+            e.chain().focus().insertContent(":").run();
+          }
+          setFocusedBlockId(blockId);
+        });
+        return;
+      }
 
       if (type === "databaseEmbed") {
         const pos = menuPosition ?? { top: 120, left: 24 };
@@ -474,8 +542,16 @@ export default function Editor({
   /** Applies the highlighted slash item for `blockId` (used when Enter runs before React has opened the menu). */
   const confirmSlashCommandForBlock = useCallback(
     (blockId: string) => {
-      const idx = slashSelectedIndexRef.current;
-      applySlashCommand(SLASH_MENU_ITEMS[idx].type, blockId);
+      const items = filterSlashMenuItems(
+        SLASH_MENU_ITEMS,
+        slashMenuQueryRef.current
+      );
+      if (items.length === 0) return;
+      const cur = Math.min(
+        slashSelectedIndexRef.current,
+        items.length - 1
+      );
+      applySlashCommand(items[cur]!.type, blockId);
     },
     [applySlashCommand]
   );
@@ -649,27 +725,269 @@ export default function Editor({
     }
   };
 
-  const deleteBlock = (id: string) => {
-    let focusAfterDelete: string | null = null;
-    replaceBlocks((prev) => {
-      const index = prev.findIndex((b) => b.id === id);
-      if (index === -1) return prev;
+  const clearBlockSelection = useCallback(() => {
+    setSelectedBlockIds(new Set());
+  }, []);
 
-      if (prev.length === 1) {
-        const only = prev[0];
-        if (only.id !== id) return prev;
-        if (soleBlockAlreadyMinimal(only)) return prev;
-        return [{ ...only, type: "paragraph", content: "<p></p>" }];
+  /** Remove window listeners if a left-strip drag is active (e.g. unmount mid-gesture). */
+  const stripDragRemoveListenersRef = useRef<(() => void) | null>(null);
+  useEffect(
+    () => () => {
+      stripDragRemoveListenersRef.current?.();
+      stripDragRemoveListenersRef.current = null;
+    },
+    []
+  );
+
+  /**
+   * Each block is its own TipTap surface — native text selection cannot span rows.
+   * Drag the narrow left strip (same column as + / ⋮⋮) to range-select blocks while scrolling.
+   */
+  const beginLeftStripBlockDragSelect = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>, blockId: string, anchorIndex: number) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const pointerId = e.pointerId;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      let dragActive = false;
+      let lastLo = anchorIndex;
+      let lastHi = anchorIndex;
+      let lastHitIndex = anchorIndex;
+
+      const apply = (hitIndex: number) => {
+        const blocks = localBlocksRef.current;
+        if (hitIndex < 0 || hitIndex >= blocks.length) return;
+        const lo = Math.min(anchorIndex, hitIndex);
+        const hi = Math.max(anchorIndex, hitIndex);
+        if (lo === lastLo && hi === lastHi) return;
+        lastLo = lo;
+        lastHi = hi;
+        lastHitIndex = hitIndex;
+        const next = new Set<string>();
+        for (let i = lo; i <= hi; i++) {
+          next.add(blocks[i]!.id);
+        }
+        setSelectedBlockIds(next);
+      };
+
+      apply(anchorIndex);
+
+      const stripEl = e.currentTarget;
+
+      const onMove = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId) return;
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        if (!dragActive) {
+          if (Math.hypot(dx, dy) < 6) return;
+          dragActive = true;
+        }
+        const el = document.elementFromPoint(ev.clientX, ev.clientY);
+        const row = el?.closest?.("[data-musing-block-id]") as HTMLElement | null;
+        const hitId = row?.getAttribute("data-musing-block-id");
+        if (!hitId) return;
+        const hitIndex = localBlocksRef.current.findIndex((b) => b.id === hitId);
+        if (hitIndex === -1) return;
+        apply(hitIndex);
+      };
+
+      const detachStripDragListeners = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", finish, true);
+        window.removeEventListener("pointercancel", finish, true);
+      };
+
+      const finish = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId) return;
+        stripDragRemoveListenersRef.current = null;
+        detachStripDragListeners();
+        try {
+          if (stripEl.hasPointerCapture(pointerId)) {
+            stripEl.releasePointerCapture(pointerId);
+          }
+        } catch {
+          /* */
+        }
+        const blocks = localBlocksRef.current;
+        if (!dragActive) {
+          setSelectedBlockIds(new Set([blockId]));
+          selectionAnchorIndexRef.current = anchorIndex;
+          setFocusedBlockId(blockId);
+        } else {
+          selectionAnchorIndexRef.current = lastHitIndex;
+          const focusId = blocks[lastHitIndex]?.id ?? blockId;
+          setFocusedBlockId(focusId);
+        }
+      };
+
+      stripDragRemoveListenersRef.current = detachStripDragListeners;
+      try {
+        stripEl.setPointerCapture(pointerId);
+      } catch {
+        /* */
       }
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", finish, true);
+      window.addEventListener("pointercancel", finish, true);
+    },
+    []
+  );
 
-      const newBlocks = prev.filter((b) => b.id !== id);
-      const prevBlock = newBlocks[index - 1] || newBlocks[0];
-      focusAfterDelete = prevBlock.id;
+  const deleteSelectedBlocks = useCallback(() => {
+    const removeSet = new Set(selectedBlockIdsRef.current);
+    if (removeSet.size === 0) return;
+    let focusAfter: string | null = null;
+    flushSync(() => {
+      replaceBlocks((prev) => {
+        if (!prev.some((b) => removeSet.has(b.id))) return prev;
+        const deletedIndices: number[] = [];
+        prev.forEach((b, i) => {
+          if (removeSet.has(b.id)) deletedIndices.push(i);
+        });
+        const minI = Math.min(...deletedIndices);
+        const newBlocks = prev.filter((b) => !removeSet.has(b.id));
+        if (newBlocks.length === 0) {
+          const sole: BlockType = {
+            id: uuidv4(),
+            type: "paragraph",
+            content: "<p></p>",
+          };
+          focusAfter = sole.id;
+          return [sole];
+        }
+        const anchorAbove = minI > 0 ? prev[minI - 1]!.id : null;
+        focusAfter =
+          anchorAbove && newBlocks.some((b) => b.id === anchorAbove)
+            ? anchorAbove
+            : newBlocks[0]!.id;
+        return newBlocks;
+      });
+    });
+    setSelectedBlockIds(new Set());
+    selectionAnchorIndexRef.current = null;
+    if (focusAfter !== null) {
+      setFocusedBlockId(focusAfter);
+      const ed = editorByBlockId.current.get(focusAfter);
+      if (ed && !ed.isDestroyed) {
+        ed.chain().focus("end", { scrollIntoView: false }).run();
+        ed.view.dom.focus({ preventScroll: true });
+      }
+    }
+  }, [replaceBlocks]);
 
-      return newBlocks;
+  const deleteSelectedBlocksRef = useRef(deleteSelectedBlocks);
+  deleteSelectedBlocksRef.current = deleteSelectedBlocks;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Backspace" && e.key !== "Delete") return;
+      if (selectedBlockIdsRef.current.size === 0) return;
+      const inProse = document.activeElement?.closest?.(".ProseMirror");
+      if (inProse && selectedBlockIdsRef.current.size < 2) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      deleteSelectedBlocksRef.current();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, []);
+
+  const readPointerModifiers = useCallback((e: ReactPointerEvent<HTMLButtonElement>) => {
+    const n = e.nativeEvent;
+    if (typeof n.getModifierState === "function") {
+      return {
+        shift: n.getModifierState("Shift"),
+        meta: n.getModifierState("Meta"),
+        ctrl: n.getModifierState("Control"),
+      };
+    }
+    return { shift: e.shiftKey, meta: e.metaKey, ctrl: e.ctrlKey };
+  }, []);
+
+  const handleGutterGripClick = useCallback(
+    (blockId: string, index: number, e: ReactPointerEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const blocks = localBlocksRef.current;
+      const { shift, meta, ctrl } = readPointerModifiers(e);
+      if (shift) {
+        let anchorIdx = selectionAnchorIndexRef.current;
+        if (anchorIdx === null || anchorIdx < 0) {
+          const fi = blocks.findIndex((b) => b.id === focusedBlockIdRef.current);
+          anchorIdx = fi >= 0 ? fi : index;
+        }
+        const lo = Math.min(anchorIdx, index);
+        const hi = Math.max(anchorIdx, index);
+        const next = new Set<string>();
+        for (let i = lo; i <= hi; i++) {
+          const blk = blocks[i];
+          if (blk) next.add(blk.id);
+        }
+        setSelectedBlockIds(next);
+        selectionAnchorIndexRef.current = index;
+        setFocusedBlockId(blockId);
+        return;
+      }
+      if (meta || ctrl) {
+        setSelectedBlockIds((prev) => {
+          const n = new Set(prev);
+          if (n.has(blockId)) n.delete(blockId);
+          else n.add(blockId);
+          return n;
+        });
+        selectionAnchorIndexRef.current = index;
+        setFocusedBlockId(blockId);
+        return;
+      }
+      setSelectedBlockIds(new Set([blockId]));
+      selectionAnchorIndexRef.current = index;
+      setFocusedBlockId(blockId);
+    },
+    [readPointerModifiers]
+  );
+
+  const deleteBlock = (id: string) => {
+    setSelectedBlockIds((prev) => {
+      if (!prev.has(id)) return prev;
+      const n = new Set(prev);
+      n.delete(id);
+      return n;
+    });
+    let focusAfterDelete: string | null = null;
+    /** Apply removal before focusing the previous row so `editorByBlockId` matches mounted views. */
+    flushSync(() => {
+      replaceBlocks((prev) => {
+        const index = prev.findIndex((b) => b.id === id);
+        if (index === -1) return prev;
+
+        if (prev.length === 1) {
+          const only = prev[0];
+          if (only.id !== id) return prev;
+          if (soleBlockAlreadyMinimal(only)) return prev;
+          return [{ ...only, type: "paragraph", content: "<p></p>" }];
+        }
+
+        const newBlocks = prev.filter((b) => b.id !== id);
+        const prevBlock = newBlocks[index - 1] || newBlocks[0];
+        focusAfterDelete = prevBlock.id;
+
+        return newBlocks;
+      });
     });
     if (focusAfterDelete !== null) {
-      queueMicrotask(() => setFocusedBlockId(focusAfterDelete));
+      setFocusedBlockId(focusAfterDelete);
+      /**
+       * TipTap’s `focus` command defers `view.focus()` to `requestAnimationFrame`, so the next
+       * Backspace (key repeat) often fires while focus is still on the removed row / `<body>`.
+       * Move selection to the end of the surviving block and focus the contenteditable synchronously.
+       */
+      const ed = editorByBlockId.current.get(focusAfterDelete);
+      if (ed && !ed.isDestroyed) {
+        ed.chain().focus("end", { scrollIntoView: false }).run();
+        ed.view.dom.focus({ preventScroll: true });
+      }
     }
   };
 
@@ -710,20 +1028,32 @@ export default function Editor({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!showMenuRef.current) return;
 
-      const n = SLASH_MENU_ITEMS.length;
+      const items = filterSlashMenuItems(
+        SLASH_MENU_ITEMS,
+        slashMenuQueryRef.current
+      );
+      const n = items.length;
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
-        setSelectedIndex((prev) => (prev + 1) % n);
+        if (n === 0) return;
+        setSelectedIndex((prev) => {
+          const cur = Math.min(prev, n - 1);
+          return (cur + 1) % n;
+        });
       }
 
       if (e.key === "ArrowUp") {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
-        setSelectedIndex((prev) => (prev === 0 ? n - 1 : prev - 1));
+        if (n === 0) return;
+        setSelectedIndex((prev) => {
+          const cur = Math.min(prev, n - 1);
+          return cur === 0 ? n - 1 : cur - 1;
+        });
       }
 
       if (e.key === "Enter") {
@@ -736,8 +1066,9 @@ export default function Editor({
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
-        const idx = slashSelectedIndexRef.current;
-        applySlashCommand(SLASH_MENU_ITEMS[idx].type);
+        if (n === 0) return;
+        const idx = Math.min(slashSelectedIndexRef.current, n - 1);
+        applySlashCommand(items[idx]!.type);
       }
 
       if (e.key === "Escape") {
@@ -925,10 +1256,12 @@ export default function Editor({
         return (
           <div
             key={`${pageId}:${block.id}`}
+            data-musing-block-id={block.id}
             className={[
               "editor-block-row",
               rowDropBefore ? "editor-block-row--drop-before" : "",
               rowDropAfter ? "editor-block-row--drop-after" : "",
+              selectedBlockIds.has(block.id) ? "editor-block-row--selected" : "",
             ]
               .filter(Boolean)
               .join(" ")}
@@ -968,25 +1301,100 @@ export default function Editor({
             }}
           >
             <div className="editor-block-row-inner">
-              <button
-                type="button"
-                className="editor-block-grip"
-                aria-label="Drag to reorder block"
-                title="Drag to reorder (Alt + ↑ / ↓)"
-                disabled={!canReorder}
-                draggable={canReorder}
-                onPointerDown={(ev) => ev.stopPropagation()}
-                onDragStart={(e) => {
-                  e.dataTransfer.setData(BLOCK_DND_MIME, block.id);
-                  e.dataTransfer.setData("text/plain", block.id);
-                  e.dataTransfer.effectAllowed = "move";
-                }}
-                onDragEnd={() => setDropIndicator(null)}
-              >
-                <span className="editor-block-grip-icon" aria-hidden>
-                  ⋮⋮
-                </span>
-              </button>
+              <div className="editor-block-gutter">
+                <div
+                  className="editor-block-select-strip"
+                  aria-label="Drag vertically to select multiple blocks"
+                  title="Drag up or down to select a range of blocks. Text cannot span blocks — each row is its own editor."
+                  onPointerDown={(ev) =>
+                    beginLeftStripBlockDragSelect(ev, block.id, index)
+                  }
+                />
+                <button
+                  type="button"
+                  className="editor-block-add-below"
+                  aria-label="Add block below"
+                  title="Add block below"
+                  onPointerDown={(ev) => ev.stopPropagation()}
+                  onClick={() => addBlockAfter(block.id)}
+                >
+                  <span className="editor-block-add-below-icon" aria-hidden>
+                    +
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="editor-block-grip"
+                  aria-label="Drag to reorder; ⌘ or Ctrl+click to multi-select, Shift+click for range"
+                  title="Drag to reorder (Alt + ↑ / ↓). Left strip: drag to select a range. ⌘/Ctrl+click: toggle row. Shift+click: range from anchor."
+                  draggable={canReorder}
+                  aria-disabled={!canReorder}
+                  onPointerDown={(e) => {
+                    if (e.button !== 0) return;
+                    e.stopPropagation();
+                    const m = readPointerModifiers(e);
+                    if (m.meta || m.ctrl || m.shift) {
+                      e.preventDefault();
+                      gutterPointerRef.current = null;
+                      handleGutterGripClick(block.id, index, e);
+                      return;
+                    }
+                    gutterPointerRef.current = {
+                      blockId: block.id,
+                      index,
+                      x: e.clientX,
+                      y: e.clientY,
+                    };
+                    /** Without capture, `pointerup` may miss the button when `draggable` is true (release outside). */
+                    try {
+                      e.currentTarget.setPointerCapture(e.pointerId);
+                    } catch {
+                      /* invalid pointerId */
+                    }
+                  }}
+                  onPointerUp={(e) => {
+                    if (e.button !== 0) return;
+                    e.stopPropagation();
+                    const g = gutterPointerRef.current;
+                    gutterPointerRef.current = null;
+                    try {
+                      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                        e.currentTarget.releasePointerCapture(e.pointerId);
+                      }
+                    } catch {
+                      /* already released */
+                    }
+                    if (!g || g.blockId !== block.id) return;
+                    if (Math.hypot(e.clientX - g.x, e.clientY - g.y) >= 10) return;
+                    /** Use modifiers at *release* so ⌘ after mousedown still toggles into the selection. */
+                    handleGutterGripClick(block.id, index, e);
+                  }}
+                  onPointerCancel={(e) => {
+                    gutterPointerRef.current = null;
+                    try {
+                      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                        e.currentTarget.releasePointerCapture(e.pointerId);
+                      }
+                    } catch {
+                      /* */
+                    }
+                  }}
+                  onDragStart={(e) => {
+                    gutterPointerRef.current = null;
+                    e.dataTransfer.setData(BLOCK_DND_MIME, block.id);
+                    e.dataTransfer.setData("text/plain", block.id);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragEnd={() => {
+                    gutterPointerRef.current = null;
+                    setDropIndicator(null);
+                  }}
+                >
+                  <span className="editor-block-grip-icon" aria-hidden>
+                    ⋮⋮
+                  </span>
+                </button>
+              </div>
               <div
                 className={[
                   "editor-block-body",
@@ -1000,6 +1408,7 @@ export default function Editor({
                 <Block
                 pageId={pageId}
                 block={block}
+                externalWorkspaceRevision={externalWorkspaceRevision}
                 menuBlockId={menuBlockId}
                 pagePickerBlockId={pagePickerBlockId}
                 onContentChange={updateBlockContent}
@@ -1013,6 +1422,7 @@ export default function Editor({
                 onSlashMenuOpenChange={onSlashMenuOpenChange}
                 isPostSlashNewRowLocked={isPostSlashNewRowLocked}
                 slashTypeSyncedInEditorRef={slashTypeSyncedInEditorRef}
+                pageBlockCount={localBlocks.length}
                 onBackspace={deleteBlock}
                 isFocused={focusedBlockId === block.id}
                 registerEditor={registerEditor}
@@ -1024,12 +1434,14 @@ export default function Editor({
                 setPagePickerBlockId={setPagePickerBlockId}
                 setPagePickerPosition={setPagePickerPosition}
                 setPagePickerQuery={setPagePickerQuery}
+                setSlashMenuQuery={setSlashMenuQuery}
                 closePagePickerMenu={closePagePickerMenu}
                 closeSlashMenu={closeSlashMenu}
                 otherPageCount={otherPageCount}
                 canMoveUp={index > 0}
                 canMoveDown={index < localBlocks.length - 1}
                 onMoveBlockDelta={moveBlockDelta}
+                onClearBlockSelection={clearBlockSelection}
               />
               </div>
             </div>
@@ -1054,7 +1466,12 @@ export default function Editor({
 
       {showMenu && menuBlockId && menuPosition && (
         <div ref={slashMenuRef}>
-          <SlashMenu position={menuPosition} onSelect={applySlashCommand} selectedIndex={selectedIndex} />
+          <SlashMenu
+            position={menuPosition}
+            onSelect={applySlashCommand}
+            selectedIndex={safeSlashIndex}
+            items={filteredSlashItems}
+          />
         </div>
       )}
 

@@ -29,8 +29,8 @@ describe("SlashMenu", () => {
       />
     );
 
-    const heading = screen.getByText("Heading 1").closest("div");
-    expect(heading).toBeTruthy();
-    expect(heading).toHaveStyle({ backgroundColor: "rgb(238, 238, 238)" });
+    expect(
+      screen.getByRole("option", { name: /Heading 1/i })
+    ).toHaveAttribute("aria-selected", "true");
   });
 });

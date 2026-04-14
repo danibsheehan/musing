@@ -1,9 +1,11 @@
 import { useEditor, EditorContent } from "@tiptap/react";
-import type { Editor as TiptapEditor } from "@tiptap/core";
+import { type Editor as TiptapEditor, isNodeEmpty } from "@tiptap/core";
+import Emoji, { EmojiSuggestionPluginKey } from "@tiptap/extension-emoji";
 import Placeholder from "@tiptap/extension-placeholder";
 import StarterKit from "@tiptap/starter-kit";
 import {
   applyBlockTypeToEditor,
+  collapseEditorToSingleRootBlock,
   isBlockHtmlVisuallyEmpty,
   tipTapContentFromBlock,
 } from "../lib/blockEditorCommands";
@@ -16,7 +18,14 @@ import { useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useRef, type RefObject } from "react";
 import DatabaseEmbedBlock from "./DatabaseEmbedBlock";
 import EditorTextFormatBubble from "./EditorTextFormatBubble";
-import { textBeforeCursorInBlock } from "../lib/editorBlockText";
+import {
+  textBeforeCursorInBlock,
+  viewCoordsForFloatingMenu,
+} from "../lib/editorBlockText";
+import {
+  createEmojiSuggestionRender,
+  emojiSuggestionItems,
+} from "../lib/emojiSuggestionRender";
 
 /** True when the caret is right after `/` or still typing the slash-query (e.g. `/p`), without a closing space. */
 function isSlashMenuOpen(editor: TiptapEditor): boolean {
@@ -30,9 +39,19 @@ function isPagePickerOpen(editor: TiptapEditor): boolean {
   return /@([^ \n]*)$/.test(textBefore);
 }
 
+/** `:` emoji suggestion list is active (keyboard handled by TipTap suggestion plugin). */
+function isEmojiSuggestionOpen(editor: TiptapEditor): boolean {
+  const st = EmojiSuggestionPluginKey.getState(editor.state) as
+    | { active?: boolean }
+    | undefined;
+  return !!st?.active;
+}
+
 type DocumentBlockProps = {
   pageId: string;
   block: BlockType;
+  /** Bumps when workspace syncs from storage — used to refresh editor HTML without re-applying on every keystroke. */
+  externalWorkspaceRevision: number;
   menuBlockId: string | null;
   pagePickerBlockId: string | null;
   onContentChange: (id: string, content: string) => void;
@@ -50,6 +69,8 @@ type DocumentBlockProps = {
   isPostSlashNewRowLocked: (blockId: string) => boolean;
   /** When set to this block id, skip one `applyBlockTypeToEditor` (already applied synchronously in the parent). */
   slashTypeSyncedInEditorRef: RefObject<string | null>;
+  /** Blocks on this page — used so Backspace does not steal the key when the only row is an irremovable empty paragraph. */
+  pageBlockCount: number;
   onBackspace: (id: string) => void;
   isFocused: boolean;
   registerEditor: (id: string, instance: TiptapEditor | null) => void;
@@ -61,17 +82,22 @@ type DocumentBlockProps = {
   setPagePickerBlockId: (id: string | null) => void;
   setPagePickerPosition: (pos: { top: number; left: number } | null) => void;
   setPagePickerQuery: (query: string) => void;
+  /** Text after `/` for filtering the slash menu (typed in the editor). */
+  setSlashMenuQuery: (query: string) => void;
   closePagePickerMenu: () => void;
   closeSlashMenu: () => void;
   otherPageCount: number;
   canMoveUp: boolean;
   canMoveDown: boolean;
   onMoveBlockDelta: (id: string, delta: -1 | 1) => void;
+  /** Clears multi-block selection when the user points at editable content (gutter uses ⌘/Shift for selection). */
+  onClearBlockSelection?: () => void;
 };
 
 function DocumentBlock({
   pageId,
   block,
+  externalWorkspaceRevision,
   menuBlockId,
   pagePickerBlockId,
   onContentChange,
@@ -83,6 +109,7 @@ function DocumentBlock({
   onSlashMenuOpenChange,
   isPostSlashNewRowLocked,
   slashTypeSyncedInEditorRef,
+  pageBlockCount,
   onBackspace,
   isFocused,
   registerEditor,
@@ -94,12 +121,14 @@ function DocumentBlock({
   setPagePickerBlockId,
   setPagePickerPosition,
   setPagePickerQuery,
+  setSlashMenuQuery,
   closePagePickerMenu,
   closeSlashMenu,
   otherPageCount,
   canMoveUp,
   canMoveDown,
   onMoveBlockDelta,
+  onClearBlockSelection,
 }: DocumentBlockProps) {
   const navigate = useNavigate();
   const { pages } = useWorkspace();
@@ -110,19 +139,41 @@ function DocumentBlock({
   }, [pages]);
 
   const wikiLinkExtension = useMemo(() => {
-    // eslint-disable-next-line react-hooks/refs -- getPages runs in TipTap input rules only
     return WikiLink.configure({
       getPages: () => pagesBox.current,
     });
   }, []);
 
-  /** Keeps TipTap `content` in sync with `block.type` when the block is empty (avoids reset to `<p>` after slash). */
-  const tiptapContent = useMemo(
-    () => tipTapContentFromBlock(block),
-    [block.content, block.type]
+  const emojiExtension = useMemo(
+    () =>
+      Emoji.configure({
+        suggestion: {
+          items: emojiSuggestionItems,
+          render: createEmojiSuggestionRender(),
+        },
+      }),
+    []
   );
 
-  const menuBlockIdRef = useRef(menuBlockId);
+  /**
+   * `useEditor({ content })` only. Must NOT depend on `block.content` or it updates every keystroke and
+   * TipTap `setOptions` re-parses HTML, wiping `/…` filter text (repro: add/delete dividers, type `/` + filter).
+   * Recompute only when this row is new or workspace sync revision bumps.
+   */
+  const editorInitialHtml = useMemo(
+    () => tipTapContentFromBlock(block),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally not block.content (typing); `type` must update after slash commands
+    [block.id, externalWorkspaceRevision, block.type]
+  );
+
+  /**
+   * Which block “owns” the slash menu for `closeSlashForThisRow` — set only in `queueSlashMenuSync`
+   * (open / close). Do **not** sync from `menuBlockId` props in an effect: the parent commits
+   * `menuBlockId` one frame after RAF sets this ref to `block.id`, so an effect that mirrors props
+   * can overwrite the ref with `null` and `thisBlockOwnsSlashMenu()` fails → menu state never clears
+   * after Backspace removes `/`, and Backspace handling stays broken.
+   */
+  const menuBlockIdRef = useRef<string | null>(null);
   const pagePickerBlockIdRef = useRef(pagePickerBlockId);
   const canMoveUpRef = useRef(canMoveUp);
   const canMoveDownRef = useRef(canMoveDown);
@@ -131,10 +182,6 @@ function DocumentBlock({
   const prevBlockTypeRef = useRef<{ id: string; type: BlockType["type"] } | null>(null);
   const editorRef = useRef<TiptapEditor | null>(null);
   const prevIsFocusedRef = useRef(false);
-
-  useEffect(() => {
-    menuBlockIdRef.current = menuBlockId;
-  }, [menuBlockId]);
 
   useEffect(() => {
     pagePickerBlockIdRef.current = pagePickerBlockId;
@@ -165,6 +212,13 @@ function DocumentBlock({
   const onConfirmSlashCommandRef = useRef(onConfirmSlashCommand);
   const onConfirmPagePickerCommandRef = useRef(onConfirmPagePickerCommand);
   const onBackspaceRef = useRef(onBackspace);
+  /** Parent `menuBlockId` / `closeSlashMenu` — updated every render; `useEditor` deps omit `menuBlockId`. */
+  const parentMenuBlockIdRef = useRef(menuBlockId);
+  parentMenuBlockIdRef.current = menuBlockId;
+  const closeSlashMenuRef = useRef(closeSlashMenu);
+  closeSlashMenuRef.current = closeSlashMenu;
+  const pageBlockCountRef = useRef(pageBlockCount);
+  const blockTypeRef = useRef(block.type);
   const onContentChangeRef = useRef(onContentChange);
   const isPostSlashNewRowLockedRef = useRef(isPostSlashNewRowLocked);
   const otherPageCountRef = useRef(otherPageCount);
@@ -189,6 +243,12 @@ function DocumentBlock({
     onBackspaceRef.current = onBackspace;
   }, [onBackspace]);
   useEffect(() => {
+    pageBlockCountRef.current = pageBlockCount;
+  }, [pageBlockCount]);
+  useEffect(() => {
+    blockTypeRef.current = block.type;
+  }, [block.type]);
+  useEffect(() => {
     onContentChangeRef.current = onContentChange;
   }, [onContentChange]);
   useEffect(() => {
@@ -206,10 +266,14 @@ function DocumentBlock({
       slashMenuRaf.current = requestAnimationFrame(() => {
         if (ed.isDestroyed) return;
 
+        const thisBlockOwnsSlashMenu = () =>
+          menuBlockId === block.id || menuBlockIdRef.current === block.id;
+
         const closeSlashForThisRow = () => {
-          if (menuBlockIdRef.current !== block.id) return;
+          if (!thisBlockOwnsSlashMenu()) return;
           menuBlockIdRef.current = null;
           onSlashMenuOpenChange(null);
+          setSlashMenuQuery("");
           setShowMenu(false);
           setMenuBlockId(null);
           setMenuPosition(null);
@@ -217,6 +281,8 @@ function DocumentBlock({
 
         const open = isSlashMenuOpen(ed);
         if (!open) {
+          // During IME, `/…query` may not be in the doc yet — don't tear down the menu.
+          if (ed.view.composing) return;
           closeSlashForThisRow();
           return;
         }
@@ -225,15 +291,17 @@ function DocumentBlock({
         const textBefore = textBeforeCursorInBlock($from);
         const m = textBefore.match(/\/[^ \n]*$/);
         if (!m) {
+          if (ed.view.composing) return;
           closeSlashForThisRow();
           return;
         }
 
         const slashPos = from - m[0].length;
-        const coords = ed.view.coordsAtPos(slashPos);
+        const coords = viewCoordsForFloatingMenu(ed.view, slashPos, from);
         const top = coords.bottom + 4;
         const left = coords.left;
         if (!Number.isFinite(top) || !Number.isFinite(left)) {
+          if (ed.view.composing) return;
           closeSlashForThisRow();
           return;
         }
@@ -241,6 +309,7 @@ function DocumentBlock({
         menuBlockIdRef.current = block.id;
         onSlashMenuOpenChange(block.id);
         closePagePickerMenu();
+        setSlashMenuQuery(m[0].slice(1));
         setMenuPosition({ top, left });
         setShowMenu(true);
         setMenuBlockId(block.id);
@@ -248,10 +317,12 @@ function DocumentBlock({
     },
     [
       block.id,
+      menuBlockId,
       closePagePickerMenu,
       setMenuBlockId,
       setMenuPosition,
       setShowMenu,
+      setSlashMenuQuery,
       onSlashMenuOpenChange,
     ]
   );
@@ -271,8 +342,12 @@ function DocumentBlock({
           }
           return;
         }
+        const thisBlockOwnsPagePicker = () =>
+          pagePickerBlockId === block.id ||
+          pagePickerBlockIdRef.current === block.id;
+
         const closePickerForThisRow = () => {
-          if (pagePickerBlockIdRef.current !== block.id) return;
+          if (!thisBlockOwnsPagePicker()) return;
           pagePickerBlockIdRef.current = null;
           setShowPagePicker(false);
           setPagePickerBlockId(null);
@@ -281,6 +356,7 @@ function DocumentBlock({
 
         const open = isPagePickerOpen(ed);
         if (!open) {
+          if (ed.view.composing) return;
           closePickerForThisRow();
           return;
         }
@@ -289,15 +365,17 @@ function DocumentBlock({
         const textBefore = textBeforeCursorInBlock($from);
         const m = textBefore.match(/@([^ \n]*)$/);
         if (!m) {
+          if (ed.view.composing) return;
           closePickerForThisRow();
           return;
         }
 
         const atPos = from - m[0].length;
-        const coords = ed.view.coordsAtPos(atPos);
+        const coords = viewCoordsForFloatingMenu(ed.view, atPos, from);
         const top = coords.bottom + 4;
         const left = coords.left;
         if (!Number.isFinite(top) || !Number.isFinite(left)) {
+          if (ed.view.composing) return;
           closePickerForThisRow();
           return;
         }
@@ -312,6 +390,7 @@ function DocumentBlock({
     },
     [
       block.id,
+      pagePickerBlockId,
       closeSlashMenu,
       otherPageCount,
       setPagePickerBlockId,
@@ -348,6 +427,7 @@ function DocumentBlock({
            */
           trailingNode: false,
         }),
+        emojiExtension,
         singleTopLevelBlock,
         Placeholder.configure({
           placeholder: "Press '/' for commands",
@@ -355,7 +435,7 @@ function DocumentBlock({
         }),
         wikiLinkExtension,
       ],
-      content: tiptapContent,
+      content: editorInitialHtml,
       onUpdate: ({ editor }) => {
         const html = editor.getHTML();
         onContentChangeRef.current(block.id, html);
@@ -391,6 +471,26 @@ function DocumentBlock({
           return false;
         },
         handleKeyDown(view, event) {
+          /**
+           * TipTap attaches the `Editor` on `view.dom` (see @tiptap/core `createView`). `editorRef` is
+           * assigned in `useEffect`, so the first keydown can run before the ref is set — `ed` would be
+           * null and row-delete / slash checks silently fail.
+           */
+          const ed =
+            (view.dom as HTMLElement & { editor?: TiptapEditor }).editor ??
+            editorRef.current;
+          if (ed && !ed.isDestroyed && isEmojiSuggestionOpen(ed)) {
+            if (
+              event.key === "Enter" ||
+              event.key === "ArrowUp" ||
+              event.key === "ArrowDown" ||
+              event.key === "Escape" ||
+              event.key === "Tab"
+            ) {
+              return false;
+            }
+          }
+
           if (event.altKey && !event.metaKey && !event.ctrlKey) {
             if (event.key === "ArrowUp" && canMoveUpRef.current) {
               event.preventDefault();
@@ -405,7 +505,6 @@ function DocumentBlock({
           }
 
           if (event.key === "Enter") {
-            const ed = editorRef.current;
             // Page picker / slash: `showMenu` / `showPagePicker` may still be false for one frame after
             // RAF sets refs — do not swallow Enter without confirming, or a later Enter becomes `onEnter`
             // and inserts an empty row.
@@ -462,13 +561,47 @@ function DocumentBlock({
           }
 
           if (event.key === "Backspace") {
-            const ed = editorRef.current;
-            const isEmpty =
+            if (ed && !ed.isDestroyed) {
+              /**
+               * RAF slash sync can lag behind PM (and may skip close while `composing`). If the doc no
+               * longer has `/…` but this row still owns the React menu, flush close synchronously so the
+               * next checks (and global `showMenuRef`) match — fixes Backspace-after-`/` not deleting rows.
+               */
+              if (
+                !isSlashMenuOpen(ed) &&
+                (parentMenuBlockIdRef.current === block.id ||
+                  menuBlockIdRef.current === block.id)
+              ) {
+                menuBlockIdRef.current = null;
+                closeSlashMenuRef.current();
+              }
+            }
+            if (ed && !ed.isDestroyed && ed.state.doc.childCount > 1) {
+              collapseEditorToSingleRootBlock(ed);
+            }
+            /**
+             * `editor.isEmpty` uses strict `isNodeEmpty(doc)` — a paragraph with only ProseMirror's
+             * trailing `<br>` / hardBreak is NOT empty, so Backspace never removes the app-level row.
+             * `ignoreWhitespace: true` matches TipTap's notion of "no real content" for block delete.
+             */
+            const docEmpty =
               ed && !ed.isDestroyed
-                ? ed.isEmpty
-                : view.state.doc.textContent.replace(/[\u200b-\u200d\ufeff]/g, "").trim()
-                    .length === 0;
-            if (isEmpty) {
+                ? isNodeEmpty(ed.state.doc, { ignoreWhitespace: true }) ||
+                  isBlockHtmlVisuallyEmpty(ed.getHTML())
+                : isNodeEmpty(view.state.doc, { ignoreWhitespace: true }) ||
+                  view.state.doc.textContent
+                    .replace(/[\u200b-\u200d\ufeff]/g, "")
+                    .trim().length === 0;
+            /**
+             * `deleteBlock` keeps one empty paragraph when it is the only block (`soleBlockAlreadyMinimal`).
+             * If we still intercept Backspace here, the key becomes a no-op — feels like a stuck row.
+             */
+            const soleIrremovableEmptyParagraph =
+              pageBlockCountRef.current === 1 &&
+              blockTypeRef.current === "paragraph" &&
+              docEmpty;
+            const rowDeletable = docEmpty && !soleIrremovableEmptyParagraph;
+            if (rowDeletable) {
               event.preventDefault();
               onBackspaceRef.current(block.id);
               return true;
@@ -479,7 +612,7 @@ function DocumentBlock({
         },
       },
     },
-    [pageId, block.id, wikiLinkExtension]
+    [pageId, block.id, wikiLinkExtension, emojiExtension, externalWorkspaceRevision]
   );
 
   useEffect(() => {
@@ -525,7 +658,15 @@ function DocumentBlock({
   }, [editor, isFocused]);
 
   return (
-    <div onClick={() => setFocusedBlockId(block.id)}>
+    <div
+      onPointerDownCapture={(e) => {
+        const t = e.target as HTMLElement | null;
+        if (t?.closest?.(".ProseMirror")) {
+          onClearBlockSelection?.();
+        }
+      }}
+      onClick={() => setFocusedBlockId(block.id)}
+    >
       {editor ? <EditorTextFormatBubble editor={editor} blockId={block.id} /> : null}
       <EditorContent
         editor={editor}

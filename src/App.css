@@ -606,6 +606,87 @@ html[data-theme="dark"] .page-export-error {
   border-bottom-color: var(--accent-border);
 }
 
+/* Slash, @ page, database, and : emoji pickers — use theme vars from index.css */
+.musing-dropdown {
+  z-index: 1000;
+  box-sizing: border-box;
+  background: var(--bg);
+  color: var(--text-h);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: var(--shadow);
+}
+
+.musing-dropdown--slash {
+  min-width: 11.25rem;
+}
+
+.musing-dropdown--picker {
+  min-width: 12rem;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.musing-dropdown--emoji {
+  min-width: 14rem;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.musing-dropdown-empty {
+  padding: 6px 8px;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.musing-dropdown-empty--sm {
+  padding: 4px 8px;
+  font-size: 0.85rem;
+}
+
+.musing-dropdown-option {
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-h);
+}
+
+.musing-dropdown-option[aria-selected="true"] {
+  background: var(--interactive-hover);
+}
+
+.musing-dropdown-option-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  background: transparent;
+  color: var(--text-h);
+}
+
+.musing-dropdown-option-btn[aria-selected="true"] {
+  background: var(--interactive-hover);
+}
+
+.musing-dropdown-emoji-glyph {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.musing-dropdown-option-label {
+  flex: 1;
+  color: var(--text-h);
+}
+
 .page-editor-wrap {
   flex: 1;
   min-height: 0;
@@ -635,11 +716,40 @@ html[data-theme="dark"] .page-export-error {
   flex: 0 0 auto;
 }
 
+/* Drag handle + add-below control (left of block body) */
+.editor-block-gutter {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.1rem;
+  flex-shrink: 0;
+  margin-top: 0.48rem;
+}
+
+/* Narrow hit target: press-drag vertically to range-select rows (each block is a separate editor). */
+.editor-block-select-strip {
+  align-self: stretch;
+  width: 0.35rem;
+  min-height: 1.25rem;
+  flex-shrink: 0;
+  margin-right: 0.05rem;
+  border-radius: 3px;
+  touch-action: none;
+  cursor: row-resize;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.editor-block-row:hover .editor-block-select-strip,
+.editor-block-row--selected .editor-block-select-strip {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
 /* Click target under code / list rows when they’re the last block — adds a paragraph below if missing. */
 .editor-block-below-hit {
   flex: 0 0 auto;
   align-self: stretch;
-  margin-left: 1.6rem;
+  /* Align with block body: add + grip + gutter gaps + row-inner gap */
+  margin-left: calc(1.35rem + 0.1rem + 1.4rem + 0.2rem);
   min-height: 1.1rem;
   border: none;
   padding: 0.15rem 0.25rem 0.35rem;
@@ -660,6 +770,11 @@ html[data-theme="dark"] .page-export-error {
   box-shadow: 0 2px 0 0 var(--accent);
 }
 
+.editor-block-row--selected {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  box-shadow: inset 3px 0 0 0 var(--accent);
+}
+
 .editor-block-body {
   flex: 1;
   min-width: 0;
@@ -673,7 +788,7 @@ html[data-theme="dark"] .page-export-error {
 .editor-block-grip {
   flex-shrink: 0;
   width: 1.4rem;
-  margin-top: 0.48rem;
+  margin-top: 0;
   padding: 0.15rem 0;
   border: none;
   border-radius: 4px;
@@ -686,7 +801,10 @@ html[data-theme="dark"] .page-export-error {
 }
 
 .editor-block-row:hover .editor-block-grip:not(:disabled),
-.editor-block-grip:focus-visible {
+.editor-block-row--selected .editor-block-grip:not(:disabled),
+.editor-block-grip:focus-visible,
+.editor-block-row:hover .editor-block-add-below,
+.editor-block-add-below:focus-visible {
   opacity: 1;
 }
 
@@ -711,6 +829,41 @@ html[data-theme="dark"] .page-export-error {
   user-select: none;
 }
 
+.editor-block-add-below {
+  flex-shrink: 0;
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted, #888);
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+.editor-block-add-below:hover {
+  background: var(--code-bg, rgba(0, 0, 0, 0.06));
+  color: var(--text-h);
+}
+
+.editor-block-add-below:active {
+  background: var(--code-bg, rgba(0, 0, 0, 0.09));
+}
+
+.editor-block-add-below-icon {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1;
+  user-select: none;
+}
+
 .editor-content {
   flex: 1;
   width: 100%;
@@ -729,6 +882,19 @@ html[data-theme="dark"] .page-export-error {
 
 .editor-content .ProseMirror:focus {
   outline: none;
+}
+
+/* TipTap Emoji node: inline glyph + optional fallback img */
+.editor-content .ProseMirror span[data-type="emoji"] {
+  display: inline;
+  vertical-align: baseline;
+  line-height: inherit;
+}
+
+.editor-content .ProseMirror span[data-type="emoji"] img {
+  height: 1.15em;
+  width: auto;
+  vertical-align: -0.2em;
 }
 
 /* Out-of-flow placeholder so the caret and inline layout match typed text (float breaks this with pre-wrap). */

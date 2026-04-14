@@ -1,7 +1,10 @@
 import type { BlockType } from "../types/block";
 
+/** Slash palette entries: block types plus non-block actions (e.g. emoji picker). */
+export type SlashMenuChoice = BlockType | "emoji";
+
 export type SlashMenuItem = {
-  type: BlockType;
+  type: SlashMenuChoice;
   label: string;
 };
 
@@ -23,6 +26,17 @@ const batch2: SlashMenuItem[] = [
 
 const batch3: SlashMenuItem[] = [
   { type: "databaseEmbed", label: "Linked database" },
+  { type: "emoji", label: "Emoji" },
 ];
 
 export const SLASH_MENU_ITEMS: SlashMenuItem[] = [...batch1, ...batch2, ...batch3];
+
+/** Filters by label (case-insensitive substring). Empty `query` returns all items. */
+export function filterSlashMenuItems(
+  items: readonly SlashMenuItem[],
+  query: string
+): SlashMenuItem[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [...items];
+  return items.filter((item) => item.label.toLowerCase().includes(q));
+}

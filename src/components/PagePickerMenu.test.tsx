@@ -59,7 +59,9 @@ describe("PagePickerMenu", () => {
       />
     );
 
-    const row = screen.getByText("B").closest("div");
-    expect(row).toHaveStyle({ backgroundColor: "rgb(238, 238, 238)" });
+    expect(screen.getByRole("option", { name: "B" })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
   });
 });
