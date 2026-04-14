@@ -1,5 +1,7 @@
 import type { Editor } from "@tiptap/core";
-import { isTextSelection } from "@tiptap/core";
+import { isTextSelection, posToDOMRect } from "@tiptap/core";
+import type { VirtualElement } from "@floating-ui/dom";
+import type { EditorView } from "@tiptap/pm/view";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { useEditorState } from "@tiptap/react";
 import {
@@ -25,6 +27,29 @@ function shouldShowFormatBubble({ editor }: { editor: Editor }): boolean {
   if (/\/[^ \n]*$/.test(textBefore)) return false;
   if (/@([^ \n]*)$/.test(textBefore)) return false;
   return true;
+}
+
+/** Anchor format bubble to the whole top-level block (not the selection rect). */
+function blockAnchorVirtualElement(view: EditorView): VirtualElement {
+  const readRect = (): DOMRect => {
+    const sel = view.state.selection;
+    if (!isTextSelection(sel) || sel.empty) {
+      return new DOMRect(0, 0, 0, 0);
+    }
+    const $f = sel.$from;
+    if ($f.depth >= 1) {
+      const dom = view.nodeDOM($f.before(1));
+      if (dom instanceof HTMLElement) return dom.getBoundingClientRect();
+    }
+    return posToDOMRect(view, sel.from, sel.to);
+  };
+  return {
+    getBoundingClientRect: () => readRect(),
+    getClientRects: () => {
+      const r = readRect();
+      return [r];
+    },
+  };
 }
 
 function normalizeUrl(input: string): string {
@@ -128,6 +153,13 @@ export default function EditorTextFormatBubble({ editor, blockId }: Props) {
     closeMore();
   }, [editor, closeMore]);
 
+  const getReferencedVirtualElement = useCallback((): VirtualElement | null => {
+    const view = editor.view;
+    const sel = view.state.selection;
+    if (!isTextSelection(sel) || sel.empty) return null;
+    return blockAnchorVirtualElement(view);
+  }, [editor]);
+
   return (
     <BubbleMenu
       editor={editor}
@@ -135,10 +167,15 @@ export default function EditorTextFormatBubble({ editor, blockId }: Props) {
       appendTo={getEditorBubbleMenuPortal}
       updateDelay={0}
       shouldShow={({ editor: ed }) => shouldShowFormatBubble({ editor: ed })}
+      getReferencedVirtualElement={getReferencedVirtualElement}
       className="editor-format-bubble-root"
       options={{
-        placement: "top",
-        flip: { fallbackPlacements: ["bottom", "top"] },
+        strategy: "fixed",
+        placement: "bottom-end",
+        flip: {
+          fallbackPlacements: ["top-end", "bottom-start", "top-start", "bottom", "top"],
+        },
+        offset: { mainAxis: 12 },
       }}
     >
       <div

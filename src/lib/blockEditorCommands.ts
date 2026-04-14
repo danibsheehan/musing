@@ -104,5 +104,4 @@ export function applyBlockTypeToEditor(editor: Editor, type: BlockType): void {
       return;
   }
   chain.run();
-  collapseEditorToSingleRootBlock(editor);
 }

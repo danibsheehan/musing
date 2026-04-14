@@ -692,6 +692,127 @@ html[data-theme="dark"] .page-export-error {
   min-height: 0;
 }
 
+/* Single-doc page editor: gutter (+ / ::) beside ProseMirror */
+.page-document-editor {
+  width: 100%;
+}
+
+.page-document-editor__shell {
+  position: relative;
+  display: grid;
+  grid-template-columns: 3.35rem minmax(0, 1fr);
+  gap: 0 0.35rem;
+  align-items: stretch;
+  width: 100%;
+}
+
+.page-document-editor__mainCol {
+  grid-column: 2;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Click strip when last block is code or list (no trailing paragraph to click into). */
+.page-document-editor-below-hit {
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 1.75rem;
+  margin-top: 0.1rem;
+  border: none;
+  padding: 0.4rem 0.25rem;
+  background: transparent;
+  border-radius: 4px;
+  cursor: text;
+  font: inherit;
+  font-size: 0.8125rem;
+  color: color-mix(in srgb, var(--text-h) 42%, transparent);
+}
+
+.page-document-editor-below-hit:hover {
+  background: var(--code-bg, rgba(0, 0, 0, 0.05));
+  color: color-mix(in srgb, var(--text-h) 68%, transparent);
+}
+
+.page-block-gutter {
+  grid-column: 1;
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  min-height: min(100%, 1px);
+  pointer-events: none;
+}
+
+.page-block-gutter__row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 0.1rem;
+  padding-top: 2px;
+  pointer-events: none;
+}
+
+.page-block-gutter__row--drop-target {
+  outline: 1px dashed color-mix(in srgb, var(--accent) 65%, transparent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Full-width insert line while reordering blocks (portaled into .page-document-editor__shell). */
+.page-block-gutter__drop-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  margin: 0;
+  padding: 0;
+  background: var(--accent);
+  border-radius: 1px;
+  pointer-events: none;
+  z-index: 4;
+  box-sizing: border-box;
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.page-block-gutter__btn {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1;
+  color: color-mix(in srgb, var(--text-h) 55%, transparent);
+  background: transparent;
+  cursor: pointer;
+}
+
+.page-block-gutter__btn:hover {
+  color: var(--text-h);
+  background: var(--interactive-hover, rgba(0, 0, 0, 0.06));
+}
+
+.page-block-gutter__btn--drag {
+  cursor: grab;
+  letter-spacing: -0.12em;
+  font-weight: 600;
+}
+
+.page-block-gutter__btn--drag:active {
+  cursor: grabbing;
+}
+
 .editor-root {
   max-width: 42rem;
   margin: 0 auto;
