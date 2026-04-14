@@ -10,7 +10,10 @@ type Props = {
 export default function SlashMenu({ onSelect, position, selectedIndex }: Props) {
     return (
         <div
-            onMouseDown={(e) => e.preventDefault()}
+            data-musing-slash-menu
+            role="listbox"
+            aria-label="Block commands"
+            onPointerDown={(e) => e.preventDefault()}
             style={{
                 position: "fixed",
                 top: position.top,
@@ -23,10 +26,17 @@ export default function SlashMenu({ onSelect, position, selectedIndex }: Props) 
                 zIndex: 1000,
             }}
         >
-            {SLASH_MENU_ITEMS.map((item, index) => (
+                       {SLASH_MENU_ITEMS.map((item, index) => (
                 <div
                     key={item.type}
-                    onClick={() => onSelect(item.type)}
+                    role="option"
+                    aria-selected={selectedIndex === index}
+                    onPointerDown={(e) => {
+                        if (e.button !== 0) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onSelect(item.type);
+                    }}
                     style={{
                         padding: "4px 8px",
                         backgroundColor: selectedIndex === index ? "#eee" : "transparent",

@@ -13,6 +13,7 @@
 - **Wiki-style links** in text plus an **`@` page picker** to insert links while typing
 - **Database embeds** with table and canvas-style views
 - **Export** pages to **PDF** or **.docx** (Word) from the page chrome menu
+- **Theme** control: **Light**, **Dark**, or **System** (stored in `localStorage` as `musing-theme-pref`)
 - **localStorage** persistence; **cross-tab** updates via the `storage` event
 - Optional **Supabase** sync (workspace snapshot in Postgres, RLS-scoped to the signed-in user)
 - **Vite** + **TypeScript**; **React Router** with `basename` derived from `import.meta.env.BASE_URL` for subpath hosting

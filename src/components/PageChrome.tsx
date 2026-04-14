@@ -104,10 +104,10 @@ export default function PageChrome({
               aria-busy={exportBusy !== null}
             >
               {exportBusy === "pdf"
-                ? "Exporting PDF…"
+                ? "PDF…"
                 : exportBusy === "docx"
-                  ? "Exporting Word…"
-                  : "Export as…"}
+                  ? "Word…"
+                  : "Export"}
             </summary>
             <div className="page-export-panel" role="menu">
               {onDownloadPdf && (

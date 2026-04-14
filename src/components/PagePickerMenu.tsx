@@ -15,6 +15,7 @@ export default function PagePickerMenu({
 }: Props) {
   return (
     <div
+      data-musing-page-picker-menu
       onMouseDown={(e) => e.preventDefault()}
       style={{
         position: "fixed",

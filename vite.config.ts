@@ -27,6 +27,16 @@ export default defineConfig({
   base: pagesBase(),
   plugins: [react()],
   /**
+   * Marks `node_modules` sources as ignore-listed in dev source maps so DevTools / debuggers
+   * treat ProseMirror (e.g. `resolveCached`, `filterTransaction`) as library code — fewer spurious
+   * stops when stepping or when ignore-list is not applied to prebundled deps.
+   */
+  server: {
+    sourcemapIgnoreList(sourcePath) {
+      return sourcePath.includes("node_modules");
+    },
+  },
+  /**
    * Rolldown does not resolve `@tiptap/pm/*` export subpaths (see tiptap pm package.json
    * `exports`). Each subpath re-exports a `prosemirror-*` package — alias explicitly.
    */

@@ -2,9 +2,28 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..600;1,14..32,400..600&display=swap"
+      rel="stylesheet"
+    />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" sizes="any" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>musing</title>
+    <script>
+      (function () {
+        try {
+          var key = "musing-theme-pref";
+          var pref = localStorage.getItem(key);
+          var dark =
+            pref === "dark" ||
+            (pref !== "light" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

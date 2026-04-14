@@ -15,6 +15,7 @@ export default function DatabasePickerMenu({
 }: Props) {
   return (
     <div
+      data-musing-database-picker-menu
       onMouseDown={(e) => e.preventDefault()}
       style={{
         position: "fixed",
