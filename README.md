@@ -48,7 +48,7 @@ Other useful scripts:
 | `npm run test:coverage` | Vitest once with **v8 coverage**, HTML + `lcov` under `coverage/`, and **threshold checks** (configured in `vite.config.ts`) |
 | `npm run test:coverage:watch` | Same coverage settings while iterating in watch mode |
 
-Pushes to **`main`** and **pull requests** run **`npm run test:coverage`** via `.github/workflows/ci.yml` (fails the job if coverage drops below those thresholds).
+Pushes to **`main`** and **pull requests** run **`npm run test:coverage`** via `.github/workflows/ci.yml` (fails the job if coverage drops below those thresholds). Every run also appends a **Cobertura markdown summary** to the workflow **job summary** (Vitest’s `coverage/cobertura-coverage.xml` via [`irongut/CodeCoverageSummary`](https://github.com/irongut/CodeCoverageSummary)). On **pull requests from the same repository**, CI posts an additional **table comment** with [`5monkeys/cobertura-action`](https://github.com/5monkeys/cobertura-action); that comment is skipped for **fork** PRs because the default `GITHUB_TOKEN` cannot update the base repo’s PR thread.
 
 Optional: copy `.env.example` to **`.env.local` in the repo root** (next to `package.json`), set the variables below, then restart `npm run dev`.
 
