@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   test:
@@ -23,3 +24,37 @@ jobs:
 
       - name: Unit tests and coverage thresholds
         run: npm run test:coverage
+
+      - name: Cobertura markdown summary (for job summary)
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: coverage/cobertura-coverage.xml
+          badge: true
+          fail_below_min: false
+          format: markdown
+          hide_branch_rate: false
+          hide_complexity: true
+          indicators: true
+          output: file
+          thresholds: "50 75"
+
+      - name: Add coverage to GitHub Actions job summary
+        run: |
+          echo "## Code coverage (Cobertura)" >> "$GITHUB_STEP_SUMMARY"
+          cat code-coverage-results.md >> "$GITHUB_STEP_SUMMARY"
+
+      # Cobertura XML comes from Vitest (`coverage/cobertura-coverage.xml`). Same-repo PRs only:
+      # forked PR workflows get a read-only token and cannot post comments on the base repo PR.
+      - name: Cobertura coverage comment on PR
+        if: >
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        uses: 5monkeys/cobertura-action@v14
+        with:
+          path: coverage/cobertura-coverage.xml
+          minimum_coverage: 0
+          fail_below_threshold: false
+          show_line: true
+          show_branch: true
+          skip_covered: true
+          report_name: Unit tests (Vitest)
