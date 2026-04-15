@@ -5,7 +5,7 @@ import type { Block, BlockType } from "../types/block";
 export function isBlockHtmlVisuallyEmpty(html: string): boolean {
   if (typeof document === "undefined") {
     const stripped = html
-      .replace(/<[^>]+>/g, "")
+      .replace(/[<>]/g, "")
       .replace(/&nbsp;/gi, " ")
       .replace(/[\u200b-\u200d\ufeff\s]/g, "");
     return stripped.length === 0;
