@@ -45,6 +45,10 @@ Other useful scripts:
 | `npm run lint` | ESLint |
 | `npm run test` | Vitest in watch mode |
 | `npm run test:run` | Vitest once (CI-style) |
+| `npm run test:coverage` | Vitest once with **v8 coverage**, HTML + `lcov` under `coverage/`, and **threshold checks** (configured in `vite.config.ts`) |
+| `npm run test:coverage:watch` | Same coverage settings while iterating in watch mode |
+
+Pushes to **`main`** and **pull requests** run **`npm run test:coverage`** via `.github/workflows/ci.yml` (fails the job if coverage drops below those thresholds).
 
 Optional: copy `.env.example` to **`.env.local` in the repo root** (next to `package.json`), set the variables below, then restart `npm run dev`.
 

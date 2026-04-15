@@ -67,5 +67,21 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "text-summary", "html", "lcov"],
+      reportsDirectory: "./coverage",
+      exclude: ["src/test/**"],
+      /**
+       * Floor vs current aggregate (~58% stmts, ~47% branches, ~60% funcs, ~61% lines).
+       * Raise gradually as suites grow; `npm run test:coverage` prints the table locally.
+       */
+      thresholds: {
+        statements: 55,
+        branches: 44,
+        functions: 56,
+        lines: 58,
+      },
+    },
   },
 });
