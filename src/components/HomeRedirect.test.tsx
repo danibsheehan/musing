@@ -28,6 +28,7 @@ function createMockWorkspaceValue(
     movePageWithinSiblings: vi.fn(),
     ancestryFor: vi.fn(),
     childrenOf: vi.fn(),
+    flushRemoteWorkspace: vi.fn(async () => {}),
   };
   return { ...base, ...overrides };
 }

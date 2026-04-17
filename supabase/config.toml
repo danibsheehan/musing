@@ -1,0 +1,8 @@
+# Supabase CLI / Edge Functions. Set project_id when linking a local project (`supabase link`).
+# See README → Supabase for deploying `workspace-ask` and setting function secrets.
+
+# Gateway JWT verify only supports certain algorithms; projects using ES256 signing keys
+# get 401 UNAUTHORIZED_UNSUPPORTED_TOKEN_ALGORITHM before the function runs. RLS still
+# applies when we create a client with the caller's Bearer token inside the function.
+[functions.workspace-ask]
+verify_jwt = false

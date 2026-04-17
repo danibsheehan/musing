@@ -32,6 +32,11 @@ export type WorkspaceContextValue = {
   movePageWithinSiblings: (id: string, direction: "up" | "down") => void;
   ancestryFor: (pageId: string) => Page[];
   childrenOf: (parentId: string | null) => Page[];
+  /**
+   * Push the current workspace to Supabase immediately (clears debounced save timer).
+   * No-op when cloud sync is disabled or not ready. Used before Ask so the server sees latest edits.
+   */
+  flushRemoteWorkspace: () => Promise<void>;
 };
 
 export const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);

@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { useWorkspace } from "../context/useWorkspace";
 import Sidebar from "./Sidebar";
 import ThemePreferenceSelect from "./ThemePreferenceSelect";
+import WorkspaceAskPanel from "./WorkspaceAskPanel";
 
 function RemoteSyncBadge() {
   const { remoteSyncStatus, remoteSyncError } = useWorkspace();
@@ -36,7 +37,10 @@ export default function AppLayout() {
       <div className="app-main">
         <header className="app-main-header">
           <ThemePreferenceSelect />
-          <RemoteSyncBadge />
+          <div className="app-main-header-end">
+            <WorkspaceAskPanel />
+            <RemoteSyncBadge />
+          </div>
         </header>
         <Outlet />
       </div>

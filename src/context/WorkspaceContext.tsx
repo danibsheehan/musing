@@ -162,6 +162,27 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const flushRemoteWorkspace = useCallback(async (): Promise<void> => {
+    if (!isSupabaseConfigured()) return;
+    if (!remoteReadyRef.current) return;
+    const uid = remoteUserIdRef.current;
+    if (!uid) return;
+    if (remoteSaveTimerRef.current) {
+      clearTimeout(remoteSaveTimerRef.current);
+      remoteSaveTimerRef.current = null;
+    }
+    try {
+      const client = getSupabase();
+      await upsertWorkspaceRow(client, uid, snapshotRef.current);
+      setRemoteSyncError(null);
+      setRemoteSyncStatus("synced");
+    } catch (e) {
+      setRemoteSyncStatus("error");
+      setRemoteSyncError(e instanceof Error ? e.message : "Cloud save failed");
+      throw e;
+    }
+  }, []);
+
   const commit = useCallback(
     (updater: (prev: WorkspaceSnapshot) => WorkspaceSnapshot) => {
       setSnapshot((prev) => {
@@ -432,6 +453,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       movePageWithinSiblings,
       ancestryFor,
       childrenOf,
+      flushRemoteWorkspace,
     }),
     [
       snapshot.pages,
@@ -454,6 +476,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       movePageWithinSiblings,
       ancestryFor,
       childrenOf,
+      flushRemoteWorkspace,
     ]
   );
 

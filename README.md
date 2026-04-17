@@ -9,14 +9,15 @@
 ## Features
 
 - Block editor built on **TipTap** with a **slash menu** for block types; **floating toolbar** on selected text for bold, italic, underline, links, and related styles (keyboard shortcuts still work); reorder blocks by dragging the **grip** or with **Alt + ↑ / ↓**
-- **Emoji**: type **`:`** for inline emoji suggestions, or pick **Emoji** from the slash menu
+- **Emoji**: type `**:`** for inline emoji suggestions, or pick **Emoji** from the slash menu
 - **Pages** with client-side routes (`/page/:pageId`) and a sidebar for navigation
-- **Wiki-style links** in text plus an **`@` page picker** to insert links while typing
+- **Wiki-style links** in text plus an `**@` page picker** to insert links while typing
 - **Database embeds** with table and canvas-style views
 - **Export** pages to **PDF** or **.docx** (Word) from the page chrome menu
 - **Theme** control: **Light**, **Dark**, or **System** (stored in `localStorage` as `musing-theme-pref`)
 - **localStorage** persistence; **cross-tab** updates via the `storage` event
 - Optional **Supabase** sync (workspace snapshot in Postgres, RLS-scoped to the signed-in user)
+- **Ask** (optional): chat over your synced document pages via a Supabase Edge Function and an OpenAI-compatible API key stored as a function secret (see below)
 - **Vite** + **TypeScript**; **React Router** with `basename` derived from `import.meta.env.BASE_URL` for subpath hosting
 
 ## Installation
@@ -37,20 +38,22 @@ Open the URL Vite prints (usually `http://localhost:5173`). With no Supabase env
 
 Other useful scripts:
 
-| Command | Purpose |
-| ------- | ------- |
-| `npm run dev:clean` | Same as `npm run dev`, but unsets `NODE_OPTIONS` for this run (handy if inherited flags break Vite) |
-| `npm run build` | Production build (`dist/`) |
-| `npm run preview` | Serve the production build locally |
-| `npm run lint` | ESLint |
-| `npm run test` | Vitest in watch mode |
-| `npm run test:run` | Vitest once (CI-style) |
-| `npm run test:coverage` | Vitest once with **v8 coverage**, HTML + `lcov` under `coverage/`, and **threshold checks** (configured in `vite.config.ts`) |
-| `npm run test:coverage:watch` | Same coverage settings while iterating in watch mode |
 
-Pushes to **`main`** and **pull requests** run **`npm run test:coverage`** via `.github/workflows/ci.yml` (fails the job if coverage drops below those thresholds). Every run also appends a **Cobertura markdown summary** to the workflow **job summary** (Vitest’s `coverage/cobertura-coverage.xml` via [`irongut/CodeCoverageSummary`](https://github.com/irongut/CodeCoverageSummary)). On **pull requests from the same repository**, CI posts an additional **table comment** with [`5monkeys/cobertura-action`](https://github.com/5monkeys/cobertura-action); that comment is skipped for **fork** PRs because the default `GITHUB_TOKEN` cannot update the base repo’s PR thread.
+| Command                       | Purpose                                                                                                                      |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev:clean`           | Same as `npm run dev`, but unsets `NODE_OPTIONS` for this run (handy if inherited flags break Vite)                          |
+| `npm run build`               | Production build (`dist/`)                                                                                                   |
+| `npm run preview`             | Serve the production build locally                                                                                           |
+| `npm run lint`                | ESLint                                                                                                                       |
+| `npm run test`                | Vitest in watch mode                                                                                                         |
+| `npm run test:run`            | Vitest once (CI-style)                                                                                                       |
+| `npm run test:coverage`       | Vitest once with **v8 coverage**, HTML + `lcov` under `coverage/`, and **threshold checks** (configured in `vite.config.ts`) |
+| `npm run test:coverage:watch` | Same coverage settings while iterating in watch mode                                                                         |
 
-Optional: copy `.env.example` to **`.env.local` in the repo root** (next to `package.json`), set the variables below, then restart `npm run dev`.
+
+Pushes to `**main`** and **pull requests** run `**npm run test:coverage`** via `.github/workflows/ci.yml` (fails the job if coverage drops below those thresholds). Every run also appends a **Cobertura markdown summary** to the workflow **job summary** (Vitest’s `coverage/cobertura-coverage.xml` via `[irongut/CodeCoverageSummary](https://github.com/irongut/CodeCoverageSummary)`). On **pull requests from the same repository**, CI posts an additional **table comment** with `[5monkeys/cobertura-action](https://github.com/5monkeys/cobertura-action)`; that comment is skipped for **fork** PRs because the default `GITHUB_TOKEN` cannot update the base repo’s PR thread.
+
+Optional: copy `.env.example` to `**.env.local` in the repo root** (next to `package.json`), set the variables below, then restart `npm run dev`.
 
 ```bash
 cp .env.example .env.local
@@ -59,12 +62,14 @@ cp .env.example .env.local
 
 ## Stack
 
-| Area        | Choice                                      |
-| ----------- | ------------------------------------------- |
-| UI          | React 19, React Router 7                    |
-| Editor      | TipTap (`@tiptap/react`, starter-kit, bubble menu on selection) |
-| Build       | Vite 8, TypeScript 5.9                      |
-| Backend (opt.) | Supabase (`@supabase/supabase-js`)     |
+
+| Area           | Choice                                                          |
+| -------------- | --------------------------------------------------------------- |
+| UI             | React 19, React Router 7                                        |
+| Editor         | TipTap (`@tiptap/react`, starter-kit, bubble menu on selection) |
+| Build          | Vite 8, TypeScript 5.9                                          |
+| Backend (opt.) | Supabase (`@supabase/supabase-js`)                              |
+
 
 There is no published npm package; the app is the product.
 
@@ -74,11 +79,13 @@ This repo is an application, not a library: there is no separate package API. Th
 
 ## Configuration
 
-| Variable              | When needed              | Description |
-| --------------------- | ------------------------ | ----------- |
-| `VITE_SUPABASE_URL`   | Cloud sync               | Supabase project URL |
-| `VITE_SUPABASE_ANON_KEY` | Cloud sync            | Supabase anon (publishable) key |
-| `VITE_BASE_PATH`      | Custom base path in builds | Optional override, e.g. `/custom/` — trailing slash preferred |
+
+| Variable                 | When needed                | Description                                                   |
+| ------------------------ | -------------------------- | ------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`      | Cloud sync                 | Supabase project URL                                          |
+| `VITE_SUPABASE_ANON_KEY` | Cloud sync                 | Supabase anon (publishable) key                               |
+| `VITE_BASE_PATH`         | Custom base path in builds | Optional override, e.g. `/custom/` — trailing slash preferred |
+
 
 Local development uses `.env.local`. **GitHub Actions** should define the same Supabase variables as **repository secrets** if you want sync on the live site or the **Supabase keepalive** workflow to run against your project.
 
@@ -88,8 +95,22 @@ Local development uses `.env.local`. **GitHub Actions** should define the same S
 2. In **SQL Editor**, run `supabase/schema.sql` (creates `workspaces`, indexes, and RLS policies).
 3. Under **Authentication → Providers**, enable **Anonymous** sign-ins (used for sync without a custom auth UI).
 4. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` and restart the dev server.
+5. **Ask (optional):** deploy the Edge Function and set secrets (keys are **not** in the browser):
+  ```bash
+   # from repo root, with Supabase CLI logged in and project linked
+   supabase secrets set OPENAI_API_KEY=sk-...
+   # optional: supabase secrets set OPENAI_MODEL=gpt-4o-mini
+   supabase functions deploy workspace-ask
+  ```
+   The function reads your `workspaces` row using the same JWT as the app (RLS). It only includes **document** pages (not database table bodies); large workspaces are truncated to a fixed character budget. Local testing: `supabase functions serve` and point the app at your local project if you use local Supabase.
 
-Without those env vars, the app still runs using **localStorage** only.
+   **If Ask returns 401:** the app’s `VITE_SUPABASE_URL` / anon key must be the **same** Supabase project you deployed `workspace-ask` to (`supabase link` project ref). Mismatched projects or an expired session token usually show up as 401 from the function URL.
+
+   **If the body is `UNAUTHORIZED_UNSUPPORTED_TOKEN_ALGORITHM` / ES256:** your project uses newer JWT signing keys the Edge **gateway** cannot verify yet. This repo sets `verify_jwt = false` for `workspace-ask` in `supabase/config.toml`; the function still forwards your session JWT to Postgres under **RLS**. Redeploy after changing config: `supabase functions deploy workspace-ask`.
+
+   **If Ask returns 502 `Assistant request failed`:** after redeploying the function, the app shows OpenAI’s message when present (quota, billing, bad `OPENAI_MODEL`, etc.). Check **Edge Functions → workspace-ask → Logs** and your [OpenAI usage/billing](https://platform.openai.com/) dashboard.
+
+Without those env vars, the app still runs using **localStorage** only (the **Ask** button stays disabled until Supabase sync is configured and connected).
 
 If auth misbehaves on the deployed URL, open **Authentication → URL Configuration** in Supabase and set **Site URL** and **Redirect URLs** to your GitHub Pages origin, e.g. `https://<user>.github.io/<repo>/`.
 
@@ -97,11 +118,13 @@ If auth misbehaves on the deployed URL, open **Authentication → URL Configurat
 
 Supabase can **pause** free-tier projects after roughly a week without activity. The **Supabase keepalive** workflow (`.github/workflows/supabase-keepalive.yml`) sends a daily `GET` to your project’s `/auth/v1/health` endpoint using the **anon** key only—no service role key.
 
-| Item | Detail |
-| ---- | ------ |
-| Secrets | Same as Pages: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. If either is missing, the job **skips** and succeeds so the repo stays green without Supabase. |
-| Schedule | Daily at **06:00 UTC**; edit the `cron` expression in the workflow file to change the time. |
-| Manual run | **Actions** → **Supabase keepalive** → **Run workflow**. |
+
+| Item       | Detail                                                                                                                                                          |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Secrets    | Same as Pages: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. If either is missing, the job **skips** and succeeds so the repo stays green without Supabase. |
+| Schedule   | Daily at **06:00 UTC**; edit the `cron` expression in the workflow file to change the time.                                                                     |
+| Manual run | **Actions** → **Supabase keepalive** → **Run workflow**.                                                                                                        |
+
 
 Scheduled workflows run from the **default branch** (typically `main`). If a repository has no activity for a long time, GitHub may disable scheduled workflows until the repo is active again.
 
@@ -109,8 +132,8 @@ Scheduled workflows run from the **default branch** (typically `main`). If a rep
 
 1. Repo **Settings → Pages** → **Build and deployment**: source **GitHub Actions**.
 2. **Settings → Secrets and variables → Actions** → add repository secrets if you want cloud sync on the live site (same values as `.env.local`):
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
+  - `VITE_SUPABASE_URL`
+  - `VITE_SUPABASE_ANON_KEY`
    The build completes without them; the published app then behaves like local dev with no Supabase config (local-only persistence in the browser).
 3. Push to `main`. The **Deploy to GitHub Pages** workflow runs `npm ci`, `npm run build`, copies `dist/index.html` to `dist/404.html`, and publishes `dist`. **Supabase keepalive** is scheduled from the default branch as well; it only performs the health ping when both Supabase secrets above are set (otherwise it skips).
 
