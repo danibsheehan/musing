@@ -1,0 +1,132 @@
+name: PR guide
+
+# Sticky PR guide comment + path labels. Non-blocking; separate from CI.
+on:
+  # Run the workflow definition from the base branch. Do not checkout or execute PR code below.
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: pr-guide-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  guide:
+    # Keep this same-repo only; pull_request_target would otherwise grant write actions on fork PRs.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+      PYTHONPATH: ${{ github.workspace }}/.github/scripts
+    steps:
+      - name: Checkout base branch automation
+        # actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          # Run workflow scripts and labeler config from the trusted base commit, not the PR head.
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+
+      - name: Collect diff metadata
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          git fetch --no-tags origin "${head}"
+          git diff --name-only "${base}...${head}" > changed-files.txt
+          diff_shortstat="$(git diff --shortstat "${base}...${head}" | tr -d '\n')"
+          echo "DIFF_SHORTSTAT=${diff_shortstat}" >> "$GITHUB_ENV"
+          {
+            echo 'COMMIT_LINES<<EOF'
+            git log --oneline "${base}...${head}"
+            echo 'EOF'
+          } >> "$GITHUB_ENV"
+
+      - name: Write current PR description
+        # actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
+        with:
+          script: |
+            const fs = require('fs');
+            fs.writeFileSync(
+              'current-body.md',
+              context.payload.pull_request.body ?? '',
+              'utf8',
+            );
+
+      - name: Generate PR description scaffold
+        id: body
+        run: |
+          if python3 .github/scripts/generate_pr_body.py changed-files.txt \
+            --current-body current-body.md > new-body.md; then
+            echo "update=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update PR description
+        if: steps.body.outputs.update == 'true'
+        # actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('new-body.md', 'utf8');
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              body,
+            });
+
+      - name: Generate PR guide
+        run: python3 .github/scripts/generate_pr_guide.py changed-files.txt > pr-guide.md
+
+      - name: Post sticky PR guide comment
+        # marocchino/sticky-pull-request-comment@v2.9.4
+        uses: marocchino/sticky-pull-request-comment@773744901bac0e8cbb5a0dc842800d45e9b2b405
+        with:
+          header: pr-guide
+          path: pr-guide.md
+
+      - name: Ensure area labels exist
+        # actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
+        with:
+          script: |
+            const labels = [
+              ['area: editor', 'bfdadc', 'TipTap editor, blocks, slash menu, links, or serialization'],
+              ['area: sync', 'c5def5', 'Workspace persistence, Supabase, or auth'],
+              ['area: database', 'd4c5f9', 'Database embed behavior'],
+              ['area: export', 'fef2c0', 'PDF or DOCX export'],
+              ['area: app', 'c2e0c6', 'App shell, layout, or routing'],
+              ['area: tests', 'fbca04', 'Test files or test tooling'],
+              ['area: ci', 'f9d0c4', 'GitHub Actions or PR automation'],
+              ['area: docs', 'eaeef2', 'Documentation or agent guidance'],
+              ['area: config', 'd1d5da', 'Dependencies or tooling configuration'],
+            ];
+            for (const [name, color, description] of labels) {
+              try {
+                await github.rest.issues.getLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name,
+                });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name,
+                  color,
+                  description,
+                });
+              }
+            }
+
+      # actions/labeler@v5
+      - uses: actions/labeler@8558fd74291d67161a8a78ce36a881fa63b766a9
+        with:
+          sync-labels: true
