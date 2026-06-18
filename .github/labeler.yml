@@ -1,0 +1,88 @@
+'area: editor':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/components/Block.tsx'
+          - 'src/components/Editor.tsx'
+          - 'src/components/EditorTextFormatBubble.tsx'
+          - 'src/components/EmojiSuggestionMenu.tsx'
+          - 'src/components/PageBlockGutter.tsx'
+          - 'src/components/PageDocument*'
+          - 'src/components/PagePickerMenu*'
+          - 'src/components/SlashMenu*'
+          - 'src/extensions/**'
+          - 'src/lib/blockEditorCommands*'
+          - 'src/lib/defaultBlocks*'
+          - 'src/lib/editorBlockText*'
+          - 'src/lib/editorBubbleMenuPortal*'
+          - 'src/lib/emojiSuggestion*'
+          - 'src/lib/resolveWikiPage*'
+          - 'src/lib/slashMenuOptions*'
+          - 'src/lib/tiptapMenuOpen*'
+
+'area: sync':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/components/AccountAuthControls*'
+          - 'src/context/**'
+          - 'src/lib/supabase*'
+          - 'src/lib/workspaceStorage*'
+          - 'src/lib/workspaceTree*'
+          - 'supabase/**'
+
+'area: database':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/components/Database*'
+          - 'src/lib/database*'
+          - 'src/lib/findDatabaseOwnerPage*'
+          - 'src/extensions/musingDatabaseEmbed*'
+
+'area: export':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/lib/downloadPageDocx*'
+          - 'src/lib/downloadPagePdf*'
+          - 'src/lib/htmlToDocx*'
+          - 'src/lib/pageToExportHtml*'
+          - 'src/lib/sanitizeExportFilename*'
+
+'area: app':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/App*'
+          - 'src/main*'
+          - 'src/components/AppLayout*'
+          - 'src/components/HomeRedirect*'
+          - 'src/components/PageChrome*'
+          - 'src/components/PageView*'
+          - 'src/components/Sidebar*'
+          - 'src/components/ThemePreferenceSelect*'
+
+'area: tests':
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.test.ts'
+          - '**/*.test.tsx'
+          - '**/*.spec.ts'
+          - '**/*.spec.tsx'
+
+'area: ci':
+  - changed-files:
+      - any-glob-to-any-file: '.github/**'
+
+'area: docs':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'README.md'
+          - 'docs/**'
+          - '.cursor/skills/**'
+          - '.cursor/rules/**'
+
+'area: config':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'package.json'
+          - 'package-lock.json'
+          - 'vite.config.*'
+          - 'eslint.config.*'
+          - 'tsconfig*.json'
