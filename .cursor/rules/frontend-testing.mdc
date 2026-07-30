@@ -15,7 +15,7 @@ alwaysApply: false
 - **Coverage**: `npm run test:coverage` — thresholds in `vite.config.ts`; reports under `coverage/` (gitignored). CI runs the same command.
 - **Workspace / sync**: prefer patterns in `context/WorkspaceContext.test.tsx` — mock `workspaceStorage` / `supabaseClient` with `vi.mock` + `vi.hoisted`; do not hit a real Supabase project in unit tests.
 - **Editor / TipTap**: extend existing editor and `lib/pageDocument/*` tests when changing serialization or menus; see **`.cursor/skills/editor-tiptap/SKILL.md`**.
-- **Generation**: follow **`.cursor/skills/test-generator/SKILL.md`** when writing new suites.
+- **Generation**: follow **`.cursor/skills/musing-vitest-tests/SKILL.md`** when writing or updating suites.
 
 ## Anti-patterns
 
