@@ -33,9 +33,10 @@ Schema/RLS: `supabase/schema.sql`. Env: `VITE_SUPABASE_*` in `.env.local`; same 
   - **`supabase-sync`** — anonymous auth, snapshot, RLS, env
   - **`test-generator`** — Vitest / Testing Library suites
   - **`doc-writer`** — README, JSDoc, inline docs
+  - **`pr-ready`** — local CI-parity checks and PR template before a PR
 
 ## Agent definition of done
 
 - **Task done**: follow scoped rules/skills for files you touched; run the **smallest** relevant check (`npm run test:run` for touched suites, `npm run lint` if ESLint-relevant). Do **not** require full coverage CI for every small edit.
-- **PR done**: `npm run lint`, `npm run test:coverage`, and `npm run build` should pass; fill `.github/pull_request_template.md`. Commit, push, or open a PR **only when the user asks**.
+- **PR done**: follow **`.cursor/skills/pr-ready/SKILL.md`** (`lint`, `test:coverage`, `build`, PR template). Commit, push, or open a PR **only when the user asks**.
 - **Edits**: minimal, task-focused; match local patterns. If setup, env, or deploy behavior changes, update README.
