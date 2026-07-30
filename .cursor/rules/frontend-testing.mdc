@@ -1,0 +1,23 @@
+---
+description: Vitest + Testing Library conventions for musing unit tests
+globs:
+  - src/**/*.{test,spec}.{ts,tsx}
+  - src/test/**/*
+  - vite.config.ts
+alwaysApply: false
+---
+
+# Frontend tests
+
+- **Runner / DOM**: Vitest + jsdom; config under `test` in **`vite.config.ts`** (`include`: `src/**/*.{test,spec}.{ts,tsx}`).
+- **Setup**: **`src/test/setup.ts`** — `@testing-library/jest-dom/vitest` matchers.
+- **Placement**: colocate `*.test.ts(x)` next to the module under test.
+- **Coverage**: `npm run test:coverage` — thresholds in `vite.config.ts`; reports under `coverage/` (gitignored). CI runs the same command.
+- **Workspace / sync**: prefer patterns in `context/WorkspaceContext.test.tsx` — mock `workspaceStorage` / `supabaseClient` with `vi.mock` + `vi.hoisted`; do not hit a real Supabase project in unit tests.
+- **Editor / TipTap**: extend existing editor and `lib/pageDocument/*` tests when changing serialization or menus; see **`.cursor/skills/editor-tiptap/SKILL.md`**.
+- **Generation**: follow **`.cursor/skills/test-generator/SKILL.md`** when writing new suites.
+
+## Anti-patterns
+
+- Real network calls to Supabase or external APIs in unit tests.
+- Asserting TipTap/ProseMirror internals instead of stored blocks, visible UI, or public helpers.
