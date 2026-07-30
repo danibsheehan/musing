@@ -1,0 +1,18 @@
+---
+description: Keep README.md accurate (features, stack, run, config, CI, Pages, Supabase)
+globs: README.md,supabase/schema.sql,.env.example,.github/workflows/**
+alwaysApply: false
+---
+
+# README maintenance
+
+When editing **README.md** (or changing env, schema, or workflows listed in the globs), keep the doc aligned with the repo:
+
+- **Features**: reflect shipped UI (editor, wiki links, databases, export, theme). Do not list planned work as shipped.
+- **Run / scripts**: match `package.json` scripts (`dev`, `build`, `lint`, `test`, `test:run`, `test:coverage`).
+- **Stack / layout**: match real entry points under `src/` and TipTap / Vite alias notes in `vite.config.ts`.
+- **Configuration**: `VITE_SUPABASE_*`, `VITE_BASE_PATH` — same names as `.env.example` and GitHub Actions secrets where documented.
+- **Supabase**: setup steps must match `supabase/schema.sql` and anonymous auth behavior in `WorkspaceContext` / `supabase-sync` skill.
+- **CI / Pages**: if coverage thresholds, deploy, keepalive, or PR-guide behavior changes, update the README summary and the workflow files in the same spirit.
+
+Prefer short tables and copy-pasteable commands. Link to `.github/pull_request_template.md` for contribution expectations rather than duplicating long policy text.
