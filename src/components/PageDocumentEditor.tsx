@@ -59,7 +59,6 @@ export default function PageDocumentEditor({
 
   const wikiLinkExtension = useMemo(
     () =>
-      // eslint-disable-next-line react-hooks/refs -- getPages is called from ProseMirror, not during React render
       WikiLink.configure({
         getPages: () => pagesBox.current,
       }),
