@@ -48,7 +48,7 @@ jobs:
 
       - name: Write current PR description
         # actions/github-script@v7
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           script: |
             const fs = require('fs');
@@ -69,7 +69,7 @@ jobs:
       - name: Update PR description
         if: steps.body.outputs.update == 'true'
         # actions/github-script@v7
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           script: |
             const fs = require('fs');
@@ -93,7 +93,7 @@ jobs:
 
       - name: Ensure area labels exist
         # actions/github-script@v7
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           script: |
             const labels = [
