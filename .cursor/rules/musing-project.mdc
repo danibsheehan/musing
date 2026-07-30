@@ -31,7 +31,7 @@ Schema/RLS: `supabase/schema.sql`. Env: `VITE_SUPABASE_*` in `.env.local`; same 
 - **Skills** (read `.cursor/skills/<name>/SKILL.md` when the task fits):
   - **`editor-tiptap`** — TipTap doc model, slash/wiki, PM aliases
   - **`supabase-sync`** — anonymous auth, snapshot, RLS, env
-  - **`test-generator`** — Vitest / Testing Library suites
+  - **`musing-vitest-tests`** — Vitest / Testing Library for this repo
   - **`doc-writer`** — README, JSDoc, inline docs
   - **`pr-ready`** — local CI-parity checks and PR template before a PR
 
