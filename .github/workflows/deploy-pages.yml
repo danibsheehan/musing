@@ -1,8 +1,10 @@
 name: Deploy to GitHub Pages
 
+# Invoked from CI after quality gates on main pushes (`workflow_call`), or
+# manually via Actions → Run workflow (`workflow_dispatch`).
 on:
-  push:
-    branches: [main]
+  workflow_call:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -16,6 +18,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 

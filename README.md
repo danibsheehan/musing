@@ -112,7 +112,7 @@ Scheduled workflows run from the **default branch** (typically `main`). If a rep
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
    The build completes without them; the published app then behaves like local dev with no Supabase config (local-only persistence in the browser).
-3. Push to `main`. The **Deploy to GitHub Pages** workflow runs `npm ci`, `npm run build`, copies `dist/index.html` to `dist/404.html`, and publishes `dist`. **Supabase keepalive** is scheduled from the default branch as well; it only performs the health ping when both Supabase secrets above are set (otherwise it skips).
+3. Push to `main`. **CI** runs lint, coverage, and build; on success it calls **Deploy to GitHub Pages** for the same commit (`npm ci`, `npm run build`, copy `dist/index.html` → `dist/404.html`, publish `dist`). You can also run **Deploy to GitHub Pages** alone via **Actions → Run workflow**. **Supabase keepalive** is scheduled from the default branch as well; it only performs the health ping when both Supabase secrets above are set (otherwise it skips).
 
 For a **user site** (`https://<username>.github.io` from a repo named `<username>.github.io`), `vite.config.ts` uses base path `/` automatically when `GITHUB_ACTIONS` and `GITHUB_REPOSITORY` indicate that naming convention.
 

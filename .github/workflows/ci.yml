@@ -70,3 +70,15 @@ jobs:
                   report_name: Unit tests (Vitest)
 
             - run: npm run build
+
+    # Same commit as quality — no separate workflow_run checkout (CodeQL flags that).
+    deploy:
+        name: Deploy GitHub Pages
+        needs: quality
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        permissions:
+            contents: read
+            pages: write
+            id-token: write
+        uses: ./.github/workflows/deploy-pages.yml
+        secrets: inherit
