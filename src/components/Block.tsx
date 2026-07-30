@@ -13,7 +13,7 @@ import type { AddBlockAfterEnterOptions, Block as BlockType } from "../types/blo
 import { WikiLink } from "../extensions/wikiLink";
 import { singleTopLevelBlock } from "../extensions/singleTopLevelBlock";
 import { useWorkspace } from "../context/useWorkspace";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 import { useCallback, useEffect, useMemo, useRef, type RefObject } from "react";
 import DatabaseEmbedBlock from "./DatabaseEmbedBlock";

@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Outlet } from "react-router";
 import { useWorkspace } from "../context/useWorkspace";
 import Sidebar from "./Sidebar";
 import ThemePreferenceSelect from "./ThemePreferenceSelect";

@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from "react";
-import { Navigate, useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router";
 import { useWorkspace } from "../context/useWorkspace";
 import type { Block } from "../types/block";
 import { downloadPageAsPdf } from "../lib/downloadPagePdf";

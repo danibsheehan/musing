@@ -7,11 +7,11 @@ alwaysApply: true
 
 ## Stack
 
-Vite 8, React 19, TypeScript, React Router 7; TipTap 3 (one document per page via `PageDocumentEditor` — see `.cursor/skills/editor-tiptap/`). Optional Supabase.
+Vite 8, React 19, TypeScript, React Router 8 (`react-router` — do not use `react-router-dom`); TipTap 3 (one document per page via `PageDocumentEditor` — see `.cursor/skills/editor-tiptap/`). Optional Supabase.
 
 ## `src/` (where to look)
 
-Routes: `main.tsx`, `App.tsx`. Workspace: `context/WorkspaceContext.tsx`, `useWorkspace.ts`, `lib/workspaceStorage.ts`. Editor: `Editor.tsx`, `PageDocumentEditor.tsx`, `SlashMenu.tsx`, `PagePickerMenu.tsx`. Extensions: `extensions/` (e.g. `wikiLink.ts`). Slash/commands: `lib/slashMenuOptions.ts`, `lib/blockEditorCommands.ts`. Types: `types/block.ts`, `types/page.ts`. Supabase: `lib/supabaseClient.ts`, `lib/supabaseWorkspace.ts` (not the `supabase/` SQL folder).
+Routes: `main.tsx`, `App.tsx` (import routing APIs from `react-router`). Workspace: `context/WorkspaceContext.tsx`, `useWorkspace.ts`, `lib/workspaceStorage.ts`. Editor: `Editor.tsx`, `PageDocumentEditor.tsx`, `SlashMenu.tsx`, `PagePickerMenu.tsx`. Extensions: `extensions/` (e.g. `wikiLink.ts`). Slash/commands: `lib/slashMenuOptions.ts`, `lib/blockEditorCommands.ts`. Types: `types/block.ts`, `types/page.ts`. Supabase: `lib/supabaseClient.ts`, `lib/supabaseWorkspace.ts` (not the `supabase/` SQL folder).
 
 ## Vite: `@tiptap/pm/*` aliases
 

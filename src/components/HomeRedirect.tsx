@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Navigate } from "react-router";
 import { useWorkspace } from "../context/useWorkspace";
 
 export default function HomeRedirect() {
