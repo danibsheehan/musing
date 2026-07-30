@@ -22,9 +22,8 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 15
         steps:
-            - uses: actions/checkout@v4
-
-            - uses: actions/setup-node@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
               with:
                   node-version: '22'
                   cache: npm
@@ -37,7 +36,7 @@ jobs:
               run: npm run test:coverage
 
             - name: Cobertura markdown summary (for job summary)
-              uses: irongut/CodeCoverageSummary@v1.3.0
+              uses: irongut/CodeCoverageSummary@51cc3a756ddcd398d447c044c02cb6aa83fdae95 # v1.3.0
               with:
                   filename: coverage/cobertura-coverage.xml
                   badge: true
@@ -60,7 +59,7 @@ jobs:
               if: >
                   github.event_name == 'pull_request' &&
                   github.event.pull_request.head.repo.full_name == github.repository
-              uses: 5monkeys/cobertura-action@v14
+              uses: 5monkeys/cobertura-action@ee5787cc56634acddedc51f21c7947985531e6eb # v14
               with:
                   path: coverage/cobertura-coverage.xml
                   minimum_coverage: 0
