@@ -1,0 +1,16 @@
+# Weekly version updates for npm and GitHub Actions.
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+version: 2
+updates:
+    - package-ecosystem: npm
+      directory: /
+      schedule:
+          interval: weekly
+      open-pull-requests-limit: 10
+
+    - package-ecosystem: github-actions
+      # Scans .github/workflows (and root action manifests).
+      directory: /
+      schedule:
+          interval: weekly
+      open-pull-requests-limit: 10
