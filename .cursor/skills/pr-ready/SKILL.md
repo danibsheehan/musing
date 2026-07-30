@@ -32,9 +32,11 @@ npm run build
 
 | Check | What it covers |
 |-------|----------------|
-| `lint` | ESLint across the repo |
-| `test:coverage` | Vitest once + **v8** coverage; fails if thresholds in `vite.config.ts` are missed (also what `.github/workflows/ci.yml` runs) |
-| `build` | `tsc -b` + Vite production bundle (`dist/`) |
+| `lint` | ESLint across the repo (also in `.github/workflows/ci.yml`) |
+| `test:coverage` | Vitest once + **v8** coverage; fails if thresholds in `vite.config.ts` are missed (also in CI) |
+| `build` | `tsc -b` + Vite production bundle (`dist/`) (also in CI) |
+
+GitHub Actions job name for required checks: **`Lint, test+coverage, build`**.
 
 Faster while iterating (not a substitute before PR):
 

@@ -1,11 +1,9 @@
 name: Deploy to GitHub Pages
 
-# Run only after CI succeeds on main (or manual dispatch). Avoids publishing a
-# broken tip when CI and deploy would otherwise race on the same push.
+# Invoked from CI after quality gates on main pushes (`workflow_call`), or
+# manually via Actions → Run workflow (`workflow_dispatch`).
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
+  workflow_call:
   workflow_dispatch:
 
 permissions:
@@ -19,20 +17,12 @@ concurrency:
 
 jobs:
   build:
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push' &&
-       github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-        with:
-          # Deploy the commit CI validated, not whatever main is at start time.
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
           cache: npm
@@ -48,16 +38,11 @@ jobs:
       - name: SPA fallback (client-side routes on refresh)
         run: cp dist/index.html dist/404.html
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
           path: dist
 
   deploy:
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push' &&
-       github.event.workflow_run.head_branch == 'main')
     needs: build
     runs-on: ubuntu-latest
     environment:
@@ -65,4 +50,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
