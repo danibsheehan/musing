@@ -26,7 +26,7 @@ jobs:
     steps:
       - name: Checkout base branch automation
         # actions/checkout@v4
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           # Run workflow scripts and labeler config from the trusted base commit, not the PR head.
           ref: ${{ github.event.pull_request.base.sha }}
