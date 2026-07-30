@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Stack
 
-Vite 8, React 19, TypeScript, React Router 7; TipTap 3 (block-per-editor, not one doc — see `.cursor/skills/editor-tiptap/`). Optional Supabase.
+Vite 8, React 19, TypeScript, React Router 7; TipTap 3 (one document per page via `PageDocumentEditor` — see `.cursor/skills/editor-tiptap/`). Optional Supabase.
 
 ## `src/` (where to look)
 
