@@ -35,7 +35,7 @@ description: >-
 
 4. **Editor / TipTap** — Prefer testing **public helpers** and serialization (`lib/pageDocument/*`, slash/menu helpers) over deep ProseMirror internals. Extend existing suites when changing behavior; see **`.cursor/skills/editor-tiptap/SKILL.md`**.
 
-5. **UI** — Prefer **roles and accessible names**. Cover loading/error/empty when the UI surfaces them. For router-dependent views, use **`MemoryRouter`** (and `basename` awareness when relevant) like neighboring tests.
+5. **UI** — Prefer **roles and accessible names**. Cover loading/error/empty when the UI surfaces them. For router-dependent views, use **`MemoryRouter`** from **`react-router`** (and `basename` awareness when relevant) like neighboring tests — not `react-router-dom`.
 
 6. **Commands**
    - **Task done**: `npm run test:run` (or Vitest watch) for suites you touched.

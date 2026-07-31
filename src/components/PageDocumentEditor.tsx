@@ -3,7 +3,7 @@ import { type Editor as TiptapEditor } from "@tiptap/core";
 import Emoji from "@tiptap/extension-emoji";
 import Placeholder from "@tiptap/extension-placeholder";
 import StarterKit from "@tiptap/starter-kit";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import PageBlockGutter from "./PageBlockGutter";
 import PageDocumentBelowHit from "./PageDocumentBelowHit";

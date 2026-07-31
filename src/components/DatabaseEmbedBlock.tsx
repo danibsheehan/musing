@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { useEffect, useRef, type RefObject } from "react";
 import { useWorkspace } from "../context/useWorkspace";
 import { findDatabaseOwnerPage } from "../lib/findDatabaseOwnerPage";

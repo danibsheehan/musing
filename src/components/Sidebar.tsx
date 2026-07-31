@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { NavLink, useNavigate, useParams } from "react-router-dom";
+import { NavLink, useNavigate, useParams } from "react-router";
 import { useWorkspace } from "../context/useWorkspace";
 import { subtreeIds } from "../lib/workspaceTree";
 import type { Page } from "../types/page";

@@ -17,7 +17,7 @@
 - **Theme** control: **Light**, **Dark**, or **System** (stored in `localStorage` as `musing-theme-pref`)
 - **localStorage** persistence; **cross-tab** updates via the `storage` event
 - Optional **Supabase** sync (workspace snapshot in Postgres, RLS-scoped to the signed-in user)
-- **Vite** + **TypeScript**; **React Router** with `basename` derived from `import.meta.env.BASE_URL` for subpath hosting
+- **Vite** + **TypeScript**; **React Router 8** (`react-router`, not `react-router-dom`) with `basename` derived from `import.meta.env.BASE_URL` for subpath hosting
 
 ## Installation
 
@@ -61,7 +61,7 @@ cp .env.example .env.local
 
 | Area        | Choice                                      |
 | ----------- | ------------------------------------------- |
-| UI          | React 19, React Router 7                    |
+| UI          | React 19, React Router 8 (`react-router`)   |
 | Editor      | TipTap (`@tiptap/react`, starter-kit, bubble menu on selection) |
 | Build       | Vite 8, TypeScript 5.9                      |
 | Backend (opt.) | Supabase (`@supabase/supabase-js`)     |
