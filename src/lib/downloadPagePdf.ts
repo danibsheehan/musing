@@ -115,7 +115,7 @@ const PDF_EXPORT_STYLES = `
 
 export async function downloadPageAsPdf(
   page: Page,
-  getDatabase: (id: string) => WorkspaceDatabase | undefined
+  getDatabase: (id: string) => WorkspaceDatabase | undefined,
 ): Promise<void> {
   const html2pdf = (await import("html2pdf.js")).default;
   const inner = pageToExportHtml(page, getDatabase);

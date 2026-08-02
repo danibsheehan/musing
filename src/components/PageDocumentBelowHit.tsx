@@ -8,9 +8,7 @@ type Props = {
 };
 
 export default function PageDocumentBelowHit({ editor }: Props) {
-  const [visible, setVisible] = useState(() =>
-    lastTopLevelBlockNeedsBelowHit(editor.state.doc)
-  );
+  const [visible, setVisible] = useState(() => lastTopLevelBlockNeedsBelowHit(editor.state.doc));
 
   const sync = useCallback(() => {
     if (editor.isDestroyed) return;

@@ -143,7 +143,7 @@ export default function PageBlockGutter({ editor, measurementRootRef }: Props) {
       if (!editor || editor.isDestroyed) return;
       insertParagraphBelowBlockAtIndex(editor, blockIndex);
     },
-    [editor]
+    [editor],
   );
 
   const onDragStart = useCallback(
@@ -205,7 +205,7 @@ export default function PageBlockGutter({ editor, measurementRootRef }: Props) {
       window.addEventListener("dragover", onWindowDragOver, true);
       window.addEventListener("drop", onWindowDrop, true);
     },
-    [editor, measurementRootRef]
+    [editor, measurementRootRef],
   );
 
   const onDragEnd = useCallback(() => {
@@ -222,12 +222,8 @@ export default function PageBlockGutter({ editor, measurementRootRef }: Props) {
   const dropLinePortal =
     dropPortalHost && dropLineTop !== null
       ? createPortal(
-          <div
-            className="page-block-gutter__drop-line"
-            style={{ top: dropLineTop }}
-            aria-hidden
-          />,
-          dropPortalHost
+          <div className="page-block-gutter__drop-line" style={{ top: dropLineTop }} aria-hidden />,
+          dropPortalHost,
         )
       : null;
 
@@ -235,39 +231,39 @@ export default function PageBlockGutter({ editor, measurementRootRef }: Props) {
     <>
       {dropLinePortal}
       <div className="page-block-gutter" aria-label="Block actions">
-      {rows.map((row, index) => (
-        <div
-          key={`${index}-${row.blockId}`}
-          className={
-            "page-block-gutter__row" +
-            (dropTargetIndex === index ? " page-block-gutter__row--drop-target" : "")
-          }
-          style={{ top: row.top, height: row.height }}
-        >
-          <button
-            type="button"
-            className="page-block-gutter__btn page-block-gutter__btn--add"
-            aria-label="Add block below"
-            title="Add block below"
-            onPointerDown={(ev) => ev.preventDefault()}
-            onClick={() => onAddBelow(index)}
+        {rows.map((row, index) => (
+          <div
+            key={`${index}-${row.blockId}`}
+            className={
+              "page-block-gutter__row" +
+              (dropTargetIndex === index ? " page-block-gutter__row--drop-target" : "")
+            }
+            style={{ top: row.top, height: row.height }}
           >
-            +
-          </button>
-          <button
-            type="button"
-            className="page-block-gutter__btn page-block-gutter__btn--drag"
-            aria-label="Drag to reorder"
-            title="Drag to reorder"
-            draggable
-            onDragStart={(e) => onDragStart(e, index)}
-            onDragEnd={onDragEnd}
-          >
-            ::
-          </button>
-        </div>
-      ))}
-    </div>
+            <button
+              type="button"
+              className="page-block-gutter__btn page-block-gutter__btn--add"
+              aria-label="Add block below"
+              title="Add block below"
+              onPointerDown={(ev) => ev.preventDefault()}
+              onClick={() => onAddBelow(index)}
+            >
+              +
+            </button>
+            <button
+              type="button"
+              className="page-block-gutter__btn page-block-gutter__btn--drag"
+              aria-label="Drag to reorder"
+              title="Drag to reorder"
+              draggable
+              onDragStart={(e) => onDragStart(e, index)}
+              onDragEnd={onDragEnd}
+            >
+              ::
+            </button>
+          </div>
+        ))}
+      </div>
     </>
   );
 }

@@ -134,7 +134,7 @@ function PageTreeRows({
                     }
                     if (
                       !window.confirm(
-                        "Delete this page and everything inside it? This cannot be undone."
+                        "Delete this page and everything inside it? This cannot be undone.",
                       )
                     ) {
                       return;

@@ -45,11 +45,7 @@ export const WikiLink = Mark.create<WikiLinkOptions>({
   renderHTML({ HTMLAttributes, mark }) {
     const pageId = mark.attrs.pageId as string | null;
     if (!pageId) {
-      return [
-        "span",
-        mergeAttributes(HTMLAttributes, { class: "wiki-link-missing" }),
-        0,
-      ];
+      return ["span", mergeAttributes(HTMLAttributes, { class: "wiki-link-missing" }), 0];
     }
     const href = `${import.meta.env.BASE_URL}page/${pageId}`;
 

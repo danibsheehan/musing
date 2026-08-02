@@ -5,7 +5,7 @@ import { WorkspaceContext, type WorkspaceContextValue } from "../context/workspa
 import HomeRedirect from "./HomeRedirect";
 
 function createMockWorkspaceValue(
-  overrides: Partial<WorkspaceContextValue> = {}
+  overrides: Partial<WorkspaceContextValue> = {},
 ): WorkspaceContextValue {
   const base: WorkspaceContextValue = {
     pages: [],
@@ -51,7 +51,7 @@ describe("HomeRedirect", () => {
             <Route path="/page/:id" element={<PageTarget />} />
           </Routes>
         </WorkspaceContext.Provider>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(await screen.findByText("page:my-open-page")).toBeInTheDocument();

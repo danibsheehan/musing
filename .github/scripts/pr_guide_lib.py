@@ -140,6 +140,7 @@ def verify_commands(areas: set[str]) -> list[str]:
         commands.extend(
             [
                 "`npm run lint`",
+                "`npm run format:check`",
                 "`npm run test:run` or targeted Vitest files for the changed area",
                 "`npm run build`",
             ]

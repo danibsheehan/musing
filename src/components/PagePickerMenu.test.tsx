@@ -24,7 +24,7 @@ describe("PagePickerMenu", () => {
         pages={[]}
         selectedIndex={0}
         onSelect={vi.fn()}
-      />
+      />,
     );
     expect(screen.getByText("No matching pages")).toBeInTheDocument();
   });
@@ -32,7 +32,10 @@ describe("PagePickerMenu", () => {
   it("calls onSelect with the page when a row is clicked", async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
-    const pages = [samplePage({ id: "a", title: "First" }), samplePage({ id: "b", title: "Second" })];
+    const pages = [
+      samplePage({ id: "a", title: "First" }),
+      samplePage({ id: "b", title: "Second" }),
+    ];
 
     render(
       <PagePickerMenu
@@ -40,7 +43,7 @@ describe("PagePickerMenu", () => {
         pages={pages}
         selectedIndex={0}
         onSelect={onSelect}
-      />
+      />,
     );
 
     await user.click(screen.getByText("Second"));
@@ -56,12 +59,9 @@ describe("PagePickerMenu", () => {
         pages={pages}
         selectedIndex={1}
         onSelect={vi.fn()}
-      />
+      />,
     );
 
-    expect(screen.getByRole("option", { name: "B" })).toHaveAttribute(
-      "aria-selected",
-      "true"
-    );
+    expect(screen.getByRole("option", { name: "B" })).toHaveAttribute("aria-selected", "true");
   });
 });

@@ -40,7 +40,9 @@ describe("parseWorkspaceJson", () => {
   });
 
   it("returns null when version is neither 1 nor 2", () => {
-    expect(parseWorkspaceJson(JSON.stringify({ version: 99, pages: [], homePageId: "x" }))).toBeNull();
+    expect(
+      parseWorkspaceJson(JSON.stringify({ version: 99, pages: [], homePageId: "x" })),
+    ).toBeNull();
   });
 
   it("returns null for v2 without pages array or homePageId", () => {
@@ -138,7 +140,7 @@ describe("parseWorkspaceJson", () => {
         lastOpenedPageId: null,
         pages: [embed],
         databases: [minimalDatabase("db-1")],
-      })
+      }),
     );
     expect(out).not.toBeNull();
     expect(out!.pages[0].blocks[0].type).toBe("databaseEmbed");

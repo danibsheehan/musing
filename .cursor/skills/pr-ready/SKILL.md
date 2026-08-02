@@ -2,9 +2,9 @@
 name: pr-ready
 description: >-
   Runs musing’s local CI-parity checks and prepares a pull request: lint,
-  Vitest coverage thresholds, production build, plus PR template fields. Use when
-  the user asks to open a PR, prepare a pull request, pre-PR checks, make CI pass,
-  or verify before merging.
+  Prettier format check, Vitest coverage thresholds, production build, plus PR
+  template fields. Use when the user asks to open a PR, prepare a pull request,
+  pre-PR checks, make CI pass, or verify before merging.
 ---
 
 # PR ready (musing)
@@ -17,6 +17,7 @@ Run before opening or updating a PR. Prefer the commands below from the **repo r
 Pre-PR:
 - [ ] Scope: only intended files; no secrets (.env.local, credentials)
 - [ ] npm run lint
+- [ ] npm run format:check
 - [ ] npm run test:coverage
 - [ ] npm run build
 - [ ] PR template filled
@@ -26,15 +27,17 @@ Pre-PR:
 
 ```bash
 npm run lint
+npm run format:check
 npm run test:coverage
 npm run build
 ```
 
-| Check | What it covers |
-|-------|----------------|
-| `lint` | ESLint across the repo (also in `.github/workflows/ci.yml`) |
+| Check           | What it covers                                                                                 |
+| --------------- | ---------------------------------------------------------------------------------------------- |
+| `lint`          | ESLint across the repo (also in `.github/workflows/ci.yml`)                                    |
+| `format:check`  | Prettier check across the repo (also in CI)                                                    |
 | `test:coverage` | Vitest once + **v8** coverage; fails if thresholds in `vite.config.ts` are missed (also in CI) |
-| `build` | `tsc -b` + Vite production bundle (`dist/`) (also in CI) |
+| `build`         | `tsc -b` + Vite production bundle (`dist/`) (also in CI)                                       |
 
 GitHub Actions job name for required checks: **`Lint, test+coverage, build`**.
 

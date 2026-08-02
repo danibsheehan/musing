@@ -19,16 +19,16 @@ description: >-
 
 ## Where things live
 
-| Area | Location |
-|------|----------|
-| Single-doc editor, StarterKit, WikiLink, DB embed | `components/PageDocumentEditor.tsx` |
-| Page chrome, menus, workspace wiring | `components/Editor.tsx` |
-| Block-level attrs (`data-block-id`) | `extensions/blockIdOnBlocks.ts`, `ensureTopLevelBlockIds.ts` |
-| Wiki link mark (`[[...]]`, `data-wiki-page-id`) | `extensions/wikiLink.ts` |
-| Slash menu items / block types | `lib/slashMenuOptions.ts` |
-| Applying block type to editor HTML | `lib/blockEditorCommands.ts` |
-| Doc ↔ blocks | `lib/pageDocument/blocksToDocHtml.ts`, `serializeDocToBlocks.ts`, `blockIdAtSelection.ts` |
-| Floating text format bubble | `components/EditorTextFormatBubble.tsx`, `lib/editorBubbleMenuPortal.ts` |
+| Area                                              | Location                                                                                  |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Single-doc editor, StarterKit, WikiLink, DB embed | `components/PageDocumentEditor.tsx`                                                       |
+| Page chrome, menus, workspace wiring              | `components/Editor.tsx`                                                                   |
+| Block-level attrs (`data-block-id`)               | `extensions/blockIdOnBlocks.ts`, `ensureTopLevelBlockIds.ts`                              |
+| Wiki link mark (`[[...]]`, `data-wiki-page-id`)   | `extensions/wikiLink.ts`                                                                  |
+| Slash menu items / block types                    | `lib/slashMenuOptions.ts`                                                                 |
+| Applying block type to editor HTML                | `lib/blockEditorCommands.ts`                                                              |
+| Doc ↔ blocks                                      | `lib/pageDocument/blocksToDocHtml.ts`, `serializeDocToBlocks.ts`, `blockIdAtSelection.ts` |
+| Floating text format bubble                       | `components/EditorTextFormatBubble.tsx`, `lib/editorBubbleMenuPortal.ts`                  |
 
 `Block.tsx` may remain for legacy or tests; **page editing** goes through `PageDocumentEditor`.
 

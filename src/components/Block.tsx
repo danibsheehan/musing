@@ -18,14 +18,8 @@ import { useNavigate } from "react-router";
 import { useCallback, useEffect, useMemo, useRef, type RefObject } from "react";
 import DatabaseEmbedBlock from "./DatabaseEmbedBlock";
 import EditorTextFormatBubble from "./EditorTextFormatBubble";
-import {
-  textBeforeCursorInBlock,
-  viewCoordsForFloatingMenu,
-} from "../lib/editorBlockText";
-import {
-  createEmojiSuggestionRender,
-  emojiSuggestionItems,
-} from "../lib/emojiSuggestionRender";
+import { textBeforeCursorInBlock, viewCoordsForFloatingMenu } from "../lib/editorBlockText";
+import { createEmojiSuggestionRender, emojiSuggestionItems } from "../lib/emojiSuggestionRender";
 
 /** True when the caret is right after `/` or still typing the slash-query (e.g. `/p`), without a closing space. */
 function isSlashMenuOpen(editor: TiptapEditor): boolean {
@@ -41,9 +35,7 @@ function isPagePickerOpen(editor: TiptapEditor): boolean {
 
 /** `:` emoji suggestion list is active (keyboard handled by TipTap suggestion plugin). */
 function isEmojiSuggestionOpen(editor: TiptapEditor): boolean {
-  const st = EmojiSuggestionPluginKey.getState(editor.state) as
-    | { active?: boolean }
-    | undefined;
+  const st = EmojiSuggestionPluginKey.getState(editor.state) as { active?: boolean } | undefined;
   return !!st?.active;
 }
 
@@ -152,7 +144,7 @@ function DocumentBlock({
           render: createEmojiSuggestionRender(),
         },
       }),
-    []
+    [],
   );
 
   /**
@@ -163,7 +155,7 @@ function DocumentBlock({
   const editorInitialHtml = useMemo(
     () => tipTapContentFromBlock(block),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally not block.content (typing); `type` must update after slash commands
-    [block.id, externalWorkspaceRevision, block.type]
+    [block.id, externalWorkspaceRevision, block.type],
   );
 
   /**
@@ -206,9 +198,7 @@ function DocumentBlock({
   /** `useEditor` deps omit these — read refs in `handleKeyDown` / `onUpdate` so dev Strict Mode + frequent renders stay correct. */
   const onEnterRef = useRef(onEnter);
   const suppressSlashPlaceholderRef = useRef(suppressSlashPlaceholder);
-  const onClearSlashPlaceholderSuppressionRef = useRef(
-    onClearSlashPlaceholderSuppression
-  );
+  const onClearSlashPlaceholderSuppressionRef = useRef(onClearSlashPlaceholderSuppression);
   const onConfirmSlashCommandRef = useRef(onConfirmSlashCommand);
   const onConfirmPagePickerCommandRef = useRef(onConfirmPagePickerCommand);
   const onBackspaceRef = useRef(onBackspace);
@@ -230,8 +220,7 @@ function DocumentBlock({
     suppressSlashPlaceholderRef.current = suppressSlashPlaceholder;
   }, [suppressSlashPlaceholder]);
   useEffect(() => {
-    onClearSlashPlaceholderSuppressionRef.current =
-      onClearSlashPlaceholderSuppression;
+    onClearSlashPlaceholderSuppressionRef.current = onClearSlashPlaceholderSuppression;
   }, [onClearSlashPlaceholderSuppression]);
   useEffect(() => {
     onConfirmSlashCommandRef.current = onConfirmSlashCommand;
@@ -324,7 +313,7 @@ function DocumentBlock({
       setShowMenu,
       setSlashMenuQuery,
       onSlashMenuOpenChange,
-    ]
+    ],
   );
 
   const pagePickerRaf = useRef(0);
@@ -343,8 +332,7 @@ function DocumentBlock({
           return;
         }
         const thisBlockOwnsPagePicker = () =>
-          pagePickerBlockId === block.id ||
-          pagePickerBlockIdRef.current === block.id;
+          pagePickerBlockId === block.id || pagePickerBlockIdRef.current === block.id;
 
         const closePickerForThisRow = () => {
           if (!thisBlockOwnsPagePicker()) return;
@@ -397,18 +385,12 @@ function DocumentBlock({
       setPagePickerPosition,
       setPagePickerQuery,
       setShowPagePicker,
-    ]
+    ],
   );
 
-  useEffect(
-    () => () => cancelAnimationFrame(pagePickerRaf.current),
-    []
-  );
+  useEffect(() => () => cancelAnimationFrame(pagePickerRaf.current), []);
 
-  useEffect(
-    () => () => cancelAnimationFrame(slashMenuRaf.current),
-    []
-  );
+  useEffect(() => () => cancelAnimationFrame(slashMenuRaf.current), []);
 
   const editor = useEditor(
     {
@@ -439,10 +421,7 @@ function DocumentBlock({
       onUpdate: ({ editor }) => {
         const html = editor.getHTML();
         onContentChangeRef.current(block.id, html);
-        if (
-          suppressSlashPlaceholderRef.current &&
-          !isBlockHtmlVisuallyEmpty(html)
-        ) {
+        if (suppressSlashPlaceholderRef.current && !isBlockHtmlVisuallyEmpty(html)) {
           onClearSlashPlaceholderSuppressionRef.current?.(block.id);
         }
         queueSlashMenuSync(editor);
@@ -477,8 +456,7 @@ function DocumentBlock({
            * null and row-delete / slash checks silently fail.
            */
           const ed =
-            (view.dom as HTMLElement & { editor?: TiptapEditor }).editor ??
-            editorRef.current;
+            (view.dom as HTMLElement & { editor?: TiptapEditor }).editor ?? editorRef.current;
           if (ed && !ed.isDestroyed && isEmojiSuggestionOpen(ed)) {
             if (
               event.key === "Enter" ||
@@ -508,12 +486,7 @@ function DocumentBlock({
             // Page picker / slash: `showMenu` / `showPagePicker` may still be false for one frame after
             // RAF sets refs — do not swallow Enter without confirming, or a later Enter becomes `onEnter`
             // and inserts an empty row.
-            if (
-              ed &&
-              !ed.isDestroyed &&
-              otherPageCountRef.current > 0 &&
-              isPagePickerOpen(ed)
-            ) {
+            if (ed && !ed.isDestroyed && otherPageCountRef.current > 0 && isPagePickerOpen(ed)) {
               event.preventDefault();
               event.stopImmediatePropagation();
               onConfirmPagePickerCommandRef.current(block.id);
@@ -536,12 +509,7 @@ function DocumentBlock({
               return false;
             }
             // Quote blocks: Enter creates the next app-level block (like a paragraph). Shift+Enter keeps a line inside the quote.
-            if (
-              ed &&
-              !ed.isDestroyed &&
-              ed.isActive("blockquote") &&
-              event.shiftKey
-            ) {
+            if (ed && !ed.isDestroyed && ed.isActive("blockquote") && event.shiftKey) {
               return false;
             }
             if (isPostSlashNewRowLockedRef.current(block.id)) {
@@ -569,8 +537,7 @@ function DocumentBlock({
                */
               if (
                 !isSlashMenuOpen(ed) &&
-                (parentMenuBlockIdRef.current === block.id ||
-                  menuBlockIdRef.current === block.id)
+                (parentMenuBlockIdRef.current === block.id || menuBlockIdRef.current === block.id)
               ) {
                 menuBlockIdRef.current = null;
                 closeSlashMenuRef.current();
@@ -589,17 +556,14 @@ function DocumentBlock({
                 ? isNodeEmpty(ed.state.doc, { ignoreWhitespace: true }) ||
                   isBlockHtmlVisuallyEmpty(ed.getHTML())
                 : isNodeEmpty(view.state.doc, { ignoreWhitespace: true }) ||
-                  view.state.doc.textContent
-                    .replace(/[\u200b-\u200d\ufeff]/g, "")
-                    .trim().length === 0;
+                  view.state.doc.textContent.replace(/[\u200b-\u200d\ufeff]/g, "").trim().length ===
+                    0;
             /**
              * `deleteBlock` keeps one empty paragraph when it is the only block (`soleBlockAlreadyMinimal`).
              * If we still intercept Backspace here, the key becomes a no-op — feels like a stuck row.
              */
             const soleIrremovableEmptyParagraph =
-              pageBlockCountRef.current === 1 &&
-              blockTypeRef.current === "paragraph" &&
-              docEmpty;
+              pageBlockCountRef.current === 1 && blockTypeRef.current === "paragraph" && docEmpty;
             const rowDeletable = docEmpty && !soleIrremovableEmptyParagraph;
             if (rowDeletable) {
               event.preventDefault();
@@ -612,7 +576,7 @@ function DocumentBlock({
         },
       },
     },
-    [pageId, block.id, wikiLinkExtension, emojiExtension, externalWorkspaceRevision]
+    [pageId, block.id, wikiLinkExtension, emojiExtension, externalWorkspaceRevision],
   );
 
   useEffect(() => {
@@ -623,11 +587,7 @@ function DocumentBlock({
       return;
     }
     const prev = prevBlockTypeRef.current;
-    if (
-      prev !== null &&
-      prev.id === block.id &&
-      prev.type !== block.type
-    ) {
+    if (prev !== null && prev.id === block.id && prev.type !== block.type) {
       applyBlockTypeToEditor(editor, block.type);
     }
     prevBlockTypeRef.current = { id: block.id, type: block.type };

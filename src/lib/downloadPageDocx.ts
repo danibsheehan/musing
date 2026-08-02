@@ -26,10 +26,8 @@ function databaseToDocxTable(db: WorkspaceDatabase): Table {
       (c) =>
         new TableCell({
           shading: { fill: "E8E8E8", type: ShadingType.CLEAR },
-          children: [
-            new Paragraph({ children: [new TextRun({ text: c.name, bold: true })] }),
-          ],
-        })
+          children: [new Paragraph({ children: [new TextRun({ text: c.name, bold: true })] })],
+        }),
     ),
   });
   const bodyRows =
@@ -55,9 +53,9 @@ function databaseToDocxTable(db: WorkspaceDatabase): Table {
                         children: [new TextRun(row.values[c.id] ?? "")],
                       }),
                     ],
-                  })
+                  }),
               ),
-            })
+            }),
         );
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
@@ -67,7 +65,7 @@ function databaseToDocxTable(db: WorkspaceDatabase): Table {
 
 function blockToDocx(
   block: Block,
-  getDatabase: (id: string) => WorkspaceDatabase | undefined
+  getDatabase: (id: string) => WorkspaceDatabase | undefined,
 ): (Paragraph | Table)[] {
   switch (block.type) {
     case "databaseEmbed": {
@@ -98,7 +96,7 @@ function blockToDocx(
 
 function pageToDocxChildren(
   page: Page,
-  getDatabase: (id: string) => WorkspaceDatabase | undefined
+  getDatabase: (id: string) => WorkspaceDatabase | undefined,
 ): (Paragraph | Table)[] {
   const title = page.title.trim() || "Untitled";
   const out: (Paragraph | Table)[] = [
@@ -114,10 +112,8 @@ function pageToDocxChildren(
     if (!db) {
       out.push(
         new Paragraph({
-          children: [
-            new TextRun({ text: "This database no longer exists.", italics: true }),
-          ],
-        })
+          children: [new TextRun({ text: "This database no longer exists.", italics: true })],
+        }),
       );
     } else {
       out.push(databaseToDocxTable(db));
@@ -133,7 +129,7 @@ function pageToDocxChildren(
 
 export async function downloadPageAsDocx(
   page: Page,
-  getDatabase: (id: string) => WorkspaceDatabase | undefined
+  getDatabase: (id: string) => WorkspaceDatabase | undefined,
 ): Promise<void> {
   const docTitle = page.title.trim() || "Untitled";
   const doc = new Document({

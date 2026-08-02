@@ -106,8 +106,7 @@ function normalizeDatabase(d: WorkspaceDatabase): WorkspaceDatabase {
 function normalizePage(p: Page): Page {
   const raw = p as Record<string, unknown>;
   let layout: Page["layout"] = raw.layout === "database" ? "database" : "document";
-  let databaseId: string | null =
-    typeof p.databaseId === "string" ? p.databaseId : null;
+  let databaseId: string | null = typeof p.databaseId === "string" ? p.databaseId : null;
   if (layout === "database" && !databaseId) {
     layout = "document";
     databaseId = null;
