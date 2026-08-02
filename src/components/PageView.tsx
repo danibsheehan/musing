@@ -30,7 +30,7 @@ export default function PageView() {
       if (!pageId) return;
       updatePageBlocks(pageId, blocks);
     },
-    [pageId, updatePageBlocks]
+    [pageId, updatePageBlocks],
   );
 
   if (!pageId || !page) {
@@ -49,9 +49,7 @@ export default function PageView() {
         onTitleCommit={(title) => updatePageTitle(page.id, title)}
         onDownloadPdf={() => downloadPageAsPdf(page, getDatabase)}
         onDownloadDocx={() =>
-          import("../lib/downloadPageDocx").then((m) =>
-            m.downloadPageAsDocx(page, getDatabase)
-          )
+          import("../lib/downloadPageDocx").then((m) => m.downloadPageAsDocx(page, getDatabase))
         }
       />
       <div className="page-editor-wrap">

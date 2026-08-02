@@ -119,10 +119,7 @@ export default function DatabaseEmbedBlock({
               </Link>
             )}
           </div>
-          <DatabaseTableView
-            database={db}
-            onChange={(next) => updateDatabase(db.id, () => next)}
-          />
+          <DatabaseTableView database={db} onChange={(next) => updateDatabase(db.id, () => next)} />
         </>
       )}
     </div>

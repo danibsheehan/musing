@@ -19,10 +19,7 @@ export function createEmojiSuggestionRender() {
   let lastProps: SuggestionProps<EmojiItem, EmojiItem> | null = null;
   let removeOutsidePointerListener: (() => void) | null = null;
 
-  const position = (
-    el: HTMLElement,
-    clientRect?: (() => DOMRect | null) | null
-  ) => {
+  const position = (el: HTMLElement, clientRect?: (() => DOMRect | null) | null) => {
     const rect = clientRect?.();
     if (!rect) return;
     el.style.position = "fixed";
@@ -66,10 +63,7 @@ export function createEmojiSuggestionRender() {
     },
     onUpdate: (props: SuggestionProps<EmojiItem, EmojiItem>) => {
       lastProps = props;
-      selectedIndex = Math.min(
-        selectedIndex,
-        Math.max(0, props.items.length - 1)
-      );
+      selectedIndex = Math.min(selectedIndex, Math.max(0, props.items.length - 1));
       renderer?.updateProps({
         editor: props.editor,
         items: props.items,
@@ -112,8 +106,7 @@ export function createEmojiSuggestionRender() {
 
       if (event.key === "ArrowUp") {
         event.preventDefault();
-        selectedIndex =
-          selectedIndex === 0 ? props.items.length - 1 : selectedIndex - 1;
+        selectedIndex = selectedIndex === 0 ? props.items.length - 1 : selectedIndex - 1;
         renderer?.updateProps({
           editor: props.editor,
           items: props.items,
@@ -145,11 +138,6 @@ export function createEmojiSuggestionRender() {
 /**
  * Emoji extension `suggestion.items` — filtered by typed query after `:`.
  */
-export function emojiSuggestionItems({
-  query,
-}: {
-  query: string;
-  editor: Editor;
-}): EmojiItem[] {
+export function emojiSuggestionItems({ query }: { query: string; editor: Editor }): EmojiItem[] {
   return getEmojiSuggestionItems(query);
 }

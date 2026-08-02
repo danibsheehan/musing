@@ -1,7 +1,4 @@
-import {
-  parseDatabaseEmbedPayload,
-  stringifyDatabaseEmbedPayload,
-} from "./databaseEmbed";
+import { parseDatabaseEmbedPayload, stringifyDatabaseEmbedPayload } from "./databaseEmbed";
 
 describe("stringifyDatabaseEmbedPayload", () => {
   it("serializes databaseId and null viewId by default", () => {
@@ -36,9 +33,10 @@ describe("parseDatabaseEmbedPayload", () => {
   });
 
   it("normalizes non-string viewId to null", () => {
-    expect(
-      parseDatabaseEmbedPayload(JSON.stringify({ databaseId: "d", viewId: 42 }))
-    ).toEqual({ databaseId: "d", viewId: null });
+    expect(parseDatabaseEmbedPayload(JSON.stringify({ databaseId: "d", viewId: 42 }))).toEqual({
+      databaseId: "d",
+      viewId: null,
+    });
   });
 
   it("returns null for invalid JSON", () => {

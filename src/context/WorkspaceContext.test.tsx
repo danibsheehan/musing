@@ -98,7 +98,7 @@ describe("WorkspaceProvider", () => {
     render(
       <WorkspaceProvider>
         <StorageConsumer />
-      </WorkspaceProvider>
+      </WorkspaceProvider>,
     );
 
     expect(screen.getByTestId("home")).toHaveTextContent("page-a");
@@ -109,7 +109,7 @@ describe("WorkspaceProvider", () => {
         new StorageEvent("storage", {
           key: STORAGE_KEY,
           newValue: JSON.stringify(snap2),
-        })
+        }),
       );
     });
 
@@ -124,17 +124,14 @@ describe("WorkspaceProvider", () => {
       snapshot({
         homePageId: "page-a",
         lastOpenedPageId: "page-b",
-        pages: [
-          page({ id: "page-a", title: "A" }),
-          page({ id: "page-b", title: "B", order: 1 }),
-        ],
-      })
+        pages: [page({ id: "page-a", title: "A" }), page({ id: "page-b", title: "B", order: 1 })],
+      }),
     );
 
     render(
       <WorkspaceProvider>
         <OpenPageConsumer />
-      </WorkspaceProvider>
+      </WorkspaceProvider>,
     );
 
     expect(screen.getByTestId("open")).toHaveTextContent("page-b");
@@ -159,7 +156,7 @@ describe("WorkspaceProvider", () => {
       render(
         <WorkspaceProvider>
           <SyncConsumer />
-        </WorkspaceProvider>
+        </WorkspaceProvider>,
       );
 
       await waitFor(() => {

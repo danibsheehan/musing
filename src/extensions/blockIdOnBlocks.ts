@@ -22,8 +22,7 @@ export const blockIdOnBlocks = Extension.create({
         attributes: {
           blockId: {
             default: null as string | null,
-            parseHTML: (el) =>
-              (el as HTMLElement).getAttribute?.("data-block-id") ?? null,
+            parseHTML: (el) => (el as HTMLElement).getAttribute?.("data-block-id") ?? null,
             renderHTML: (attrs) => {
               const id = attrs.blockId as string | null | undefined;
               if (!id) return {};

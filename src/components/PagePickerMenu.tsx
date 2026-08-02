@@ -7,12 +7,7 @@ type Props = {
   onSelect: (page: Page) => void;
 };
 
-export default function PagePickerMenu({
-  position,
-  pages,
-  selectedIndex,
-  onSelect,
-}: Props) {
+export default function PagePickerMenu({ position, pages, selectedIndex, onSelect }: Props) {
   return (
     <div
       data-musing-page-picker-menu
@@ -25,9 +20,7 @@ export default function PagePickerMenu({
       }}
     >
       {pages.length === 0 ? (
-        <div className="musing-dropdown-empty musing-dropdown-empty--sm">
-          No matching pages
-        </div>
+        <div className="musing-dropdown-empty musing-dropdown-empty--sm">No matching pages</div>
       ) : (
         pages.map((page, index) => (
           <div

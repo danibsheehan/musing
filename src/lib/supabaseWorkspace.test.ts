@@ -95,7 +95,7 @@ describe("upsertWorkspaceRow", () => {
         snapshot: snap,
         updated_at: expect.any(String),
       }),
-      { onConflict: "user_id" }
+      { onConflict: "user_id" },
     );
   });
 
@@ -103,6 +103,8 @@ describe("upsertWorkspaceRow", () => {
     const err = new Error("upsert failed");
     const { from } = createUpsertMock({ error: err });
     const client = { from } as unknown as SupabaseClient;
-    await expect(upsertWorkspaceRow(client, "user-1", minimalSnapshot())).rejects.toThrow("upsert failed");
+    await expect(upsertWorkspaceRow(client, "user-1", minimalSnapshot())).rejects.toThrow(
+      "upsert failed",
+    );
   });
 });

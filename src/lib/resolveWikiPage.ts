@@ -3,7 +3,7 @@ import type { Page } from "../types/page";
 /** Case-insensitive title match; first page wins if titles collide. */
 export function resolveWikiTarget(
   pages: Page[],
-  rawLabel: string
+  rawLabel: string,
 ): { id: string; title: string } | null {
   const label = rawLabel.trim();
   if (!label) return null;
@@ -14,7 +14,7 @@ export function resolveWikiTarget(
 
 export function filterPagesForPicker(
   pages: Page[],
-  opts: { query: string; excludePageId: string }
+  opts: { query: string; excludePageId: string },
 ): Page[] {
   const q = opts.query.trim().toLowerCase();
   return pages

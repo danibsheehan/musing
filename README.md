@@ -37,18 +37,20 @@ Open the URL Vite prints (usually `http://localhost:5173`). With no Supabase env
 
 Other useful scripts:
 
-| Command | Purpose |
-| ------- | ------- |
-| `npm run dev:clean` | Same as `npm run dev`, but unsets `NODE_OPTIONS` for this run (handy if inherited flags break Vite) |
-| `npm run build` | Production build (`dist/`) |
-| `npm run preview` | Serve the production build locally |
-| `npm run lint` | ESLint |
-| `npm run test` | Vitest in watch mode |
-| `npm run test:run` | Vitest once (CI-style) |
-| `npm run test:coverage` | Vitest once with **v8 coverage**, HTML + `lcov` under `coverage/`, and **threshold checks** (configured in `vite.config.ts`) |
-| `npm run test:coverage:watch` | Same coverage settings while iterating in watch mode |
+| Command                       | Purpose                                                                                                                      |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev:clean`           | Same as `npm run dev`, but unsets `NODE_OPTIONS` for this run (handy if inherited flags break Vite)                          |
+| `npm run build`               | Production build (`dist/`)                                                                                                   |
+| `npm run preview`             | Serve the production build locally                                                                                           |
+| `npm run lint`                | ESLint                                                                                                                       |
+| `npm run format`              | Prettier write                                                                                                               |
+| `npm run format:check`        | Prettier check (CI)                                                                                                          |
+| `npm run test`                | Vitest in watch mode                                                                                                         |
+| `npm run test:run`            | Vitest once (CI-style)                                                                                                       |
+| `npm run test:coverage`       | Vitest once with **v8 coverage**, HTML + `lcov` under `coverage/`, and **threshold checks** (configured in `vite.config.ts`) |
+| `npm run test:coverage:watch` | Same coverage settings while iterating in watch mode                                                                         |
 
-Pushes to **`main`** and **pull requests** run **CI** via `.github/workflows/ci.yml`: **`npm run lint`**, **`npm run test:coverage`** (fails if coverage drops below thresholds in `vite.config.ts`), and **`npm run build`**. Every run also appends a **Cobertura markdown summary** to the workflow **job summary** (Vitest’s `coverage/cobertura-coverage.xml` via [`irongut/CodeCoverageSummary`](https://github.com/irongut/CodeCoverageSummary)). On **pull requests from the same repository**, CI posts an additional **table comment** with [`5monkeys/cobertura-action`](https://github.com/5monkeys/cobertura-action), and `.github/workflows/pr-guide.yml` posts a sticky **PR guide** comment with touched areas, suggested verification, reviewer focus, commits, and path-based `area:*` labels. Those PR-thread updates are skipped for **fork** PRs because the default `GITHUB_TOKEN` cannot update the base repo’s PR thread.
+Pushes to **`main`** and **pull requests** run **CI** via `.github/workflows/ci.yml`: **`npm run lint`**, **`npm run format:check`**, **`npm run test:coverage`** (fails if coverage drops below thresholds in `vite.config.ts`), and **`npm run build`**. Every run also appends a **Cobertura markdown summary** to the workflow **job summary** (Vitest’s `coverage/cobertura-coverage.xml` via [`irongut/CodeCoverageSummary`](https://github.com/irongut/CodeCoverageSummary)). On **pull requests from the same repository**, CI posts an additional **table comment** with [`5monkeys/cobertura-action`](https://github.com/5monkeys/cobertura-action), and `.github/workflows/pr-guide.yml` posts a sticky **PR guide** comment with touched areas, suggested verification, reviewer focus, commits, and path-based `area:*` labels. Those PR-thread updates are skipped for **fork** PRs because the default `GITHUB_TOKEN` cannot update the base repo’s PR thread.
 
 Optional: copy `.env.example` to **`.env.local` in the repo root** (next to `package.json`), set the variables below, then restart `npm run dev`.
 
@@ -59,26 +61,26 @@ cp .env.example .env.local
 
 ## Stack
 
-| Area        | Choice                                      |
-| ----------- | ------------------------------------------- |
-| UI          | React 19, React Router 8 (`react-router`)   |
-| Editor      | TipTap (`@tiptap/react`, starter-kit, bubble menu on selection) |
-| Build       | Vite 8, TypeScript 5.9                      |
-| Backend (opt.) | Supabase (`@supabase/supabase-js`)     |
+| Area           | Choice                                                          |
+| -------------- | --------------------------------------------------------------- |
+| UI             | React 19, React Router 8 (`react-router`)                       |
+| Editor         | TipTap (`@tiptap/react`, starter-kit, bubble menu on selection) |
+| Build          | Vite 8, TypeScript 5.9                                          |
+| Backend (opt.) | Supabase (`@supabase/supabase-js`)                              |
 
 There is no published npm package; the app is the product.
 
 ## Code layout
 
-This repo is an application, not a library: there is no separate package API. The React UI and editor live under `src/` (routes, TipTap extensions including wiki links and the selection format bubble, Supabase client, export helpers). Database shape and RLS for sync are in `supabase/schema.sql`. `vite.config.ts` aliases `@tiptap/pm/*` to `prosemirror-*` packages so Vite 8 (Rolldown) resolves TipTap imports. Cursor agents use a thin always-apply rule plus scoped rules under `.cursor/rules/` (README, tests, TipTap, workspace/Supabase); optional skills live in `.cursor/skills/` (including **`pr-ready`** for pre-PR lint/coverage/build checks).
+This repo is an application, not a library: there is no separate package API. The React UI and editor live under `src/` (routes, TipTap extensions including wiki links and the selection format bubble, Supabase client, export helpers). Database shape and RLS for sync are in `supabase/schema.sql`. `vite.config.ts` aliases `@tiptap/pm/*` to `prosemirror-*` packages so Vite 8 (Rolldown) resolves TipTap imports. Cursor agents use a thin always-apply rule plus scoped rules under `.cursor/rules/` (README, tests, TipTap, workspace/Supabase); optional skills live in `.cursor/skills/` (including **`pr-ready`** for pre-PR lint/format/coverage/build checks).
 
 ## Configuration
 
-| Variable              | When needed              | Description |
-| --------------------- | ------------------------ | ----------- |
-| `VITE_SUPABASE_URL`   | Cloud sync               | Supabase project URL |
-| `VITE_SUPABASE_ANON_KEY` | Cloud sync            | Supabase anon (publishable) key |
-| `VITE_BASE_PATH`      | Custom base path in builds | Optional override, e.g. `/custom/` — trailing slash preferred |
+| Variable                 | When needed                | Description                                                   |
+| ------------------------ | -------------------------- | ------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`      | Cloud sync                 | Supabase project URL                                          |
+| `VITE_SUPABASE_ANON_KEY` | Cloud sync                 | Supabase anon (publishable) key                               |
+| `VITE_BASE_PATH`         | Custom base path in builds | Optional override, e.g. `/custom/` — trailing slash preferred |
 
 Local development uses `.env.local`. **GitHub Actions** should define the same Supabase variables as **repository secrets** if you want sync on the live site or the **Supabase keepalive** workflow to run against your project.
 
@@ -97,11 +99,11 @@ If auth misbehaves on the deployed URL, open **Authentication → URL Configurat
 
 Supabase can **pause** free-tier projects after roughly a week without activity. The **Supabase keepalive** workflow (`.github/workflows/supabase-keepalive.yml`) sends a daily `GET` to your project’s `/auth/v1/health` endpoint using the **anon** key only—no service role key.
 
-| Item | Detail |
-| ---- | ------ |
-| Secrets | Same as Pages: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. If either is missing, the job **skips** and succeeds so the repo stays green without Supabase. |
-| Schedule | Daily at **06:00 UTC**; edit the `cron` expression in the workflow file to change the time. |
-| Manual run | **Actions** → **Supabase keepalive** → **Run workflow**. |
+| Item       | Detail                                                                                                                                                          |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Secrets    | Same as Pages: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. If either is missing, the job **skips** and succeeds so the repo stays green without Supabase. |
+| Schedule   | Daily at **06:00 UTC**; edit the `cron` expression in the workflow file to change the time.                                                                     |
+| Manual run | **Actions** → **Supabase keepalive** → **Run workflow**.                                                                                                        |
 
 Scheduled workflows run from the **default branch** (typically `main`). If a repository has no activity for a long time, GitHub may disable scheduled workflows until the repo is active again.
 
@@ -111,8 +113,8 @@ Scheduled workflows run from the **default branch** (typically `main`). If a rep
 2. **Settings → Secrets and variables → Actions** → add repository secrets if you want cloud sync on the live site (same values as `.env.local`):
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
-   The build completes without them; the published app then behaves like local dev with no Supabase config (local-only persistence in the browser).
-3. Push to `main`. **CI** runs lint, coverage, and build; on success it calls **Deploy to GitHub Pages** for the same commit (`npm ci`, `npm run build`, copy `dist/index.html` → `dist/404.html`, publish `dist`). You can also run **Deploy to GitHub Pages** alone via **Actions → Run workflow**. **Supabase keepalive** is scheduled from the default branch as well; it only performs the health ping when both Supabase secrets above are set (otherwise it skips).
+     The build completes without them; the published app then behaves like local dev with no Supabase config (local-only persistence in the browser).
+3. Push to `main`. **CI** runs lint, format check, coverage, and build; on success it calls **Deploy to GitHub Pages** for the same commit (`npm ci`, `npm run build`, copy `dist/index.html` → `dist/404.html`, publish `dist`). You can also run **Deploy to GitHub Pages** alone via **Actions → Run workflow**. **Supabase keepalive** is scheduled from the default branch as well; it only performs the health ping when both Supabase secrets above are set (otherwise it skips).
 
 For a **user site** (`https://<username>.github.io` from a repo named `<username>.github.io`), `vite.config.ts` uses base path `/` automatically when `GITHUB_ACTIONS` and `GITHUB_REPOSITORY` indicate that naming convention.
 

@@ -37,9 +37,7 @@ afterEach(() => {
 
 describe("tryDeleteEmptyTopLevelBlock", () => {
   it("removes an empty second paragraph when the selection is inside it", () => {
-    const { editor, el } = makeEditor(
-      `<p data-block-id="a">keep</p><p data-block-id="b"></p>`
-    );
+    const { editor, el } = makeEditor(`<p data-block-id="a">keep</p><p data-block-id="b"></p>`);
     caretInBlockWithId(editor, "b");
     expect(editor.state.doc.childCount).toBe(2);
     expect(tryDeleteEmptyTopLevelBlock(editor)).toBe(true);
@@ -51,7 +49,7 @@ describe("tryDeleteEmptyTopLevelBlock", () => {
 
   it("treats br-only second paragraph as empty and removes it", () => {
     const { editor, el } = makeEditor(
-      `<p data-block-id="a">keep</p><p data-block-id="b"><br /></p>`
+      `<p data-block-id="a">keep</p><p data-block-id="b"><br /></p>`,
     );
     caretInBlockWithId(editor, "b");
     expect(tryDeleteEmptyTopLevelBlock(editor)).toBe(true);
@@ -71,9 +69,7 @@ describe("tryDeleteEmptyTopLevelBlock", () => {
   });
 
   it("returns false when the current block is not an empty paragraph", () => {
-    const { editor, el } = makeEditor(
-      `<p data-block-id="a">one</p><p data-block-id="b">two</p>`
-    );
+    const { editor, el } = makeEditor(`<p data-block-id="a">one</p><p data-block-id="b">two</p>`);
     caretInBlockWithId(editor, "b");
     expect(tryDeleteEmptyTopLevelBlock(editor)).toBe(false);
     expect(editor.state.doc.childCount).toBe(2);

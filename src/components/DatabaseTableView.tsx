@@ -8,12 +8,7 @@ type Props = {
   className?: string;
 };
 
-export default function DatabaseTableView({
-  database,
-  readOnly,
-  onChange,
-  className,
-}: Props) {
+export default function DatabaseTableView({ database, readOnly, onChange, className }: Props) {
   const addRow = () => {
     if (!onChange || readOnly) return;
     const empty: Record<string, string> = {};
@@ -31,7 +26,7 @@ export default function DatabaseTableView({
     onChange({
       ...database,
       rows: database.rows.map((r) =>
-        r.id === rowId ? { ...r, values: { ...r.values, [propId]: value } } : r
+        r.id === rowId ? { ...r, values: { ...r.values, [propId]: value } } : r,
       ),
     });
   };

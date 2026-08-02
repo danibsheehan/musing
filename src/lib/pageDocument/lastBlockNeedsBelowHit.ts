@@ -6,9 +6,6 @@ export function lastTopLevelBlockNeedsBelowHit(doc: PMNode): boolean {
   const last = doc.child(doc.childCount - 1);
   const name = last.type.name;
   return (
-    name === "codeBlock" ||
-    name === "bulletList" ||
-    name === "orderedList" ||
-    name === "blockquote"
+    name === "codeBlock" || name === "bulletList" || name === "orderedList" || name === "blockquote"
   );
 }

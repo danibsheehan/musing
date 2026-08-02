@@ -1,10 +1,4 @@
-import {
-  convertInchesToTwip,
-  ExternalHyperlink,
-  HeadingLevel,
-  Paragraph,
-  TextRun,
-} from "docx";
+import { convertInchesToTwip, ExternalHyperlink, HeadingLevel, Paragraph, TextRun } from "docx";
 import type { ParagraphChild } from "docx";
 
 function absoluteUrl(href: string): string {
@@ -16,12 +10,7 @@ function absoluteUrl(href: string): string {
   }
 }
 
-function walkInline(
-  node: Node,
-  bold: boolean,
-  italics: boolean,
-  runs: ParagraphChild[]
-): void {
+function walkInline(node: Node, bold: boolean, italics: boolean, runs: ParagraphChild[]): void {
   if (node.nodeType === Node.TEXT_NODE) {
     const t = node.textContent ?? "";
     if (t)
@@ -54,7 +43,7 @@ function walkInline(
           text: el.textContent ?? "",
           bold: bold || undefined,
           italics: italics || undefined,
-        })
+        }),
       );
     runs.push(new ExternalHyperlink({ link: link || href || "about:blank", children: inner }));
     return;
@@ -66,7 +55,7 @@ function walkInline(
         font: "Consolas",
         bold: bold || undefined,
         italics: italics || undefined,
-      })
+      }),
     );
     return;
   }
@@ -116,20 +105,35 @@ function elementToDocx(el: Element): Paragraph[] {
       return [paragraphFromInlineElement(el)];
     case "H1":
       return [
-        new Paragraph({ heading: HeadingLevel.HEADING_1, children: inlineRuns(el), spacing: { after: 120 } }),
+        new Paragraph({
+          heading: HeadingLevel.HEADING_1,
+          children: inlineRuns(el),
+          spacing: { after: 120 },
+        }),
       ];
     case "H2":
       return [
-        new Paragraph({ heading: HeadingLevel.HEADING_2, children: inlineRuns(el), spacing: { after: 100 } }),
+        new Paragraph({
+          heading: HeadingLevel.HEADING_2,
+          children: inlineRuns(el),
+          spacing: { after: 100 },
+        }),
       ];
     case "H3":
       return [
-        new Paragraph({ heading: HeadingLevel.HEADING_3, children: inlineRuns(el), spacing: { after: 80 } }),
+        new Paragraph({
+          heading: HeadingLevel.HEADING_3,
+          children: inlineRuns(el),
+          spacing: { after: 80 },
+        }),
       ];
     case "BLOCKQUOTE": {
       const ps = Array.from(el.querySelectorAll(":scope > p"));
       const body = ps.length
-        ? ps.map((p) => (p.textContent ?? "").trim()).filter(Boolean).join("\n")
+        ? ps
+            .map((p) => (p.textContent ?? "").trim())
+            .filter(Boolean)
+            .join("\n")
         : (el.textContent ?? "").replace(/\s+/g, " ").trim();
       return [
         new Paragraph({

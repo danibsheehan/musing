@@ -12,9 +12,7 @@ export function isBlockHtmlVisuallyEmpty(html: string): boolean {
   }
   const host = document.createElement("div");
   host.innerHTML = html.trim() || "<p></p>";
-  const text = (host.textContent ?? "")
-    .replace(/[\u200b-\u200d\ufeff]/g, "")
-    .trim();
+  const text = (host.textContent ?? "").replace(/[\u200b-\u200d\ufeff]/g, "").trim();
   return text.length === 0;
 }
 

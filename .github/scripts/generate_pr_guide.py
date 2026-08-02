@@ -80,7 +80,7 @@ def main() -> int:
             "",
             "### CI",
             "",
-            f"Primary check: [CI]({ci_href}) runs Vitest coverage for every PR. Coverage tables are posted separately.",
+            f"Primary check: [CI]({ci_href}) runs lint, Prettier format check, Vitest coverage, and build for every PR. Coverage tables are posted separately.",
             "",
             "---",
             "",

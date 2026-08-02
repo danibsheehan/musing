@@ -6,7 +6,7 @@ import type { Node as PMNode } from "@tiptap/pm/model";
  */
 export function findSlashMenuFilterDeleteRange(
   doc: PMNode,
-  blockId: string
+  blockId: string,
 ): { from: number; to: number } | null {
   let blockPos = 0;
   for (let i = 0; i < doc.childCount; i++) {

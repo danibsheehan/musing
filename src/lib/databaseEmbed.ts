@@ -3,10 +3,7 @@ export type DatabaseEmbedPayload = {
   viewId: string | null;
 };
 
-export function stringifyDatabaseEmbedPayload(
-  databaseId: string,
-  viewId?: string | null
-): string {
+export function stringifyDatabaseEmbedPayload(databaseId: string, viewId?: string | null): string {
   const payload: DatabaseEmbedPayload = {
     databaseId,
     viewId: viewId ?? null,

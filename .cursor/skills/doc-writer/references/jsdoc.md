@@ -24,19 +24,19 @@
  * const user = await getUser('abc-123', { timeout: 3000 })
  * console.log(user.name)
  */
-async function getUser(userId: string, options?: GetUserOptions): Promise<User | null>
+async function getUser(userId: string, options?: GetUserOptions): Promise<User | null>;
 ```
 
 ## What to Document
 
-| Symbol | Document? |
-|---|---|
-| Exported functions | Always |
-| Exported classes | Always (class + constructor + public methods) |
-| Exported interfaces/types | Always |
-| Private/internal functions | Only if complex |
-| Simple getters/setters | Only if non-obvious |
-| Re-exports | No |
+| Symbol                     | Document?                                     |
+| -------------------------- | --------------------------------------------- |
+| Exported functions         | Always                                        |
+| Exported classes           | Always (class + constructor + public methods) |
+| Exported interfaces/types  | Always                                        |
+| Private/internal functions | Only if complex                               |
+| Simple getters/setters     | Only if non-obvious                           |
+| Re-exports                 | No                                            |
 
 ## Tag Reference
 
@@ -52,6 +52,6 @@ async function getUser(userId: string, options?: GetUserOptions): Promise<User |
 
 - First line: imperative verb. "Fetch", "Parse", "Validate" — not "Fetches", not "This function fetches"
 - Keep first line under 80 chars
-- Describe *why* / *what*, not *how* — callers don't need to know implementation details
+- Describe _why_ / _what_, not _how_ — callers don't need to know implementation details
 - Note gotchas: "Note: mutates the input array", "Throws if called before init()"
 - For async functions: mention if it can reject and under what conditions

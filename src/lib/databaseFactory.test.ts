@@ -2,10 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createWorkspaceDatabase } from "./databaseFactory";
 
 vi.mock("uuid", () => ({
-  v4: vi
-    .fn()
-    .mockReturnValueOnce("prop-id-1")
-    .mockReturnValueOnce("view-id-1"),
+  v4: vi.fn().mockReturnValueOnce("prop-id-1").mockReturnValueOnce("view-id-1"),
 }));
 
 describe("createWorkspaceDatabase", () => {

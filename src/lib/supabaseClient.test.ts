@@ -83,7 +83,7 @@ describe("supabaseClient", () => {
         "x".repeat(21),
         expect.objectContaining({
           auth: { persistSession: true, autoRefreshToken: true },
-        })
+        }),
       );
     });
   });

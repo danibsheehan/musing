@@ -24,7 +24,7 @@ afterEach(() => {
 describe("serializeDocToBlocks", () => {
   it("maps each top-level node to a block with id, type, and HTML content", () => {
     const { editor, el } = makeEditor(
-      `<p data-block-id="row-1">hello</p><h1 data-block-id="row-2">Title</h1>`
+      `<p data-block-id="row-1">hello</p><h1 data-block-id="row-2">Title</h1>`,
     );
     const blocks = serializeDocToBlocks(editor);
     expect(blocks).toHaveLength(2);
@@ -55,7 +55,7 @@ describe("serializeDocToBlocks", () => {
     const payload = stringifyDatabaseEmbedPayload("db-test");
     const enc = encodeURIComponent(payload);
     const { editor, el } = makeEditor(
-      `<p data-block-id="p1">x</p><div data-type="musing-database-embed" data-block-id="emb-1" data-payload="${enc}"></div>`
+      `<p data-block-id="p1">x</p><div data-type="musing-database-embed" data-block-id="emb-1" data-payload="${enc}"></div>`,
     );
     const blocks = serializeDocToBlocks(editor);
     expect(blocks).toHaveLength(2);

@@ -16,16 +16,11 @@ import { useWorkspace } from "../context/useWorkspace";
 import { blocksToDocHtml } from "../lib/pageDocument/blocksToDocHtml";
 import { serializeDocToBlocks } from "../lib/pageDocument/serializeDocToBlocks";
 import EditorTextFormatBubble from "./EditorTextFormatBubble";
-import {
-  createEmojiSuggestionRender,
-  emojiSuggestionItems,
-} from "../lib/emojiSuggestionRender";
+import { createEmojiSuggestionRender, emojiSuggestionItems } from "../lib/emojiSuggestionRender";
 import { EmojiSuggestionPluginKey } from "@tiptap/extension-emoji";
 
 function isEmojiSuggestionOpen(editor: TiptapEditor): boolean {
-  const st = EmojiSuggestionPluginKey.getState(editor.state) as
-    | { active?: boolean }
-    | undefined;
+  const st = EmojiSuggestionPluginKey.getState(editor.state) as { active?: boolean } | undefined;
   return !!st?.active;
 }
 
@@ -62,7 +57,7 @@ export default function PageDocumentEditor({
       WikiLink.configure({
         getPages: () => pagesBox.current,
       }),
-    []
+    [],
   );
 
   const emojiExtension = useMemo(
@@ -73,7 +68,7 @@ export default function PageDocumentEditor({
           render: createEmojiSuggestionRender(),
         },
       }),
-    []
+    [],
   );
 
   const blocksForSyncRef = useRef(blocks);
@@ -129,9 +124,7 @@ export default function PageDocumentEditor({
           return false;
         },
         handleKeyDown(view, event) {
-          const ed =
-            (view.dom as HTMLElement & { editor?: TiptapEditor }).editor ??
-            null;
+          const ed = (view.dom as HTMLElement & { editor?: TiptapEditor }).editor ?? null;
           const keyDown = onEditorKeyDownRef.current;
           if (ed && !ed.isDestroyed && keyDown?.(ed, event)) {
             return true;
@@ -158,7 +151,7 @@ export default function PageDocumentEditor({
         onEditorActivity(ed);
       },
     },
-    [pageId, wikiLinkExtension, emojiExtension]
+    [pageId, wikiLinkExtension, emojiExtension],
   );
 
   const editorRef = useRef(editor);
