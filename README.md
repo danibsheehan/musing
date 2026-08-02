@@ -72,7 +72,7 @@ There is no published npm package; the app is the product.
 
 ## Code layout
 
-This repo is an application, not a library: there is no separate package API. The React UI and editor live under `src/` (routes, TipTap extensions including wiki links and the selection format bubble, Supabase client, export helpers). Database shape and RLS for sync are in `supabase/schema.sql`. `vite.config.ts` aliases `@tiptap/pm/*` to `prosemirror-*` packages so Vite 8 (Rolldown) resolves TipTap imports. Cursor agents use a thin always-apply rule plus scoped rules under `.cursor/rules/` (README, tests, TipTap, workspace/Supabase); optional skills live in `.cursor/skills/` (including **`pr-ready`** for pre-PR lint/coverage/build checks).
+This repo is an application, not a library: there is no separate package API. The React UI and editor live under `src/` (routes, TipTap extensions including wiki links and the selection format bubble, Supabase client, export helpers). Database shape and RLS for sync are in `supabase/schema.sql`. `vite.config.ts` aliases `@tiptap/pm/*` to `prosemirror-*` packages so Vite 8 (Rolldown) resolves TipTap imports. Cursor agents use a thin always-apply rule plus scoped rules under `.cursor/rules/` (README, tests, TipTap, workspace/Supabase); optional skills live in `.cursor/skills/` (including **`pr-ready`** for pre-PR lint/format/coverage/build checks).
 
 ## Configuration
 
@@ -114,7 +114,7 @@ Scheduled workflows run from the **default branch** (typically `main`). If a rep
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
      The build completes without them; the published app then behaves like local dev with no Supabase config (local-only persistence in the browser).
-3. Push to `main`. **CI** runs lint, coverage, and build; on success it calls **Deploy to GitHub Pages** for the same commit (`npm ci`, `npm run build`, copy `dist/index.html` → `dist/404.html`, publish `dist`). You can also run **Deploy to GitHub Pages** alone via **Actions → Run workflow**. **Supabase keepalive** is scheduled from the default branch as well; it only performs the health ping when both Supabase secrets above are set (otherwise it skips).
+3. Push to `main`. **CI** runs lint, format check, coverage, and build; on success it calls **Deploy to GitHub Pages** for the same commit (`npm ci`, `npm run build`, copy `dist/index.html` → `dist/404.html`, publish `dist`). You can also run **Deploy to GitHub Pages** alone via **Actions → Run workflow**. **Supabase keepalive** is scheduled from the default branch as well; it only performs the health ping when both Supabase secrets above are set (otherwise it skips).
 
 For a **user site** (`https://<username>.github.io` from a repo named `<username>.github.io`), `vite.config.ts` uses base path `/` automatically when `GITHUB_ACTIONS` and `GITHUB_REPOSITORY` indicate that naming convention.
 

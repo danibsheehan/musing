@@ -192,7 +192,7 @@ def reviewer_focus(areas: set[str], paths: list[str]) -> list[str]:
     if "ci" in areas:
         focus.append("Workflow event triggers, token permissions, and label/comment behavior on same-repo vs fork PRs")
     if "config" in areas:
-        focus.append("Dependency, Vite, TypeScript, and ESLint changes that can affect local and CI runs")
+        focus.append("Dependency, Vite, TypeScript, ESLint, and Prettier changes that can affect local and CI runs")
     if any(path.endswith((".test.ts", ".test.tsx")) or ".test." in path or ".spec." in path for path in paths):
         focus.append("Test assertions cover the behavior under review rather than only implementation details")
     if not focus:
