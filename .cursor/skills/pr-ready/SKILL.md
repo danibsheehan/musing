@@ -16,6 +16,7 @@ Run before opening or updating a PR. Prefer the commands below from the **repo r
 ```
 Pre-PR:
 - [ ] Scope: only intended files; no secrets (.env.local, credentials)
+- [ ] python3 .github/scripts/check_stack_docs.py
 - [ ] npm audit --audit-level=high
 - [ ] npm run lint
 - [ ] npm run format:check
@@ -27,6 +28,7 @@ Pre-PR:
 ### 1. Local CI parity
 
 ```bash
+python3 .github/scripts/check_stack_docs.py
 npm audit --audit-level=high
 npm run lint
 npm run format:check
@@ -34,13 +36,14 @@ npm run test:coverage
 npm run build
 ```
 
-| Check           | What it covers                                                                                 |
-| --------------- | ---------------------------------------------------------------------------------------------- |
-| `npm audit`     | High/critical advisories (`--audit-level=high`; also in `.github/workflows/ci.yml`)            |
-| `lint`          | ESLint across the repo (also in CI)                                                            |
-| `format:check`  | Prettier check across the repo (also in CI)                                                    |
-| `test:coverage` | Vitest once + **v8** coverage; fails if thresholds in `vite.config.ts` are missed (also in CI) |
-| `build`         | `tsc -b` + Vite production bundle (`dist/`) (also in CI)                                       |
+| Check              | What it covers                                                                                 |
+| ------------------ | ---------------------------------------------------------------------------------------------- |
+| `check_stack_docs` | README / project-rule stack versions vs `package.json` + CI Node (also in CI)                  |
+| `npm audit`        | High/critical advisories (`--audit-level=high`; also in CI)                                    |
+| `lint`             | ESLint across the repo (also in `.github/workflows/ci.yml`)                                    |
+| `format:check`     | Prettier check across the repo (also in CI)                                                    |
+| `test:coverage`    | Vitest once + **v8** coverage; fails if thresholds in `vite.config.ts` are missed (also in CI) |
+| `build`            | `tsc -b` + Vite production bundle (`dist/`) (also in CI)                                       |
 
 GitHub Actions job name for required checks: **`Lint, test+coverage, build`**.
 
@@ -75,7 +78,7 @@ Keep only **`main`** locally unless another branch is still in active use. Optio
 
 ## Anti-patterns
 
-- Opening a PR without green audit / lint / coverage / build.
+- Opening a PR without green stack-docs / audit / lint / coverage / build.
 - Committing `.env.local` or other secrets.
 - Amending or force-pushing unless the user explicitly requests it.
 - Leaving merged feature branches checked out or lingering locally after the user asks to clean up.

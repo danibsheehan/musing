@@ -51,7 +51,7 @@ Other useful scripts:
 | `npm run test:coverage`        | Vitest once with **v8 coverage**, HTML + `lcov` under `coverage/`, and **threshold checks** (configured in `vite.config.ts`) |
 | `npm run test:coverage:watch`  | Same coverage settings while iterating in watch mode                                                                         |
 
-Pushes to **`main`** and **pull requests** run **CI** via `.github/workflows/ci.yml`: **`npm audit --audit-level=high`**, **`npm run lint`**, **`npm run format:check`**, **`npm run test:coverage`** (fails if coverage drops below thresholds in `vite.config.ts`), and **`npm run build`**. Every run also appends a **Cobertura markdown summary** to the workflow **job summary** (Vitest’s `coverage/cobertura-coverage.xml` via [`irongut/CodeCoverageSummary`](https://github.com/irongut/CodeCoverageSummary)). On **pull requests from the same repository**, CI posts an additional **table comment** with [`5monkeys/cobertura-action`](https://github.com/5monkeys/cobertura-action), and `.github/workflows/pr-guide.yml` posts a sticky **PR guide** comment with touched areas, suggested verification, reviewer focus, commits, and path-based `area:*` labels. Those PR-thread updates are skipped for **fork** PRs because the default `GITHUB_TOKEN` cannot update the base repo’s PR thread.
+Pushes to **`main`** and **pull requests** run **CI** via `.github/workflows/ci.yml`: a **stack-docs drift check** (`python3 .github/scripts/check_stack_docs.py`), **`npm audit --audit-level=high`**, **`npm run lint`**, **`npm run format:check`**, **`npm run test:coverage`** (fails if coverage drops below thresholds in `vite.config.ts`), and **`npm run build`**. Every run also appends a **Cobertura markdown summary** to the workflow **job summary** (Vitest’s `coverage/cobertura-coverage.xml` via [`irongut/CodeCoverageSummary`](https://github.com/irongut/CodeCoverageSummary)). On **pull requests from the same repository**, CI posts an additional **table comment** with [`5monkeys/cobertura-action`](https://github.com/5monkeys/cobertura-action), and `.github/workflows/pr-guide.yml` posts a sticky **PR guide** comment with touched areas, suggested verification, reviewer focus, commits, and path-based `area:*` labels. Those PR-thread updates are skipped for **fork** PRs because the default `GITHUB_TOKEN` cannot update the base repo’s PR thread.
 
 Optional: copy `.env.example` to **`.env.local` in the repo root** (next to `package.json`), set the variables below, then restart `npm run dev`.
 
@@ -66,7 +66,7 @@ cp .env.example .env.local
 | -------------- | --------------------------------------------------------------- |
 | UI             | React 19, React Router 8 (`react-router`)                       |
 | Editor         | TipTap (`@tiptap/react`, starter-kit, bubble menu on selection) |
-| Build          | Vite 8, TypeScript 5.9                                          |
+| Build          | Vite 8, TypeScript 6.0                                          |
 | Backend (opt.) | Supabase (`@supabase/supabase-js`)                              |
 
 There is no published npm package; the app is the product.
@@ -115,7 +115,7 @@ Scheduled workflows run from the **default branch** (typically `main`). If a rep
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
      The build completes without them; the published app then behaves like local dev with no Supabase config (local-only persistence in the browser).
-3. Push to `main`. **CI** runs `npm audit` (high+), lint, format check, coverage, and build; on success it calls **Deploy to GitHub Pages** for the same commit (`npm ci`, `npm run build`, copy `dist/index.html` → `dist/404.html`, publish `dist`). You can also run **Deploy to GitHub Pages** alone via **Actions → Run workflow**. **Supabase keepalive** is scheduled from the default branch as well; it only performs the health ping when both Supabase secrets above are set (otherwise it skips).
+3. Push to `main`. **CI** runs stack-docs drift, `npm audit` (high+), lint, format check, coverage, and build; on success it calls **Deploy to GitHub Pages** for the same commit (`npm ci`, `npm run build`, copy `dist/index.html` → `dist/404.html`, publish `dist`). You can also run **Deploy to GitHub Pages** alone via **Actions → Run workflow**. **Supabase keepalive** is scheduled from the default branch as well; it only performs the health ping when both Supabase secrets above are set (otherwise it skips).
 
 For a **user site** (`https://<username>.github.io` from a repo named `<username>.github.io`), `vite.config.ts` uses base path `/` automatically when `GITHUB_ACTIONS` and `GITHUB_REPOSITORY` indicate that naming convention.
 
