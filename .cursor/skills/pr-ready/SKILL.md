@@ -16,6 +16,7 @@ Run before opening or updating a PR. Prefer the commands below from the **repo r
 ```
 Pre-PR:
 - [ ] Scope: only intended files; no secrets (.env.local, credentials)
+- [ ] npm audit --audit-level=high
 - [ ] npm run lint
 - [ ] npm run format:check
 - [ ] npm run test:coverage
@@ -26,6 +27,7 @@ Pre-PR:
 ### 1. Local CI parity
 
 ```bash
+npm audit --audit-level=high
 npm run lint
 npm run format:check
 npm run test:coverage
@@ -34,7 +36,8 @@ npm run build
 
 | Check           | What it covers                                                                                 |
 | --------------- | ---------------------------------------------------------------------------------------------- |
-| `lint`          | ESLint across the repo (also in `.github/workflows/ci.yml`)                                    |
+| `npm audit`     | High/critical advisories (`--audit-level=high`; also in `.github/workflows/ci.yml`)            |
+| `lint`          | ESLint across the repo (also in CI)                                                            |
 | `format:check`  | Prettier check across the repo (also in CI)                                                    |
 | `test:coverage` | Vitest once + **v8** coverage; fails if thresholds in `vite.config.ts` are missed (also in CI) |
 | `build`         | `tsc -b` + Vite production bundle (`dist/`) (also in CI)                                       |
@@ -72,7 +75,7 @@ Keep only **`main`** locally unless another branch is still in active use. Optio
 
 ## Anti-patterns
 
-- Opening a PR without green lint / coverage / build.
+- Opening a PR without green audit / lint / coverage / build.
 - Committing `.env.local` or other secrets.
 - Amending or force-pushing unless the user explicitly requests it.
 - Leaving merged feature branches checked out or lingering locally after the user asks to clean up.
