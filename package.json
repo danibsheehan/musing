@@ -21,7 +21,7 @@
     "@tiptap/extension-emoji": "^3.29.2",
     "@tiptap/extension-placeholder": "^3.29.2",
     "@tiptap/pm": "^3.29.1",
-    "@tiptap/react": "^3.20.5",
+    "@tiptap/react": "^3.29.2",
     "@tiptap/starter-kit": "^3.20.5",
     "docx": "^9.7.1",
     "html2pdf.js": "^0.14.0",
