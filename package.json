@@ -22,7 +22,7 @@
     "@tiptap/extension-placeholder": "^3.29.2",
     "@tiptap/pm": "^3.29.1",
     "@tiptap/react": "^3.20.5",
-    "@tiptap/starter-kit": "^3.20.5",
+    "@tiptap/starter-kit": "^3.29.2",
     "docx": "^9.7.1",
     "html2pdf.js": "^0.14.0",
     "prosemirror-model": "^1.25.4",
