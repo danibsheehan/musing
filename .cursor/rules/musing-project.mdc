@@ -5,6 +5,11 @@ alwaysApply: true
 
 # musing — project context
 
+**Start here**: **`AGENTS.md`** — install/configure/run/test commands, constraints, and
+definition of done, shared with Claude Code and any other agent. This rule stays as the
+Cursor-native always-apply entry point for stack/layout details; keep the two in sync in
+spirit, don't duplicate long content here.
+
 ## Stack
 
 Vite 8, React 19, TypeScript, React Router 8 (`react-router` — do not use `react-router-dom`); TipTap 3 (one document per page via `PageDocumentEditor` — see `.cursor/skills/editor-tiptap/`). Optional Supabase.
