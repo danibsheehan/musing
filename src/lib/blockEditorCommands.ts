@@ -5,16 +5,14 @@ import type { Block, BlockType } from "../types/block";
 export function isBlockHtmlVisuallyEmpty(html: string): boolean {
   if (typeof document === "undefined") {
     const stripped = html
-      .replace(/<[^>]+>/g, "")
+      .replace(/[<>]/g, "")
       .replace(/&nbsp;/gi, " ")
       .replace(/[\u200b-\u200d\ufeff\s]/g, "");
     return stripped.length === 0;
   }
   const host = document.createElement("div");
   host.innerHTML = html.trim() || "<p></p>";
-  const text = (host.textContent ?? "")
-    .replace(/[\u200b-\u200d\ufeff]/g, "")
-    .trim();
+  const text = (host.textContent ?? "").replace(/[\u200b-\u200d\ufeff]/g, "").trim();
   return text.length === 0;
 }
 

@@ -12,11 +12,7 @@ function pagesBase(): string {
     return p.endsWith("/") ? p : `${p}/`;
   }
   const repo = process.env.GITHUB_REPOSITORY?.split("/")[1];
-  if (
-    process.env.GITHUB_ACTIONS === "true" &&
-    repo &&
-    !repo.toLowerCase().endsWith(".github.io")
-  ) {
+  if (process.env.GITHUB_ACTIONS === "true" && repo && !repo.toLowerCase().endsWith(".github.io")) {
     return `/${repo}/`;
   }
   return "/";

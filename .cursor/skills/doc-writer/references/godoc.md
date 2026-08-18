@@ -76,7 +76,7 @@ package users
 ## Style Rules
 
 - Use full sentences ending with a period
-- Avoid redundancy: don't say "GetUser gets a user" — say what it *does*
+- Avoid redundancy: don't say "GetUser gets a user" — say what it _does_
 - For error-returning functions, always document what errors can be returned
 - For context-taking functions, note if cancellation is respected
 - Deprecated: `// Deprecated: Use NewFoo instead.` on its own line

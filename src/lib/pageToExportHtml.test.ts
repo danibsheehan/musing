@@ -44,7 +44,7 @@ describe("databaseToExportTableHtml", () => {
 describe("pageToExportHtml", () => {
   const docPage = (overrides: Partial<Page> = {}): Page => ({
     id: "p1",
-    title: 'Title <script>',
+    title: "Title <script>",
     parentId: null,
     order: 0,
     updatedAt: "",

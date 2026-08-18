@@ -15,10 +15,7 @@ describe("injectBlockIdOnRoot", () => {
   });
 
   it("does not overwrite an existing data-block-id", () => {
-    const out = injectBlockIdOnRoot(
-      '<p data-block-id="keep-me">x</p>',
-      "ignored"
-    );
+    const out = injectBlockIdOnRoot('<p data-block-id="keep-me">x</p>', "ignored");
     expect(out).toContain('data-block-id="keep-me"');
     expect(out).not.toContain("ignored");
   });
@@ -55,9 +52,7 @@ describe("blocksToDocHtml", () => {
     wrap.innerHTML = html;
     const node = wrap.firstElementChild as HTMLElement;
     expect(node.getAttribute("data-block-id")).toBe('emb"&<>');
-    expect(node.getAttribute("data-payload")).toBe(
-      encodeURIComponent('{"x":"a&b"}')
-    );
+    expect(node.getAttribute("data-payload")).toBe(encodeURIComponent('{"x":"a&b"}'));
   });
 
   it("round-trips a paragraph block id that needs attribute escaping", () => {

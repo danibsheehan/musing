@@ -90,7 +90,9 @@ Deno.serve(async (req) => {
     }
 
     const windowed = messages
-      .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+      .filter(
+        (m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string",
+      )
       .slice(-MAX_CHAT_MESSAGES);
 
     if (windowed.length === 0 || windowed[windowed.length - 1].role !== "user") {
@@ -109,7 +111,7 @@ Deno.serve(async (req) => {
         {
           status: 503,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -157,7 +159,7 @@ ${notesContext}
         {
           status: 502,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -175,7 +177,7 @@ ${notesContext}
         {
           status: 502,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -185,9 +187,12 @@ ${notesContext}
     });
   } catch (e) {
     console.error(e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

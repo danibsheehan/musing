@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter } from "react-router";
 import { WorkspaceProvider } from "./context/WorkspaceContext";
 import { applyThemeFromStorage, bindSystemThemeListener } from "./lib/themePreference";
 import "./index.css";
@@ -22,5 +22,5 @@ createRoot(document.getElementById("root")!).render(
         <App />
       </BrowserRouter>
     </WorkspaceProvider>
-  </StrictMode>
+  </StrictMode>,
 );

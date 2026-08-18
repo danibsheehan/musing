@@ -16,17 +16,13 @@ export function textBeforeCursorInBlock($from: ResolvedPos): string {
 export function viewCoordsForFloatingMenu(
   view: EditorView,
   anchorPos: number,
-  headPos: number
+  headPos: number,
 ): { top: number; left: number; bottom: number } {
   const rect = view.dom.getBoundingClientRect();
   const docSize = view.state.doc.content.size;
   const margin = 12;
 
-  const inside = (c: {
-    top: number;
-    left: number;
-    bottom: number;
-  }): boolean =>
+  const inside = (c: { top: number; left: number; bottom: number }): boolean =>
     c.left >= rect.left - margin &&
     c.left <= rect.right + margin &&
     c.bottom >= rect.top - margin &&

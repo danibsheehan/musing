@@ -23,7 +23,7 @@ export function databaseToExportTableHtml(db: WorkspaceDatabase): string {
             (row) =>
               `<tr>${cols
                 .map((c) => `<td>${escapeHtml(row.values[c.id] ?? "")}</td>`)
-                .join("")}</tr>`
+                .join("")}</tr>`,
           )
           .join("")}</tbody>`;
   return `<table class="pdf-export-table">${head}${body}</table>`;
@@ -31,7 +31,7 @@ export function databaseToExportTableHtml(db: WorkspaceDatabase): string {
 
 function blockToHtml(
   block: Block,
-  getDatabase: (id: string) => WorkspaceDatabase | undefined
+  getDatabase: (id: string) => WorkspaceDatabase | undefined,
 ): string {
   switch (block.type) {
     case "databaseEmbed": {
@@ -54,7 +54,7 @@ function blockToHtml(
 
 export function pageToExportHtml(
   page: Page,
-  getDatabase: (id: string) => WorkspaceDatabase | undefined
+  getDatabase: (id: string) => WorkspaceDatabase | undefined,
 ): string {
   const title = escapeHtml(page.title.trim() || "Untitled");
 

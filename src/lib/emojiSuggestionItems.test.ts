@@ -10,9 +10,7 @@ describe("getEmojiSuggestionItems", () => {
 
   it("returns popular items with emoji characters for an empty query", () => {
     const items = getEmojiSuggestionItems("   ");
-    expect(items.every((i) => typeof i.emoji === "string" && i.emoji.length > 0)).toBe(
-      true
-    );
+    expect(items.every((i) => typeof i.emoji === "string" && i.emoji.length > 0)).toBe(true);
   });
 
   it("filters by query and caps at 48", () => {
@@ -25,8 +23,8 @@ describe("getEmojiSuggestionItems", () => {
         (i) =>
           i.name.includes(lower) ||
           i.shortcodes.some((s) => s.includes(lower)) ||
-          i.tags.some((t) => t.includes(lower))
-      )
+          i.tags.some((t) => t.includes(lower)),
+      ),
     ).toBe(true);
   });
 

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { useEffect, useRef, type RefObject } from "react";
 import { useWorkspace } from "../context/useWorkspace";
 import { findDatabaseOwnerPage } from "../lib/findDatabaseOwnerPage";
@@ -119,10 +119,7 @@ export default function DatabaseEmbedBlock({
               </Link>
             )}
           </div>
-          <DatabaseTableView
-            database={db}
-            onChange={(next) => updateDatabase(db.id, () => next)}
-          />
+          <DatabaseTableView database={db} onChange={(next) => updateDatabase(db.id, () => next)} />
         </>
       )}
     </div>

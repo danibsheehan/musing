@@ -24,7 +24,7 @@ export type WorkspaceContextValue = {
   updatePageBlocks: (id: string, blocks: Block[]) => void;
   updateDatabase: (
     databaseId: string,
-    updater: (prev: WorkspaceDatabase) => WorkspaceDatabase
+    updater: (prev: WorkspaceDatabase) => WorkspaceDatabase,
   ) => void;
   createPage: (parentId: string | null) => string;
   createDatabasePage: (parentId: string | null) => string;

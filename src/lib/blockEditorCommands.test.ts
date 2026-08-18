@@ -41,7 +41,7 @@ describe("tipTapContentFromBlock", () => {
       tipTapContentFromBlock({
         type: "heading",
         content: "<p></p>",
-      })
+      }),
     ).toBe("<h1></h1>");
   });
 
@@ -50,7 +50,7 @@ describe("tipTapContentFromBlock", () => {
       tipTapContentFromBlock({
         type: "heading",
         content: "<p>Hello</p>",
-      })
+      }),
     ).toBe("<p>Hello</p>");
   });
 });

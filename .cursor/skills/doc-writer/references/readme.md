@@ -4,22 +4,29 @@
 
 ```markdown
 # Project Name
+
 > One-line tagline — what it does and who it's for
 
 ## Overview
+
 2–4 sentences. What problem does this solve? What does it do?
 
 ## Features
+
 - Bullet list of key capabilities (5–8 max)
 
 ## Installation
+
 \`\`\`bash
-npm install my-package   # JS/TS
+npm install my-package # JS/TS
+
 # or
-go get github.com/org/repo   # Go
+
+go get github.com/org/repo # Go
 \`\`\`
 
 ## Quick Start
+
 Minimal working example. Copy-pasteable. No setup steps buried in prose.
 
 \`\`\`ts
@@ -35,15 +42,19 @@ repo.DoSomething()
 \`\`\`
 
 ## API Reference
+
 Link to generated docs or summarize key exports here.
 
 ## Configuration (if applicable)
+
 Table of options: | Option | Type | Default | Description |
 
 ## Contributing (optional)
+
 Brief guide or link to CONTRIBUTING.md
 
 ## License
+
 MIT / Apache 2.0 / etc.
 ```
 
@@ -59,6 +70,7 @@ MIT / Apache 2.0 / etc.
 ## Inferring Missing Info
 
 If the repo doesn't have a description, infer from:
+
 1. Package name + entry point exports
 2. Folder structure (e.g., `handlers/`, `models/`, `api/`)
 3. Test file names and assertions

@@ -23,7 +23,7 @@ afterEach(() => {
 describe("blockIdAtSelection", () => {
   it("returns the blockId of the top-level block that contains the selection", () => {
     const { editor, el } = makeEditor(
-      `<p data-block-id="first">a</p><p data-block-id="second">b</p>`
+      `<p data-block-id="first">a</p><p data-block-id="second">b</p>`,
     );
     const { doc } = editor.state;
     let pos = 0;
@@ -35,9 +35,7 @@ describe("blockIdAtSelection", () => {
       }
       pos += node.nodeSize;
     }
-    editor.view.dispatch(
-      editor.state.tr.setSelection(TextSelection.create(doc, pos))
-    );
+    editor.view.dispatch(editor.state.tr.setSelection(TextSelection.create(doc, pos)));
     expect(blockIdAtSelection(editor)).toBe("second");
     editor.destroy();
     el.remove();
@@ -47,7 +45,7 @@ describe("blockIdAtSelection", () => {
 describe("findBlockPositionById", () => {
   it("returns 0 for the first top-level block", () => {
     const { editor, el } = makeEditor(
-      `<p data-block-id="alpha">x</p><p data-block-id="beta">y</p>`
+      `<p data-block-id="alpha">x</p><p data-block-id="beta">y</p>`,
     );
     expect(findBlockPositionById(editor, "alpha")).toBe(0);
     editor.destroy();
@@ -56,7 +54,7 @@ describe("findBlockPositionById", () => {
 
   it("returns the doc offset of the second block", () => {
     const { editor, el } = makeEditor(
-      `<p data-block-id="alpha">x</p><p data-block-id="beta">y</p>`
+      `<p data-block-id="alpha">x</p><p data-block-id="beta">y</p>`,
     );
     const first = editor.state.doc.child(0);
     expect(findBlockPositionById(editor, "beta")).toBe(first.nodeSize);

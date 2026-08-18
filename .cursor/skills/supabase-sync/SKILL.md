@@ -29,11 +29,11 @@ description: >-
 
 ## SQL vs TypeScript
 
-| Change | Where |
-|--------|--------|
-| New columns, policies, indexes, table shape | **`supabase/schema.sql`** (and apply in Supabase SQL Editor / migrations workflow you use) |
-| Snapshot JSON shape, merge logic, when to save | **`types/page.ts`**, **`workspaceStorage.ts`**, **`WorkspaceContext.tsx`** |
-| Client queries/upsert | **`supabaseWorkspace.ts`** |
+| Change                                         | Where                                                                                      |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| New columns, policies, indexes, table shape    | **`supabase/schema.sql`** (and apply in Supabase SQL Editor / migrations workflow you use) |
+| Snapshot JSON shape, merge logic, when to save | **`types/page.ts`**, **`workspaceStorage.ts`**, **`WorkspaceContext.tsx`**                 |
+| Client queries/upsert                          | **`supabaseWorkspace.ts`**                                                                 |
 
 If you change **`WorkspaceSnapshot`** or table columns, update **parsing**, **RLS** if new fields need different access, and **README** for any new env or setup.
 

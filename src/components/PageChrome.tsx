@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import type { Page } from "../types/page";
 
 type Props = {
@@ -50,7 +50,7 @@ export default function PageChrome({
       setExportError(
         kind === "pdf"
           ? "Could not export as PDF. Try again, or use Print and choose Save as PDF."
-          : "Could not export as Word. Try again."
+          : "Could not export as Word. Try again.",
       );
     } finally {
       setExportBusy(null);
@@ -103,11 +103,7 @@ export default function PageChrome({
               aria-haspopup="menu"
               aria-busy={exportBusy !== null}
             >
-              {exportBusy === "pdf"
-                ? "PDF…"
-                : exportBusy === "docx"
-                  ? "Word…"
-                  : "Export"}
+              {exportBusy === "pdf" ? "PDF…" : exportBusy === "docx" ? "Word…" : "Export"}
             </summary>
             <div className="page-export-panel" role="menu">
               {onDownloadPdf && (

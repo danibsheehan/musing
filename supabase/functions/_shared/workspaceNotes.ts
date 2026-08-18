@@ -38,7 +38,7 @@ function isDocumentPage(p: UnknownRecord): boolean {
 
 export function buildCappedNotesContext(
   snapshot: unknown,
-  maxChars: number = DEFAULT_MAX_CHARS
+  maxChars: number = DEFAULT_MAX_CHARS,
 ): { text: string; truncated: boolean } {
   const obj = snapshot as UnknownRecord;
   const pages = Array.isArray(obj.pages) ? (obj.pages as UnknownRecord[]) : [];

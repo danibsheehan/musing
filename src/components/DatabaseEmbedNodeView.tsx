@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { NodeViewWrapper } from "@tiptap/react";
 import type { NodeViewProps } from "@tiptap/react";
 import { useEffect, useRef } from "react";
@@ -10,12 +10,7 @@ import DatabaseTableView from "./DatabaseTableView";
 /**
  * Linked database block inside the single-page TipTap document (node view).
  */
-export default function DatabaseEmbedNodeView({
-  node,
-  editor,
-  getPos,
-  selected,
-}: NodeViewProps) {
+export default function DatabaseEmbedNodeView({ node, editor, getPos, selected }: NodeViewProps) {
   const payload = parseDatabaseEmbedPayload(node.attrs.payload as string);
   const { pages, getDatabase, updateDatabase } = useWorkspace();
   const db = payload ? getDatabase(payload.databaseId) : null;

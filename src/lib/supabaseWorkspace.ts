@@ -18,7 +18,7 @@ export function snapshotFromRemoteJson(snapshot: unknown): WorkspaceSnapshot | n
 
 export async function fetchWorkspaceRow(
   client: SupabaseClient,
-  userId: string
+  userId: string,
 ): Promise<WorkspaceRow | null> {
   const { data, error } = await client
     .from("workspaces")
@@ -34,7 +34,7 @@ export async function fetchWorkspaceRow(
 export async function upsertWorkspaceRow(
   client: SupabaseClient,
   userId: string,
-  snapshot: WorkspaceSnapshot
+  snapshot: WorkspaceSnapshot,
 ): Promise<void> {
   const { error } = await client.from("workspaces").upsert(
     {
@@ -42,7 +42,7 @@ export async function upsertWorkspaceRow(
       snapshot,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "user_id" }
+    { onConflict: "user_id" },
   );
 
   if (error) throw error;

@@ -1,11 +1,11 @@
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes, useParams } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useParams } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import { WorkspaceContext, type WorkspaceContextValue } from "../context/workspace-context";
 import HomeRedirect from "./HomeRedirect";
 
 function createMockWorkspaceValue(
-  overrides: Partial<WorkspaceContextValue> = {}
+  overrides: Partial<WorkspaceContextValue> = {},
 ): WorkspaceContextValue {
   const base: WorkspaceContextValue = {
     pages: [],
@@ -52,7 +52,7 @@ describe("HomeRedirect", () => {
             <Route path="/page/:id" element={<PageTarget />} />
           </Routes>
         </WorkspaceContext.Provider>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(await screen.findByText("page:my-open-page")).toBeInTheDocument();

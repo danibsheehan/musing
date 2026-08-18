@@ -40,9 +40,9 @@ describe("filterPagesForPicker", () => {
       samplePage({ id: "a", title: "Alpha" }),
       samplePage({ id: "b", title: "Beta" }),
     ];
-    expect(filterPagesForPicker(pages, { query: "", excludePageId: "a" }).map((p) => p.id)).toEqual([
-      "b",
-    ]);
+    expect(filterPagesForPicker(pages, { query: "", excludePageId: "a" }).map((p) => p.id)).toEqual(
+      ["b"],
+    );
   });
 
   it("filters by case-insensitive title substring", () => {

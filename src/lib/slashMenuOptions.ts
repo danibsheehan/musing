@@ -34,7 +34,7 @@ export const SLASH_MENU_ITEMS: SlashMenuItem[] = [...batch1, ...batch2, ...batch
 /** Filters by label (case-insensitive substring). Empty `query` returns all items. */
 export function filterSlashMenuItems(
   items: readonly SlashMenuItem[],
-  query: string
+  query: string,
 ): SlashMenuItem[] {
   const q = query.trim().toLowerCase();
   if (!q) return [...items];

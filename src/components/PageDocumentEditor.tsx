@@ -3,7 +3,7 @@ import { type Editor as TiptapEditor } from "@tiptap/core";
 import Emoji from "@tiptap/extension-emoji";
 import Placeholder from "@tiptap/extension-placeholder";
 import StarterKit from "@tiptap/starter-kit";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import PageBlockGutter from "./PageBlockGutter";
 import PageDocumentBelowHit from "./PageDocumentBelowHit";
@@ -16,16 +16,11 @@ import { useWorkspace } from "../context/useWorkspace";
 import { blocksToDocHtml } from "../lib/pageDocument/blocksToDocHtml";
 import { serializeDocToBlocks } from "../lib/pageDocument/serializeDocToBlocks";
 import EditorTextFormatBubble from "./EditorTextFormatBubble";
-import {
-  createEmojiSuggestionRender,
-  emojiSuggestionItems,
-} from "../lib/emojiSuggestionRender";
+import { createEmojiSuggestionRender, emojiSuggestionItems } from "../lib/emojiSuggestionRender";
 import { EmojiSuggestionPluginKey } from "@tiptap/extension-emoji";
 
 function isEmojiSuggestionOpen(editor: TiptapEditor): boolean {
-  const st = EmojiSuggestionPluginKey.getState(editor.state) as
-    | { active?: boolean }
-    | undefined;
+  const st = EmojiSuggestionPluginKey.getState(editor.state) as { active?: boolean } | undefined;
   return !!st?.active;
 }
 
@@ -59,11 +54,10 @@ export default function PageDocumentEditor({
 
   const wikiLinkExtension = useMemo(
     () =>
-      // eslint-disable-next-line react-hooks/refs -- getPages is called from ProseMirror, not during React render
       WikiLink.configure({
         getPages: () => pagesBox.current,
       }),
-    []
+    [],
   );
 
   const emojiExtension = useMemo(
@@ -74,7 +68,7 @@ export default function PageDocumentEditor({
           render: createEmojiSuggestionRender(),
         },
       }),
-    []
+    [],
   );
 
   const blocksForSyncRef = useRef(blocks);
@@ -130,9 +124,7 @@ export default function PageDocumentEditor({
           return false;
         },
         handleKeyDown(view, event) {
-          const ed =
-            (view.dom as HTMLElement & { editor?: TiptapEditor }).editor ??
-            null;
+          const ed = (view.dom as HTMLElement & { editor?: TiptapEditor }).editor ?? null;
           const keyDown = onEditorKeyDownRef.current;
           if (ed && !ed.isDestroyed && keyDown?.(ed, event)) {
             return true;
@@ -159,7 +151,7 @@ export default function PageDocumentEditor({
         onEditorActivity(ed);
       },
     },
-    [pageId, wikiLinkExtension, emojiExtension]
+    [pageId, wikiLinkExtension, emojiExtension],
   );
 
   const editorRef = useRef(editor);

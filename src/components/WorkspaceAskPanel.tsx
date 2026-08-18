@@ -14,8 +14,7 @@ export default function WorkspaceAskPanel() {
   const [contextTruncated, setContextTruncated] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const canUseAsk =
-    isSupabaseConfigured() && remoteSyncStatus === "synced" && !remoteSyncError;
+  const canUseAsk = isSupabaseConfigured() && remoteSyncStatus === "synced" && !remoteSyncError;
 
   const close = useCallback(() => {
     setOpen(false);
@@ -103,8 +102,9 @@ export default function WorkspaceAskPanel() {
             </div>
 
             <p className="workspace-ask-disclosure">
-              Answers use your synced document pages (not database tables). Text is sent to Supabase,
-              then to the configured AI provider. Large workspaces are truncated to limit cost.
+              Answers use your synced document pages (not database tables). Text is sent to
+              Supabase, then to the configured AI provider. Large workspaces are truncated to limit
+              cost.
             </p>
 
             {!isSupabaseConfigured() || remoteSyncStatus === "disabled" ? (

@@ -1,0 +1,16 @@
+# Build and coverage
+dist
+coverage
+
+# Dependencies and lockfiles
+node_modules
+package-lock.json
+
+# Env and local overrides
+.env
+.env.*
+!.env.example
+
+# Generated / vendor
+*.min.js
+*.min.css

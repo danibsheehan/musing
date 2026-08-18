@@ -4,13 +4,7 @@ import type { VirtualElement } from "@floating-ui/dom";
 import type { EditorView } from "@tiptap/pm/view";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { useEditorState } from "@tiptap/react";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { getEditorBubbleMenuPortal } from "../lib/editorBubbleMenuPortal";
 import { textBeforeCursorInBlock } from "../lib/editorBlockText";
 

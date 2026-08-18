@@ -21,12 +21,12 @@ All output is written in Markdown (`.md`) unless writing inline source annotatio
 
 Determine which doc type(s) are needed:
 
-| Request | Doc Type |
-|---|---|
-| "Write a README", "document this repo" | → README |
-| "Document this function/class/interface", "add JSDoc/GoDoc" | → API Docs |
-| "Add comments", "explain what this code does inline" | → Inline Comments |
-| Mixed / ambiguous | → Ask, or default to README + API Docs |
+| Request                                                     | Doc Type                               |
+| ----------------------------------------------------------- | -------------------------------------- |
+| "Write a README", "document this repo"                      | → README                               |
+| "Document this function/class/interface", "add JSDoc/GoDoc" | → API Docs                             |
+| "Add comments", "explain what this code does inline"        | → Inline Comments                      |
+| Mixed / ambiguous                                           | → Ask, or default to README + API Docs |
 
 ---
 
@@ -39,6 +39,7 @@ Before writing, read the relevant files:
 - **Inline Comments**: Read the specific functions or blocks to annotate
 
 Use `bash_tool` to explore if needed:
+
 ```bash
 # JS/TS: find exported functions/types
 grep -rn "^export " src/ --include="*.ts" | head -40
@@ -73,6 +74,7 @@ Then produce the output following those guidelines exactly.
 - If multiple files: write each separately, present all at once
 
 Always tell the user:
+
 1. What was generated
 2. Which files to copy where in their repo
 3. Any gaps (e.g., "I couldn't find a description for `X` — you may want to fill that in")

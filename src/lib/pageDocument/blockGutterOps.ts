@@ -62,16 +62,11 @@ export function insertParagraphBelowBlock(editor: Editor, afterBlockId: string):
 export function reorderTopLevelBlocksByIndex(
   editor: Editor,
   fromIndex: number,
-  toIndex: number
+  toIndex: number,
 ): boolean {
   if (editor.isDestroyed || fromIndex === toIndex) return true;
   const { doc } = editor.state;
-  if (
-    fromIndex < 0 ||
-    toIndex < 0 ||
-    fromIndex >= doc.childCount ||
-    toIndex >= doc.childCount
-  ) {
+  if (fromIndex < 0 || toIndex < 0 || fromIndex >= doc.childCount || toIndex >= doc.childCount) {
     return false;
   }
   const blocks = serializeDocToBlocks(editor);

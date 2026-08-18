@@ -1,5 +1,5 @@
 ---
-description: Stack, layout, Vite/TipTap aliases, Supabase, and GitHub Pages routing for musing
+description: Stack, layout, Vite/TipTap aliases, BASE_URL, Supabase env, and agent done bar for musing
 alwaysApply: true
 ---
 
@@ -7,11 +7,11 @@ alwaysApply: true
 
 ## Stack
 
-Vite 8, React 19, TypeScript, React Router 7; TipTap 3 (block-per-editor, not one doc — see `.cursor/skills/editor-tiptap/`). Optional Supabase.
+Vite 8, React 19, TypeScript, React Router 8 (`react-router` — do not use `react-router-dom`); TipTap 3 (one document per page via `PageDocumentEditor` — see `.cursor/skills/editor-tiptap/`). Optional Supabase.
 
 ## `src/` (where to look)
 
-Routes: `main.tsx`, `App.tsx`. Workspace: `context/WorkspaceContext.tsx`, `useWorkspace.ts`, `lib/workspaceStorage.ts`. Editor: `Editor.tsx`, `Block.tsx`, `SlashMenu.tsx`, `PagePickerMenu.tsx`. Extensions: `extensions/` (e.g. `wikiLink.ts`). Slash/commands: `lib/slashMenuOptions.ts`, `lib/blockEditorCommands.ts`. Types: `types/block.ts`, `types/page.ts`. Supabase client/sync: `lib/supabaseClient.ts`, `lib/supabaseWorkspace.ts` (not the `supabase/` SQL folder).
+Routes: `main.tsx`, `App.tsx` (import routing APIs from `react-router`). Workspace: `context/WorkspaceContext.tsx`, `useWorkspace.ts`, `lib/workspaceStorage.ts`. Editor: `Editor.tsx`, `PageDocumentEditor.tsx`, `SlashMenu.tsx`, `PagePickerMenu.tsx`. Extensions: `extensions/` (e.g. `wikiLink.ts`). Slash/commands: `lib/slashMenuOptions.ts`, `lib/blockEditorCommands.ts`. Types: `types/block.ts`, `types/page.ts`. Supabase: `lib/supabaseClient.ts`, `lib/supabaseWorkspace.ts` (not the `supabase/` SQL folder).
 
 ## Vite: `@tiptap/pm/*` aliases
 
@@ -25,6 +25,18 @@ Rolldown won’t resolve `@tiptap/pm/*` subpaths — keep the full `resolve.alia
 
 Schema/RLS: `supabase/schema.sql`. Env: `VITE_SUPABASE_*` in `.env.local`; same names as GitHub **repository secrets** for deploy/keepalive (README). No Supabase → localStorage only; don’t assume DB in all paths.
 
-## Edits
+## Scoped rules and skills
 
-Minimal, task-focused changes; match local patterns. If setup, env, or deploy behavior changes, update README.
+- **Rules** (auto when matching files are open): `readme`, `frontend-testing`, `editor-tiptap`, `workspace-supabase` under `.cursor/rules/`.
+- **Skills** (read `.cursor/skills/<name>/SKILL.md` when the task fits):
+  - **`editor-tiptap`** — TipTap doc model, slash/wiki, PM aliases
+  - **`supabase-sync`** — anonymous auth, snapshot, RLS, env
+  - **`musing-vitest-tests`** — Vitest / Testing Library for this repo
+  - **`doc-writer`** — README, JSDoc, inline docs
+  - **`pr-ready`** — local CI-parity checks and PR template before a PR
+
+## Agent definition of done
+
+- **Task done**: follow scoped rules/skills for files you touched; run the **smallest** relevant check (`npm run test:run` for touched suites, `npm run lint` if ESLint-relevant). Do **not** require full coverage CI for every small edit.
+- **PR done**: follow **`.cursor/skills/pr-ready/SKILL.md`** (`lint`, `format:check`, `test:coverage`, `build`, PR template). Commit, push, or open a PR **only when the user asks**.
+- **Edits**: minimal, task-focused; match local patterns. If setup, env, or deploy behavior changes, update README. Format with Prettier (`npm run format`) when touching many files or before PR.

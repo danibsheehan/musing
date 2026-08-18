@@ -12,10 +12,7 @@ function escapeAttr(s: string): string {
 /** Inject `data-block-id` on the root element of a TipTap HTML fragment (browser). */
 export function injectBlockIdOnRoot(html: string, blockId: string): string {
   if (typeof document === "undefined") {
-    return html.replace(
-      /^<(\w+)/,
-      `<$1 data-block-id="${escapeAttr(blockId)}" `
-    );
+    return html.replace(/^<(\w+)/, `<$1 data-block-id="${escapeAttr(blockId)}" `);
   }
   const wrap = document.createElement("div");
   wrap.innerHTML = html.trim();
