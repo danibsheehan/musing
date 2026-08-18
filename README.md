@@ -9,9 +9,27 @@
 
 > Notion-style block pages and editor in the browser, with optional **Supabase** sync and a **GitHub Pages** deployment path.
 
+**[Try it live →](https://www.danibsheehan.com/musing/)** — nothing to install, no account required. Everything below this is for running musing yourself or contributing to it.
+
+## Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Stack](#stack)
+- [Code layout](#code-layout)
+- [Configuration](#configuration)
+- [Supabase (optional cloud sync)](#supabase-optional-cloud-sync)
+- [Deploy to GitHub Pages](#deploy-to-github-pages)
+
 ## Overview
 
-**musing** is a single-page React app: you edit block-based notes, link pages together, and embed lightweight databases. Data lives in **localStorage** by default. When you add Supabase credentials, the same workspace syncs to the cloud using anonymous sign-in and a JSON snapshot stored per user. The repo includes GitHub Actions workflows: one **deploys** to Pages with the correct asset base path (`https://<user>.github.io/<repo>/`) and copies `index.html` to `404.html` so client-side routes survive a refresh; another **pings** Supabase daily (optional) so a free-tier project is less likely to pause from inactivity.
+musing is a block-based note app in the spirit of Notion: write in blocks, link pages to each other by name, and embed small databases — as a table or a freeform canvas — right inside a page.
+
+It runs entirely in your browser. By default your notes are saved to **localStorage** on your own device — there's nothing to sign up for, and nothing leaves your machine. If you want the same notes to follow you across devices, add a free **Supabase** project and musing will sync that workspace to the cloud behind an anonymous sign-in, with no separate account system to set up.
+
+The repo also includes two optional GitHub Actions workflows for anyone hosting their own copy: one **deploys** to GitHub Pages with the correct asset base path (`https://<user>.github.io/<repo>/`) and copies `index.html` to `404.html` so client-side routes survive a refresh; another **pings** Supabase daily so a free-tier project is less likely to pause from inactivity.
 
 ## Features
 
@@ -62,7 +80,18 @@ Other useful scripts:
 | `npm run test:coverage`        | Vitest once with **v8 coverage**, HTML + `lcov` under `coverage/`, and **threshold checks** (configured in `vite.config.ts`) |
 | `npm run test:coverage:watch`  | Same coverage settings while iterating in watch mode                                                                         |
 
-Pushes to **`main`** and **pull requests** run **CI** via `.github/workflows/ci.yml`: a **stack-docs drift check** (`python3 .github/scripts/check_stack_docs.py`), **`npm audit --audit-level=high`**, **`npm run lint`**, **`npm run format:check`**, **`npm run test:coverage`** (fails if coverage drops below thresholds in `vite.config.ts`), and **`npm run build`**. Every run also appends a **Cobertura markdown summary** to the workflow **job summary** (Vitest’s `coverage/cobertura-coverage.xml` via [`irongut/CodeCoverageSummary`](https://github.com/irongut/CodeCoverageSummary)). On **pull requests from the same repository**, CI posts an additional **table comment** with [`5monkeys/cobertura-action`](https://github.com/5monkeys/cobertura-action), and `.github/workflows/pr-guide.yml` posts a sticky **PR guide** comment with touched areas, suggested verification, reviewer focus, commits, and path-based `area:*` labels. Those PR-thread updates are skipped for **fork** PRs because the default `GITHUB_TOKEN` cannot update the base repo’s PR thread.
+### Continuous integration
+
+Pushes to **`main`** and **pull requests** run `.github/workflows/ci.yml`, in order:
+
+1. Stack-docs drift check (`python3 .github/scripts/check_stack_docs.py`) — keeps this README and `.cursor/rules/musing-project.mdc` in sync with `package.json`
+2. `npm audit --audit-level=high`
+3. `npm run lint`
+4. `npm run format:check`
+5. `npm run test:coverage` — fails if coverage drops below the thresholds in `vite.config.ts`
+6. `npm run build`
+
+Every run appends a Cobertura coverage summary to the workflow's job summary ([`irongut/CodeCoverageSummary`](https://github.com/irongut/CodeCoverageSummary)). On pull requests from the same repository (not forks — a fork's `GITHUB_TOKEN` can't write to the base repo's PR thread), CI also posts a coverage table comment ([`5monkeys/cobertura-action`](https://github.com/5monkeys/cobertura-action)) and `.github/workflows/pr-guide.yml` posts a sticky **PR guide** comment with touched areas, suggested verification, reviewer focus, and path-based `area:*` labels.
 
 Optional: copy `.env.example` to **`.env.local` in the repo root** (next to `package.json`), set the variables below, then restart `npm run dev`.
 
