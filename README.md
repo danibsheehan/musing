@@ -34,6 +34,10 @@ cd musing
 npm install
 ```
 
+`npm install` also sets up a **Husky** pre-commit hook (`.husky/pre-commit`) that runs
+**lint-staged**, formatting staged files with Prettier before each commit — the same check
+`npm run format:check` enforces in CI.
+
 ## Quick start
 
 ```bash
