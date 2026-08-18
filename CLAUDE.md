@@ -19,12 +19,12 @@ Code loads the same file.
 Cursor applies these automatically via each file's `globs:` frontmatter. Claude Code has
 no equivalent auto-attach, so read the file yourself before editing matching paths.
 
-| Rule | Applies to |
-|---|---|
-| `.cursor/rules/editor-tiptap.mdc` | `src/components/{PageDocumentEditor,Editor,EditorTextFormatBubble,SlashMenu,PagePickerMenu,Block}.tsx`, `src/extensions/**/*`, `src/lib/pageDocument/**/*`, `src/lib/blockEditorCommands.ts`, `src/lib/slashMenuOptions.ts`, `vite.config.ts` |
-| `.cursor/rules/frontend-testing.mdc` | `src/**/*.{test,spec}.{ts,tsx}`, `src/test/**/*`, `vite.config.ts` |
-| `.cursor/rules/workspace-supabase.mdc` | `src/context/**/*`, `src/lib/workspaceStorage.ts`, `src/lib/supabaseClient.ts`, `src/lib/supabaseWorkspace.ts`, `src/types/page.ts`, `supabase/schema.sql`, `.env.example` |
-| `.cursor/rules/readme.mdc` | `README.md`, `supabase/schema.sql`, `.env.example`, `.github/workflows/**` |
+| Rule                                   | Applies to                                                                                                                                                                                                                                    |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.cursor/rules/editor-tiptap.mdc`      | `src/components/{PageDocumentEditor,Editor,EditorTextFormatBubble,SlashMenu,PagePickerMenu,Block}.tsx`, `src/extensions/**/*`, `src/lib/pageDocument/**/*`, `src/lib/blockEditorCommands.ts`, `src/lib/slashMenuOptions.ts`, `vite.config.ts` |
+| `.cursor/rules/frontend-testing.mdc`   | `src/**/*.{test,spec}.{ts,tsx}`, `src/test/**/*`, `vite.config.ts`                                                                                                                                                                            |
+| `.cursor/rules/workspace-supabase.mdc` | `src/context/**/*`, `src/lib/workspaceStorage.ts`, `src/lib/supabaseClient.ts`, `src/lib/supabaseWorkspace.ts`, `src/types/page.ts`, `supabase/schema.sql`, `.env.example`                                                                    |
+| `.cursor/rules/readme.mdc`             | `README.md`, `supabase/schema.sql`, `.env.example`, `.github/workflows/**`                                                                                                                                                                    |
 
 ## Skills
 

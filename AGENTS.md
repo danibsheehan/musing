@@ -56,13 +56,13 @@ Detailed, path-scoped conventions live in `.cursor/rules/*.mdc` and are read aut
 Claude Code via [`CLAUDE.md`](CLAUDE.md); Cursor reads them natively. Do not restate them here
 — this section is the map, not the content:
 
-| Area | Rule |
-|---|---|
+| Area                                                                                | Rule                                              |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------- |
 | Stack, `src/` layout, Vite/TipTap aliases, `BASE_URL`, Supabase env, agent done bar | `.cursor/rules/musing-project.mdc` (always-apply) |
-| TipTap editor, slash menu, wiki links | `.cursor/rules/editor-tiptap.mdc` |
-| Vitest / Testing Library conventions | `.cursor/rules/frontend-testing.mdc` |
-| Workspace storage and optional Supabase sync | `.cursor/rules/workspace-supabase.mdc` |
-| README accuracy | `.cursor/rules/readme.mdc` |
+| TipTap editor, slash menu, wiki links                                               | `.cursor/rules/editor-tiptap.mdc`                 |
+| Vitest / Testing Library conventions                                                | `.cursor/rules/frontend-testing.mdc`              |
+| Workspace storage and optional Supabase sync                                        | `.cursor/rules/workspace-supabase.mdc`            |
+| README accuracy                                                                     | `.cursor/rules/readme.mdc`                        |
 
 Step-by-step playbooks (both `.cursor/skills/*/SKILL.md` and `.claude/skills/` — same files,
 symlinked, auto-invoked by either tool based on the task):
