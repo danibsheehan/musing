@@ -17,6 +17,7 @@
 - [Features](#features)
 - [Installation](#installation)
 - [Quick start](#quick-start)
+- [Automation](#automation)
 - [Stack](#stack)
 - [Code layout](#code-layout)
 - [Configuration](#configuration)
@@ -99,6 +100,24 @@ Optional: copy `.env.example` to **`.env.local` in the repo root** (next to `pac
 cp .env.example .env.local
 # edit .env.local — Vite only loads env from the project root, not from src/
 ```
+
+## Automation
+
+**In plain English:** nothing in this repo merges or opens a PR on its own yet — Dependabot's
+weekly bumps and CI results are all reviewed and merged by hand. The one thing that _does_ run
+unattended is read-only and lives elsewhere: a scheduled Claude Code routine, defined in
+[`danibsheehan/portfolio-automation`](https://github.com/danibsheehan/portfolio-automation)'s
+[`weekly-project-update`](https://github.com/danibsheehan/portfolio-automation/blob/main/.cursor/skills/weekly-project-update/SKILL.md)
+skill, reads this repo once a week (never writes to it) and — only when there's something people-
+relevant to report — opens a PR against
+[danibsheehan.github.io](https://github.com/danibsheehan/danibsheehan.github.io) updating this
+project's page. See that skill and its
+[repo's README](https://github.com/danibsheehan/portfolio-automation#autonomy-boundary)
+for the full autonomy boundary (it opens, never merges).
+
+`.github/dependabot.yml` opens weekly PRs: a grouped `npm-minor-and-patch` bump and ungrouped
+GitHub Actions bumps (capped at 10 open each). No auto-merge is configured here — every
+Dependabot PR gets a human review before merging, same as any other change.
 
 ## Stack
 
