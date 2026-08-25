@@ -104,7 +104,7 @@ cp .env.example .env.local
 ## Automation
 
 **In plain English:** nothing in this repo merges or opens a PR on its own yet — Dependabot's
-weekly bumps and CI results are all reviewed and merged by hand. The one thing that *does* run
+weekly bumps and CI results are all reviewed and merged by hand. The one thing that _does_ run
 unattended is read-only and lives elsewhere: a scheduled Claude Code routine, defined in
 [`danibsheehan/portfolio-automation`](https://github.com/danibsheehan/portfolio-automation)'s
 [`weekly-project-update`](https://github.com/danibsheehan/portfolio-automation/blob/main/.cursor/skills/weekly-project-update/SKILL.md)
