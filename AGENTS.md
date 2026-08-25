@@ -92,9 +92,9 @@ symlinked, auto-invoked by either tool based on the task):
 - **Commit secrets** (`.env.local`, credentials) or amend/force-push without being explicitly
   asked.
 - **Open, push, or merge a PR unless the user asks.** (This repo has no autonomous exception of
-  its own — see README's **Automation** section. A scheduled routine in `caught-looking` reads
-  this repo read-only and may open a PR *in a different repo*, `danibsheehan.github.io`; it never
-  touches this one.)
+  its own — see README's **Automation** section. A scheduled routine in
+  `danibsheehan/portfolio-automation` reads this repo read-only and may open a PR *in a different
+  repo*, `danibsheehan.github.io`; it never touches this one.)
 
 ## Definition of done
 

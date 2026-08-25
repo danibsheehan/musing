@@ -106,13 +106,13 @@ cp .env.example .env.local
 **In plain English:** nothing in this repo merges or opens a PR on its own yet — Dependabot's
 weekly bumps and CI results are all reviewed and merged by hand. The one thing that *does* run
 unattended is read-only and lives elsewhere: a scheduled Claude Code routine, defined in
-[`caught-looking`](https://github.com/danibsheehan/caught-looking)'s
-[`weekly-project-update`](https://github.com/danibsheehan/caught-looking/blob/main/.cursor/skills/weekly-project-update/SKILL.md)
+[`danibsheehan/portfolio-automation`](https://github.com/danibsheehan/portfolio-automation)'s
+[`weekly-project-update`](https://github.com/danibsheehan/portfolio-automation/blob/main/.cursor/skills/weekly-project-update/SKILL.md)
 skill, reads this repo once a week (never writes to it) and — only when there's something people-
 relevant to report — opens a PR against
 [danibsheehan.github.io](https://github.com/danibsheehan/danibsheehan.github.io) updating this
 project's page. See that skill and its
-[`docs/automation.md`](https://github.com/danibsheehan/caught-looking/blob/main/docs/automation.md)
+[repo's README](https://github.com/danibsheehan/portfolio-automation#autonomy-boundary)
 for the full autonomy boundary (it opens, never merges).
 
 `.github/dependabot.yml` opens weekly PRs: a grouped `npm-minor-and-patch` bump and ungrouped
