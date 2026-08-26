@@ -103,9 +103,11 @@ cp .env.example .env.local
 
 ## Automation
 
-**In plain English:** nothing in this repo merges or opens a PR on its own yet — Dependabot's
-weekly bumps and CI results are all reviewed and merged by hand. The one thing that _does_ run
-unattended is read-only and lives elsewhere: a scheduled Claude Code routine, defined in
+**In plain English:** this repo doesn't open PRs on its own, but it does merge one narrow kind
+automatically — grouped npm minor/patch Dependabot bumps, once CI passes (see below). Everything
+else — npm majors, GitHub Actions bumps, and all human-authored changes — is still reviewed and
+merged by hand. Separately, one thing runs unattended and lives elsewhere: a scheduled Claude Code
+routine, defined in
 [`danibsheehan/portfolio-automation`](https://github.com/danibsheehan/portfolio-automation)'s
 [`weekly-project-update`](https://github.com/danibsheehan/portfolio-automation/blob/main/.cursor/skills/weekly-project-update/SKILL.md)
 skill, reads this repo once a week and never writes to it. Only when there's something people-relevant
@@ -116,8 +118,10 @@ project's page. See that skill and its
 for the full autonomy boundary (it opens, never merges).
 
 `.github/dependabot.yml` opens weekly PRs: a grouped `npm-minor-and-patch` bump and ungrouped
-GitHub Actions bumps (capped at 10 open each). No auto-merge is configured here — every
-Dependabot PR gets a human review before merging, same as any other change.
+GitHub Actions bumps (capped at 10 open each). `.github/workflows/dependabot-auto-merge.yml`
+auto-merges (squash) only the grouped `npm-minor-and-patch` PRs, and only once the required
+`Lint, test+coverage, build` status check on `main` passes. Ungrouped GitHub Actions bumps and
+any npm major bump still get a human review before merging, same as any other change.
 
 ## Stack
 
