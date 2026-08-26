@@ -26,15 +26,15 @@
 
 ## Overview
 
-musing is a block-based note app in the spirit of Notion: write in blocks, link pages to each other by name, and embed small databases — as a table or a freeform canvas — right inside a page.
+musing is a block-based note app in the spirit of Notion — write in blocks, link pages to each other by name, and embed small databases (as a table or a freeform canvas) right inside a page.
 
 It runs entirely in your browser. By default your notes are saved to **localStorage** on your own device — there's nothing to sign up for, and nothing leaves your machine. If you want the same notes to follow you across devices, add a free **Supabase** project and musing will sync that workspace to the cloud behind an anonymous sign-in, with no separate account system to set up.
 
-The repo also includes two optional GitHub Actions workflows for anyone hosting their own copy: one **deploys** to GitHub Pages with the correct asset base path (`https://<user>.github.io/<repo>/`) and copies `index.html` to `404.html` so client-side routes survive a refresh; another **pings** Supabase daily so a free-tier project is less likely to pause from inactivity.
+The repo also includes two optional GitHub Actions workflows for anyone hosting their own copy. One **deploys** to GitHub Pages with the correct asset base path (`https://<user>.github.io/<repo>/`) and copies `index.html` to `404.html` so client-side routes survive a refresh. The other **pings** Supabase daily so a free-tier project is less likely to pause from inactivity.
 
 ## Features
 
-- Block editor built on **TipTap** with a **slash menu** for block types; **floating toolbar** on selected text for bold, italic, underline, links, and related styles (keyboard shortcuts still work); reorder blocks by dragging the **grip** or with **Alt + ↑ / ↓**
+- Block editor built on **TipTap**: a **slash menu** for block types, a **floating toolbar** on selected text for bold, italic, underline, links, and related styles (keyboard shortcuts still work), and drag-to-reorder blocks via the **grip** or **Alt + ↑ / ↓**
 - **Emoji**: type **`:`** for inline emoji suggestions, or pick **Emoji** from the slash menu
 - **Pages** with client-side routes (`/page/:pageId`) and a sidebar for navigation
 - **Wiki-style links** in text plus an **`@` page picker** to insert links while typing
@@ -83,7 +83,7 @@ Other useful scripts:
 
 ### Continuous integration
 
-Pushes to **`main`** and **pull requests** run `.github/workflows/ci.yml`, in order:
+**In plain English:** CI's job is to catch drift, regressions, and broken builds before they land on `main`. Pushes to **`main`** and **pull requests** run `.github/workflows/ci.yml`, in order:
 
 1. Stack-docs drift check (`python3 .github/scripts/check_stack_docs.py`) — keeps this README and `.cursor/rules/musing-project.mdc` in sync with `package.json`
 2. `npm audit --audit-level=high`
@@ -92,7 +92,7 @@ Pushes to **`main`** and **pull requests** run `.github/workflows/ci.yml`, in or
 5. `npm run test:coverage` — fails if coverage drops below the thresholds in `vite.config.ts`
 6. `npm run build`
 
-Every run appends a Cobertura coverage summary to the workflow's job summary ([`irongut/CodeCoverageSummary`](https://github.com/irongut/CodeCoverageSummary)). On pull requests from the same repository (not forks — a fork's `GITHUB_TOKEN` can't write to the base repo's PR thread), CI also posts a coverage table comment ([`5monkeys/cobertura-action`](https://github.com/5monkeys/cobertura-action)) and `.github/workflows/pr-guide.yml` posts a sticky **PR guide** comment with touched areas, suggested verification, reviewer focus, and path-based `area:*` labels.
+Every run appends a Cobertura coverage summary to the workflow's job summary ([`irongut/CodeCoverageSummary`](https://github.com/irongut/CodeCoverageSummary)). On pull requests from the same repository — not forks, since a fork's `GITHUB_TOKEN` can't write to the base repo's PR thread — CI also posts a coverage table comment ([`5monkeys/cobertura-action`](https://github.com/5monkeys/cobertura-action)). `.github/workflows/pr-guide.yml` additionally posts a sticky **PR guide** comment with touched areas, suggested verification, reviewer focus, and path-based `area:*` labels.
 
 Optional: copy `.env.example` to **`.env.local` in the repo root** (next to `package.json`), set the variables below, then restart `npm run dev`.
 
@@ -108,8 +108,8 @@ weekly bumps and CI results are all reviewed and merged by hand. The one thing t
 unattended is read-only and lives elsewhere: a scheduled Claude Code routine, defined in
 [`danibsheehan/portfolio-automation`](https://github.com/danibsheehan/portfolio-automation)'s
 [`weekly-project-update`](https://github.com/danibsheehan/portfolio-automation/blob/main/.cursor/skills/weekly-project-update/SKILL.md)
-skill, reads this repo once a week (never writes to it) and — only when there's something people-
-relevant to report — opens a PR against
+skill, reads this repo once a week and never writes to it. Only when there's something people-relevant
+to report does it open a PR against
 [danibsheehan.github.io](https://github.com/danibsheehan/danibsheehan.github.io) updating this
 project's page. See that skill and its
 [repo's README](https://github.com/danibsheehan/portfolio-automation#autonomy-boundary)
@@ -132,7 +132,12 @@ There is no published npm package; the app is the product.
 
 ## Code layout
 
-This repo is an application, not a library: there is no separate package API. The React UI and editor live under `src/` (routes, TipTap extensions including wiki links and the selection format bubble, Supabase client, export helpers). Database shape and RLS for sync are in `supabase/schema.sql`. `vite.config.ts` aliases `@tiptap/pm/*` to `prosemirror-*` packages so Vite 8 (Rolldown) resolves TipTap imports. **`AGENTS.md`** at the repo root is the tool-agnostic reference for coding agents (install/run/test commands, conventions, constraints, definition of done). Coding agents also use a thin always-apply rule (`.cursor/rules/musing-project.mdc`) plus scoped rules under `.cursor/rules/` (README, tests, TipTap, workspace/Supabase); optional skills live in `.cursor/skills/` (including **`pr-ready`** for pre-PR lint/format/coverage/build checks). Cursor reads `AGENTS.md` and the rules natively; **`CLAUDE.md`** imports both for Claude Code and maps the scoped rules to the paths they cover, and `.claude/skills` is a symlink to `.cursor/skills` so both tools share one set of skill files.
+This repo is an application, not a library: there is no separate package API.
+
+- **UI and editor** — `src/` (routes, TipTap extensions including wiki links and the selection format bubble, Supabase client, export helpers)
+- **Sync schema and RLS** — `supabase/schema.sql`
+- **TipTap/Vite alias note** — `vite.config.ts` aliases `@tiptap/pm/*` to `prosemirror-*` packages so Vite 8 (Rolldown) resolves TipTap imports
+- **Agent docs** — **`AGENTS.md`** at the repo root is the tool-agnostic reference for coding agents (install/run/test commands, conventions, constraints, definition of done). Coding agents also use a thin always-apply rule (`.cursor/rules/musing-project.mdc`) plus scoped rules under `.cursor/rules/` (README, tests, TipTap, workspace/Supabase); optional skills live in `.cursor/skills/` (including **`pr-ready`** for pre-PR lint/format/coverage/build checks). Cursor reads `AGENTS.md` and the rules natively; **`CLAUDE.md`** imports both for Claude Code and maps the scoped rules to the paths they cover, and `.claude/skills` is a symlink to `.cursor/skills` so both tools share one set of skill files.
 
 ## Configuration
 
@@ -145,6 +150,8 @@ This repo is an application, not a library: there is no separate package API. Th
 Local development uses `.env.local`. **GitHub Actions** should define the same Supabase variables as **repository secrets** if you want sync on the live site or the **Supabase keepalive** workflow to run against your project.
 
 ## Supabase (optional cloud sync)
+
+**In plain English:** there's no email or password to manage — Supabase just needs an anonymous session to scope your data to you, so sync stays a background detail rather than a separate account.
 
 1. Create a project and copy **Project URL** and the **anon (publishable) key**.
 2. In **SQL Editor**, run `supabase/schema.sql` (creates `workspaces`, indexes, and RLS policies).
