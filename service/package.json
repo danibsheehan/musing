@@ -1,0 +1,28 @@
+{
+  "name": "musing-ai-service",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -b",
+    "start": "node dist/index.js",
+    "lint": "eslint .",
+    "format:check": "prettier --check .",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.0",
+    "@supabase/supabase-js": "^2.111.0",
+    "express": "^5.1.0",
+    "voyageai": "^0.0.4"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.5",
+    "@types/node": "^26.1.2",
+    "tsx": "^4.20.7",
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.10"
+  }
+}
