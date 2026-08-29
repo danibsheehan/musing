@@ -141,3 +141,54 @@ create policy "ai_usage_update_own"
   to authenticated
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+-- Vector search RPCs used by musing-ai-service (/api/search, /api/related-pages).
+-- These take match_user_id as a plain parameter rather than reading auth.uid(), because
+-- the caller is always the trusted backend (service-role key), which has already verified
+-- the requesting user's JWT and passes their id explicitly — RLS doesn't apply to the
+-- service role anyway. That means these functions must NEVER be callable by anon/authenticated
+-- roles directly (the FE's anon-key client could otherwise pass an arbitrary match_user_id
+-- and read another user's embeddings) — explicitly revoked below.
+
+create or replace function public.match_note_embeddings(
+  query_embedding vector(512),
+  match_user_id uuid,
+  match_count int default 10
+)
+returns table (page_id text, block_id text, similarity float)
+language sql
+stable
+as $$
+  select page_id, block_id, 1 - (embedding <=> query_embedding) as similarity
+  from public.note_embeddings
+  where user_id = match_user_id
+  order by embedding <=> query_embedding
+  limit match_count;
+$$;
+
+revoke all on function public.match_note_embeddings(vector, uuid, int) from public, anon, authenticated;
+grant execute on function public.match_note_embeddings(vector, uuid, int) to service_role;
+
+create or replace function public.match_related_pages(
+  match_user_id uuid,
+  source_page_id text,
+  match_count int default 5
+)
+returns table (page_id text, similarity float)
+language sql
+stable
+as $$
+  select candidate.page_id, max(1 - (candidate.embedding <=> source.embedding)) as similarity
+  from public.note_embeddings source
+  join public.note_embeddings candidate
+    on candidate.user_id = source.user_id
+   and candidate.page_id <> source.page_id
+  where source.user_id = match_user_id
+    and source.page_id = source_page_id
+  group by candidate.page_id
+  order by similarity desc
+  limit match_count;
+$$;
+
+revoke all on function public.match_related_pages(uuid, text, int) from public, anon, authenticated;
+grant execute on function public.match_related_pages(uuid, text, int) to service_role;
