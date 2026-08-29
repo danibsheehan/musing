@@ -35,14 +35,17 @@ create policy "workspaces_update_own"
 
 create extension if not exists vector;
 
--- one row per embedded block chunk
+-- one row per embedded block chunk.
+-- embedding dimension must match service/EMBEDDING_MODEL's output size —
+-- voyage-3-lite (the default) outputs 512 dimensions. Changing EMBEDDING_MODEL
+-- to a model with a different output size requires a matching migration here.
 create table if not exists public.note_embeddings (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users (id) on delete cascade,
   page_id text not null,
   block_id text not null,
   content_hash text not null,
-  embedding vector(1536),
+  embedding vector(512),
   created_at timestamptz not null default now(),
   unique (user_id, page_id, block_id, content_hash)
 );
