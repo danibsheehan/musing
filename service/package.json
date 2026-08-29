@@ -15,8 +15,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.70.0",
     "@supabase/supabase-js": "^2.111.0",
-    "express": "^5.1.0",
-    "voyageai": "^0.0.4"
+    "express": "^5.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
