@@ -100,6 +100,7 @@ symlinked, auto-invoked by either tool based on the task):
 
 - **Task done**: follow the scoped rule/skill for files touched; run the smallest relevant
   check (`npm run test:run` for touched suites, `npm run lint` if ESLint-relevant). Full
-  coverage CI is not required for every small edit.
+  coverage CI is not required for every small edit. For larger or riskier changes, run
+  `/code-review` manually before committing to catch issues early.
 - **PR done**: run the checks under Test / CI parity above, then follow the `pr-ready` skill
   (PR template filled, no secrets). Commit, push, or open a PR only when the user asks.
