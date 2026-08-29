@@ -108,12 +108,16 @@ create policy "ai_outputs_update_own"
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
--- per-user spend/usage tracking, enforced by musing-ai-service's budget middleware
+-- per-user spend/usage tracking, enforced by musing-ai-service's budget middleware.
+-- Anthropic (chat/summarize) and Voyage (embeddings) are billed separately, so each
+-- gets its own counter/cap rather than one shared tokens_used.
 create table if not exists public.ai_usage (
   user_id uuid primary key references auth.users (id) on delete cascade,
   period_start date not null default date_trunc('month', now()),
-  tokens_used bigint not null default 0,
-  requests_used int not null default 0,
+  anthropic_tokens_used bigint not null default 0,
+  anthropic_requests_used int not null default 0,
+  voyage_tokens_used bigint not null default 0,
+  voyage_requests_used int not null default 0,
   updated_at timestamptz not null default now()
 );
 
