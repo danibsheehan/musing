@@ -41,9 +41,29 @@ jobs:
         run: npm audit --audit-level=high
         working-directory: service
 
+      - name: Install service/ dependencies
+        run: npm ci
+        working-directory: service
+
       - run: npm run lint
 
+      - name: Lint (service/)
+        run: npm run lint
+        working-directory: service
+
       - run: npm run format:check
+
+      - name: Format check (service/)
+        run: npm run format:check
+        working-directory: service
+
+      - name: Unit tests (service/)
+        run: npm run test:run
+        working-directory: service
+
+      - name: Build (service/)
+        run: npm run build
+        working-directory: service
 
       - name: Unit tests and coverage thresholds
         run: npm run test:coverage
