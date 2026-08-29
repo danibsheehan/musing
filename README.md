@@ -109,7 +109,7 @@ else — npm majors, GitHub Actions bumps, and all human-authored changes — is
 merged by hand. Separately, one thing runs unattended and lives elsewhere: a scheduled Claude Code
 routine, defined in
 [`danibsheehan/portfolio-automation`](https://github.com/danibsheehan/portfolio-automation)'s
-[`weekly-project-update`](https://github.com/danibsheehan/portfolio-automation/blob/main/.cursor/skills/weekly-project-update/SKILL.md)
+[`weekly-project-update`](https://github.com/danibsheehan/portfolio-automation/blob/main/.claude/skills/weekly-project-update/SKILL.md)
 skill, reads this repo once a week and never writes to it. Only when there's something people-relevant
 to report does it open a PR against
 [danibsheehan.github.io](https://github.com/danibsheehan/danibsheehan.github.io) updating this
