@@ -1,3 +1,5 @@
+import { requireEnv } from "./env.js";
+
 const VOYAGE_API_URL = "https://api.voyageai.com/v1/embeddings";
 
 type VoyageEmbeddingResponse = {
@@ -9,14 +11,8 @@ type VoyageEmbeddingResponse = {
 export async function embedTexts(
   texts: string[],
 ): Promise<{ embeddings: number[][]; tokensUsed: number }> {
-  const apiKey = process.env.VOYAGE_API_KEY;
-  if (!apiKey) {
-    throw new Error("VOYAGE_API_KEY must be set");
-  }
-  const model = process.env.EMBEDDING_MODEL;
-  if (!model) {
-    throw new Error("EMBEDDING_MODEL must be set");
-  }
+  const apiKey = requireEnv("VOYAGE_API_KEY");
+  const model = requireEnv("EMBEDDING_MODEL");
 
   const response = await fetch(VOYAGE_API_URL, {
     method: "POST",

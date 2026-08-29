@@ -1,29 +1,21 @@
 import type { NextFunction, Request, Response } from "express";
 import { supabaseAdmin } from "../lib/supabaseAdmin.js";
+import { requireEnvNumber } from "../lib/env.js";
 
 export type Provider = "anthropic" | "voyage";
 
-function requiredCap(name: string): number {
-  const raw = process.env[name];
-  const value = Number(raw);
-  if (!raw || !Number.isFinite(value) || value <= 0) {
-    throw new Error(`${name} must be set to a positive number`);
-  }
-  return value;
-}
-
-const CAPS: Record<Provider, { monthlyTokenCap: number; monthlyRequestCap: number }> = {
+export const CAPS: Record<Provider, { monthlyTokenCap: number; monthlyRequestCap: number }> = {
   anthropic: {
-    monthlyTokenCap: requiredCap("AI_MONTHLY_TOKEN_CAP"),
-    monthlyRequestCap: requiredCap("AI_MONTHLY_REQUEST_CAP"),
+    monthlyTokenCap: requireEnvNumber("AI_MONTHLY_TOKEN_CAP"),
+    monthlyRequestCap: requireEnvNumber("AI_MONTHLY_REQUEST_CAP"),
   },
   voyage: {
-    monthlyTokenCap: requiredCap("VOYAGE_MONTHLY_TOKEN_CAP"),
-    monthlyRequestCap: requiredCap("VOYAGE_MONTHLY_REQUEST_CAP"),
+    monthlyTokenCap: requireEnvNumber("VOYAGE_MONTHLY_TOKEN_CAP"),
+    monthlyRequestCap: requireEnvNumber("VOYAGE_MONTHLY_REQUEST_CAP"),
   },
 };
 
-type AiUsageRow = {
+export type AiUsageRow = {
   period_start: string;
   anthropic_tokens_used: number;
   anthropic_requests_used: number;
@@ -32,12 +24,12 @@ type AiUsageRow = {
 };
 
 /** ai_usage.period_start matches Postgres's date_trunc('month', now()) — first of the current UTC month. */
-function currentPeriodStart(): string {
+export function currentPeriodStart(): string {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString().slice(0, 10);
 }
 
-function usageForProvider(
+export function usageForProvider(
   row: AiUsageRow | null,
   provider: Provider,
 ): { tokens: number; requests: number } {
@@ -91,6 +83,11 @@ export function requireBudget(provider: Provider) {
  * Increments post-call usage from the provider's actual response usage.
  * Not atomic under concurrent requests from the same user — acceptable for a
  * single/small-user app; revisit with a Postgres increment function if that changes.
+ *
+ * Re-fetches the ai_usage row that requireBudget already read earlier in the same
+ * request, rather than threading it through — an extra round trip on every budgeted
+ * call. Worth fixing once there's a natural place to carry that state (e.g. res.locals),
+ * but three call sites in isn't reason enough to add that plumbing yet on its own.
  */
 export async function recordUsage(
   userId: string,
