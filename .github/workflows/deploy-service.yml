@@ -37,7 +37,7 @@ jobs:
             echo "configured=true" >> "$GITHUB_OUTPUT"
           else
             echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping deploy: set GCP_PROJECT_ID, GCP_REGION, and GCP_SA_KEY as repository secrets (a GCP service account JSON key with Cloud Run Admin + Service Account User + Secret Manager Secret Accessor roles), create SUPABASE_SERVICE_ROLE_KEY / ANTHROPIC_API_KEY / VOYAGE_API_KEY in GCP Secret Manager, and set the remaining non-sensitive config as repository secrets (CHAT_MODEL, EMBEDDING_MODEL, AI_MONTHLY_TOKEN_CAP, AI_MONTHLY_REQUEST_CAP, AI_MAX_QPS, VOYAGE_MONTHLY_TOKEN_CAP, VOYAGE_MONTHLY_REQUEST_CAP, SUPABASE_URL) once the Cloud Run/Cloudflare infra from the project plan exists."
+            echo "Skipping deploy: set GCP_PROJECT_ID, GCP_REGION, and GCP_SA_KEY as repository secrets (a GCP service account JSON key with Cloud Run Admin + Service Account User + Secret Manager Secret Accessor roles), create SUPABASE_SERVICE_ROLE_KEY / ANTHROPIC_API_KEY / VOYAGE_API_KEY in GCP Secret Manager, and set the remaining non-sensitive config as repository secrets (CHAT_MODEL, EMBEDDING_MODEL, AI_MONTHLY_TOKEN_CAP, AI_MONTHLY_REQUEST_CAP, AI_MAX_QPS, VOYAGE_MONTHLY_TOKEN_CAP, VOYAGE_MONTHLY_REQUEST_CAP, SUPABASE_URL, ALLOWED_ORIGINS) once the Cloud Run/Cloudflare infra from the project plan exists."
           fi
 
   deploy:
@@ -81,6 +81,7 @@ jobs:
             VOYAGE_MONTHLY_TOKEN_CAP=${{ secrets.VOYAGE_MONTHLY_TOKEN_CAP }}
             VOYAGE_MONTHLY_REQUEST_CAP=${{ secrets.VOYAGE_MONTHLY_REQUEST_CAP }}
             SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+            ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}
           # Requires SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, and VOYAGE_API_KEY to
           # already exist as GCP Secret Manager secrets (same names), and the service
           # account behind GCP_SA_KEY to have roles/secretmanager.secretAccessor on each.

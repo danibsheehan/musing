@@ -200,16 +200,26 @@ independently to Cloud Run via `.github/workflows/deploy-service.yml`, triggered
 to `main` that touch `service/**`. Like **Supabase keepalive**, this workflow **skips**
 (doesn't fail) until it's configured:
 
-1. Repository secrets: `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_SA_KEY` (a GCP service account
-   JSON key with Cloud Run Admin, Service Account User, and Secret Manager Secret Accessor
-   roles), plus non-sensitive config — `CHAT_MODEL`, `EMBEDDING_MODEL`,
+1. A GCP service account (deploys as, and Cloud Run runs the container as) with: Cloud Run
+   Admin, Service Account User, Secret Manager Secret Accessor, Cloud Build Editor (source
+   builds run through Cloud Build), Artifact Registry Administrator (the first deploy
+   creates the repo, not just pushes to it — plain Writer isn't enough), and Storage Admin
+   (source upload needs a Cloud Storage staging bucket created on first deploy).
+2. Repository secrets: `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_SA_KEY` (that service account's
+   JSON key), plus non-sensitive config — `CHAT_MODEL`, `EMBEDDING_MODEL`,
    `AI_MONTHLY_TOKEN_CAP`, `AI_MONTHLY_REQUEST_CAP`, `AI_MAX_QPS`,
-   `VOYAGE_MONTHLY_TOKEN_CAP`, `VOYAGE_MONTHLY_REQUEST_CAP`, `SUPABASE_URL`.
-2. GCP Secret Manager secrets (same names): `SUPABASE_SERVICE_ROLE_KEY`,
+   `VOYAGE_MONTHLY_TOKEN_CAP`, `VOYAGE_MONTHLY_REQUEST_CAP`, `SUPABASE_URL`, and
+   `ALLOWED_ORIGINS` (comma-separated list of origins allowed to call the API — see below).
+3. GCP Secret Manager secrets (same names): `SUPABASE_SERVICE_ROLE_KEY`,
    `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY` — these are the actual sensitive values, kept out
    of plaintext env vars on the Cloud Run revision.
-3. The musing frontend and `service/` are unrelated hosts (GitHub Pages vs. Cloud Run)
-   fronted by a shared custom domain, with `/api/*` routed to `service/`.
+4. The musing frontend and `service/` are unrelated hosts (GitHub Pages vs. Cloud Run) on
+   different origins — the frontend calls `service/` cross-origin directly (no same-origin
+   proxy), so the API enforces CORS via `ALLOWED_ORIGINS` rather than relying on shared-domain
+   routing.
+5. Cloud Run is deployed with `--allow-unauthenticated` — the actual access boundary is
+   app-level (the API verifies each request's Supabase JWT), not GCP IAM, since callers are
+   end-user browsers with no GCP identity to present.
 
 Without that setup, the app runs exactly as described above with no AI features — this is
 an optional layer on top of the core note-taking app.
