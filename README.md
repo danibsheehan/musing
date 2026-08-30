@@ -158,7 +158,9 @@ Local development uses `.env.local`. **GitHub Actions** should define the same S
 **In plain English:** there's no email or password to manage — Supabase just needs an anonymous session to scope your data to you, so sync stays a background detail rather than a separate account.
 
 1. Create a project and copy **Project URL** and the **anon (publishable) key**.
-2. In **SQL Editor**, run `supabase/schema.sql` (creates `workspaces`, indexes, and RLS policies).
+2. In **SQL Editor**, run `supabase/schema.sql` (creates `workspaces`, indexes, and RLS
+   policies, plus the `vector` extension and `note_embeddings`/`ai_outputs`/`ai_usage` tables
+   used by the optional `musing-ai-service` backend under `service/`).
 3. Under **Authentication → Providers**, enable **Anonymous** sign-ins (used for sync without a custom auth UI).
 4. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` and restart the dev server.
 
