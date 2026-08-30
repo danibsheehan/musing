@@ -52,6 +52,19 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
+      # deploy-cloudrun's env_vars parses commas as entry separators between KEY=VALUE
+      # pairs (per its action.yml), so a comma *inside* ALLOWED_ORIGINS's value silently
+      # broke it into two garbage entries on every deploy so far — the deployed service
+      # only ever had the first origin. Escaping here keeps the GitHub secret itself in
+      # plain, readable comma-separated form rather than requiring it to be pre-escaped
+      # (fragile to maintain as more origins get added later).
+      - id: escape_origins
+        env:
+          ALLOWED_ORIGINS: ${{ secrets.ALLOWED_ORIGINS }}
+        run: |
+          escaped="${ALLOWED_ORIGINS//,/\\,}"
+          echo "value=$escaped" >> "$GITHUB_OUTPUT"
+
       - uses: google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d # v3
         with:
           service: musing-ai-service
@@ -81,7 +94,7 @@ jobs:
             VOYAGE_MONTHLY_TOKEN_CAP=${{ secrets.VOYAGE_MONTHLY_TOKEN_CAP }}
             VOYAGE_MONTHLY_REQUEST_CAP=${{ secrets.VOYAGE_MONTHLY_REQUEST_CAP }}
             SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-            ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}
+            ALLOWED_ORIGINS=${{ steps.escape_origins.outputs.value }}
           # Requires SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, and VOYAGE_API_KEY to
           # already exist as GCP Secret Manager secrets (same names), and the service
           # account behind GCP_SA_KEY to have roles/secretmanager.secretAccessor on each.
