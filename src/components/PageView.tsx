@@ -3,9 +3,13 @@ import { Navigate, useParams } from "react-router";
 import { useWorkspace } from "../context/useWorkspace";
 import type { Block } from "../types/block";
 import { downloadPageAsPdf } from "../lib/downloadPagePdf";
+import { isAiServiceConfigured, summarizePage } from "../lib/aiClient";
+import { pageBlocksToPlainText } from "../lib/blockPlainText";
+import { usePageIndexing } from "../hooks/usePageIndexing";
 import DatabaseCanvas from "./DatabaseCanvas";
 import Editor from "./Editor";
 import PageChrome from "./PageChrome";
+import RelatedPagesSection from "./RelatedPagesSection";
 
 export default function PageView() {
   const { pageId } = useParams<{ pageId: string }>();
@@ -20,10 +24,13 @@ export default function PageView() {
   } = useWorkspace();
 
   const page = pageId ? getPage(pageId) : undefined;
+  const isDocumentPage = page?.layout === "document";
 
   useEffect(() => {
     if (page) setLastOpenedPageId(page.id);
   }, [page, setLastOpenedPageId]);
+
+  usePageIndexing(page?.id ?? "", isDocumentPage ? (page?.blocks ?? []) : []);
 
   const handleBlocksChange = useCallback(
     (blocks: Block[]) => {
@@ -51,7 +58,14 @@ export default function PageView() {
         onDownloadDocx={() =>
           import("../lib/downloadPageDocx").then((m) => m.downloadPageAsDocx(page, getDatabase))
         }
+        onSummarize={
+          isDocumentPage && isAiServiceConfigured()
+            ? () =>
+                summarizePage(page.id, pageBlocksToPlainText(page.blocks)).then((r) => r.summary)
+            : undefined
+        }
       />
+      {isDocumentPage && isAiServiceConfigured() && <RelatedPagesSection pageId={page.id} />}
       <div className="page-editor-wrap">
         {page.layout === "database" && page.databaseId ? (
           <DatabaseCanvas key={page.databaseId} databaseId={page.databaseId} />
