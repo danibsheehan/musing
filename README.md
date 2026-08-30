@@ -31,7 +31,9 @@ musing is a block-based note app in the spirit of Notion — write in blocks, li
 
 It runs entirely in your browser. By default your notes are saved to **localStorage** on your own device — there's nothing to sign up for, and nothing leaves your machine. If you want the same notes to follow you across devices, add a free **Supabase** project and musing will sync that workspace to the cloud behind an anonymous sign-in, with no separate account system to set up.
 
-The repo also includes two optional GitHub Actions workflows for anyone hosting their own copy. One **deploys** to GitHub Pages with the correct asset base path (`https://<user>.github.io/<repo>/`) and copies `index.html` to `404.html` so client-side routes survive a refresh. The other **pings** Supabase daily so a free-tier project is less likely to pause from inactivity.
+If you also add **`musing-ai-service`** (see [Deploy musing-ai-service](#deploy-musing-ai-service-optional)), musing gains an AI layer on top of your own notes: semantic search, one-click page summaries, and a "related pages" list that finds connections you never explicitly linked. It's entirely optional and additive — nothing about the core note-taking experience changes without it.
+
+The repo also includes GitHub Actions workflows for anyone hosting their own copy: one **deploys** to GitHub Pages with the correct asset base path (`https://<user>.github.io/<repo>/`) and copies `index.html` to `404.html` so client-side routes survive a refresh; another **pings** Supabase daily so a free-tier project is less likely to pause from inactivity; a third optionally **deploys** `musing-ai-service` to Cloud Run.
 
 ## Features
 
@@ -44,6 +46,7 @@ The repo also includes two optional GitHub Actions workflows for anyone hosting 
 - **Theme** control: **Light**, **Dark**, or **System** (stored in `localStorage` as `musing-theme-pref`)
 - **localStorage** persistence; **cross-tab** updates via the `storage` event
 - Optional **Supabase** sync (workspace snapshot in Postgres, RLS-scoped to the signed-in user)
+- Optional **AI second-brain layer** (`musing-ai-service`, requires Supabase too): a search box in the sidebar for semantic search across your notes, a **Summarize** button per page, a collapsible **Related pages** list, and a usage indicator showing how much of your monthly AI budget is used
 - **Vite** + **TypeScript**; **React Router 8** (`react-router`, not `react-router-dom`) with `basename` derived from `import.meta.env.BASE_URL` for subpath hosting
 
 ## Installation
