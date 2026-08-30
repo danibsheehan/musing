@@ -30,6 +30,15 @@ export default function SidebarSearch() {
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // getPage's identity changes on every edit anywhere in the workspace (WorkspaceContext
+  // replaces the `pages` array on each commit), not just when search-relevant state
+  // changes. Reading it via a ref keeps the debounce effect below from resetting or
+  // double-firing on unrelated typing elsewhere in the app.
+  const getPageRef = useRef(getPage);
+  useEffect(() => {
+    getPageRef.current = getPage;
+  }, [getPage]);
+
   useEffect(() => {
     const onOutsideClick = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -49,13 +58,16 @@ export default function SidebarSearch() {
       return;
     }
 
+    let cancelled = false;
+
     debounceRef.current = setTimeout(() => {
       searchNotes(trimmed)
         .then((result) => {
+          if (cancelled) return;
           const rows = dedupeByPage(result.matches)
             .slice(0, MAX_RESULTS)
             .map((match): SearchResultRow => {
-              const page = getPage(match.pageId);
+              const page = getPageRef.current(match.pageId);
               const block = page?.blocks.find((b) => b.id === match.blockId);
               const snippet = block ? blockHtmlToPlainText(block.content) : "";
               return {
@@ -72,6 +84,7 @@ export default function SidebarSearch() {
           setOpen(true);
         })
         .catch((err: unknown) => {
+          if (cancelled) return;
           console.error("Search failed", err);
           setResults([]);
           setOpen(true);
@@ -79,9 +92,10 @@ export default function SidebarSearch() {
     }, DEBOUNCE_MS);
 
     return () => {
+      cancelled = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [query, getPage]);
+  }, [query]);
 
   if (!isAiServiceConfigured()) return null;
 
