@@ -3,6 +3,7 @@ import { NavLink, useNavigate, useParams } from "react-router";
 import { useWorkspace } from "../context/useWorkspace";
 import { subtreeIds } from "../lib/workspaceTree";
 import type { Page } from "../types/page";
+import SidebarSearch from "./SidebarSearch";
 
 function PageTreeRows({
   parentId,
@@ -224,6 +225,7 @@ export default function Sidebar() {
           </details>
         </div>
       </div>
+      <SidebarSearch />
       <PageTreeRows
         parentId={null}
         depth={0}

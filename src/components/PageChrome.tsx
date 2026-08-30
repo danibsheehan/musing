@@ -8,6 +8,7 @@ type Props = {
   onTitleCommit: (title: string) => void;
   onDownloadPdf?: () => Promise<void>;
   onDownloadDocx?: () => Promise<void>;
+  onSummarize?: () => Promise<string>;
 };
 
 export default function PageChrome({
@@ -16,10 +17,14 @@ export default function PageChrome({
   onTitleCommit,
   onDownloadPdf,
   onDownloadDocx,
+  onSummarize,
 }: Props) {
   const [draft, setDraft] = useState(page.title);
   const [exportBusy, setExportBusy] = useState<null | "pdf" | "docx">(null);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [summarizeBusy, setSummarizeBusy] = useState(false);
+  const [summaryText, setSummaryText] = useState<string | null>(null);
+  const [summarizeError, setSummarizeError] = useState<string | null>(null);
   const exportDetailsRef = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
@@ -29,9 +34,26 @@ export default function PageChrome({
   useEffect(() => {
     setExportError(null);
     setExportBusy(null);
+    setSummaryText(null);
+    setSummarizeError(null);
     const d = exportDetailsRef.current;
     if (d) d.open = false;
   }, [page.id]);
+
+  const runSummarize = async () => {
+    if (!onSummarize || summarizeBusy) return;
+    setSummarizeError(null);
+    setSummarizeBusy(true);
+    try {
+      const summary = await onSummarize();
+      setSummaryText(summary);
+    } catch (err) {
+      console.error(err);
+      setSummarizeError("Could not summarize this page. Try again.");
+    } finally {
+      setSummarizeBusy(false);
+    }
+  };
 
   const closeExportMenu = () => {
     const d = exportDetailsRef.current;
@@ -87,6 +109,17 @@ export default function PageChrome({
           }}
           aria-label="Page title"
         />
+        {onSummarize && (
+          <button
+            type="button"
+            className="page-summarize-button"
+            onClick={() => void runSummarize()}
+            disabled={summarizeBusy}
+            aria-busy={summarizeBusy}
+          >
+            {summarizeBusy ? "Summarizing…" : "Summarize"}
+          </button>
+        )}
         {hasExport && (
           <details
             ref={exportDetailsRef}
@@ -134,6 +167,24 @@ export default function PageChrome({
           </details>
         )}
       </div>
+      {summaryText && (
+        <div className="page-summary-panel" role="status">
+          <p className="page-summary-text">{summaryText}</p>
+          <button
+            type="button"
+            className="page-summary-dismiss"
+            onClick={() => setSummaryText(null)}
+            aria-label="Dismiss summary"
+          >
+            ×
+          </button>
+        </div>
+      )}
+      {summarizeError && (
+        <p className="page-summarize-error" role="alert">
+          {summarizeError}
+        </p>
+      )}
       {exportError && (
         <p className="page-export-error" role="alert">
           {exportError}

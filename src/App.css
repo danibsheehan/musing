@@ -208,6 +208,152 @@
   font-weight: 400;
 }
 
+.sidebar-search {
+  position: relative;
+  width: 100%;
+}
+
+.sidebar-search-input {
+  font: inherit;
+  font-size: 0.8rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.35em 0.65em;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.sidebar-search-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--text) 45%, var(--border));
+}
+
+.sidebar-search-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin-top: 0.35rem;
+  padding: 0.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.sidebar-search-empty {
+  margin: 0;
+  padding: 0.45rem 0.5rem;
+  font-size: 0.78rem;
+  color: var(--text);
+  opacity: 0.85;
+}
+
+.sidebar-search-result {
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.sidebar-search-result:hover {
+  background: var(--interactive-hover);
+}
+
+.sidebar-search-result-title {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.sidebar-search-result-snippet {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--text);
+  opacity: 0.9;
+  font-weight: 400;
+}
+
+.related-pages-section {
+  margin-top: 0.5rem;
+}
+
+.related-pages-summary {
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  list-style: none;
+  padding: 0.2rem 0;
+  cursor: pointer;
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.18em;
+}
+
+.related-pages-summary::-webkit-details-marker {
+  display: none;
+}
+
+.related-pages-summary:hover {
+  color: var(--text-h);
+  text-decoration-color: color-mix(in srgb, var(--text) 35%, transparent);
+}
+
+.related-pages-empty {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text);
+  opacity: 0.85;
+}
+
+.related-pages-error {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  color: #b42318;
+}
+
+html[data-theme="dark"] .related-pages-error {
+  color: #fca5a5;
+}
+
+.related-pages-list {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.related-pages-link {
+  font-size: 0.82rem;
+  color: var(--text-h);
+}
+
+.ai-usage-badge {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  white-space: nowrap;
+}
+
 .database-canvas {
   max-width: 900px;
   margin: 0 auto;
@@ -554,6 +700,77 @@ html[data-theme="dark"] .sidebar-icon-btn.sidebar-danger:hover:not(:disabled) {
 }
 
 html[data-theme="dark"] .page-export-error {
+  color: #fca5a5;
+}
+
+.page-summarize-button {
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  flex-shrink: 0;
+  padding: 0.2rem 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.18em;
+}
+
+.page-summarize-button:hover:not(:disabled) {
+  color: var(--text-h);
+  text-decoration-color: color-mix(in srgb, var(--text) 35%, transparent);
+}
+
+.page-summarize-button:disabled {
+  opacity: 0.85;
+  cursor: default;
+}
+
+.page-summary-panel {
+  position: relative;
+  margin-top: 0.4rem;
+  max-width: 42rem;
+  padding: 0.6rem 1.75rem 0.6rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.page-summary-text {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text-h);
+}
+
+.page-summary-dismiss {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.15rem;
+}
+
+.page-summary-dismiss:hover {
+  color: var(--text-h);
+}
+
+.page-summarize-error {
+  margin: 0.4rem 0 0;
+  max-width: 42rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: #b42318;
+}
+
+html[data-theme="dark"] .page-summarize-error {
   color: #fca5a5;
 }
 
