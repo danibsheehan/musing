@@ -37,6 +37,10 @@ jobs:
       - name: Vulnerability scan
         run: npm audit --audit-level=high
 
+      - name: Vulnerability scan (service/)
+        run: npm audit --audit-level=high
+        working-directory: service
+
       - run: npm run lint
 
       - run: npm run format:check
