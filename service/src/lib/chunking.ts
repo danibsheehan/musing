@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { sha256 } from "./hash.js";
 
 export type IncomingBlock = {
   id: string;
@@ -25,6 +25,6 @@ export function chunkBlocks(blocks: IncomingBlock[]): Chunk[] {
     .map((block) => ({
       blockId: block.id,
       content: block.content,
-      contentHash: createHash("sha256").update(block.content).digest("hex"),
+      contentHash: sha256(block.content),
     }));
 }
