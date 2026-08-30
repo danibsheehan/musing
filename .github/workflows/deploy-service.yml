@@ -62,9 +62,13 @@ jobs:
           # service account, which has no Secret Manager access. Reuse the deploy SA (it
           # already has secretmanager.secretAccessor) rather than granting that broad
           # default account new permissions it doesn't need for anything else.
-          # deploy-cloudrun has no dedicated input for this — passed through via `flags`
+          # --allow-unauthenticated: Cloud Run is IAM-gated by default (blocks every request
+          # before the container even runs). The real access boundary here is app-level —
+          # requireAuth verifies the caller's Supabase JWT — not GCP IAM, since the actual
+          # callers (end-user browsers via Cloudflare) have no GCP identity to present.
+          # Neither flag has a dedicated action input — passed through via `flags`
           # (verified against the action's action.yml; there is no `service_account` input).
-          flags: "--service-account=musing-ai-service-deploy@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+          flags: "--service-account=musing-ai-service-deploy@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com --allow-unauthenticated"
           # Non-sensitive config only. Actual secrets (API keys, service-role key) come from
           # GCP Secret Manager below — never put them here, they'd land as plaintext on the
           # Cloud Run revision, readable by anyone with run.viewer or console access.
