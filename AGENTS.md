@@ -6,7 +6,11 @@ and skips the narrative tour.
 
 **musing** is a single-page React app for Notion-style block editing: pages, wiki-style
 links, and lightweight database embeds. Data lives in `localStorage` by default; an optional
-Supabase project adds cloud sync via anonymous sign-in and a JSON workspace snapshot.
+Supabase project adds cloud sync via anonymous sign-in and a JSON workspace snapshot. A
+second optional layer, `service/` (`musing-ai-service`), adds AI features — semantic search,
+summarization, related pages — as a separately-deployed Node/TypeScript backend the frontend
+calls cross-origin; see `.cursor/rules/ai-service.mdc` and the README's "Deploy
+musing-ai-service" section.
 
 ## Install
 
@@ -25,7 +29,8 @@ cp .env.example .env.local   # repo root, next to package.json — Vite does not
 
 Then set `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (see `.env.example` and the
 `supabase-sync` skill below). `VITE_BASE_PATH` is only for simulating a non-root GitHub
-Pages base path locally.
+Pages base path locally. `VITE_AI_SERVICE_URL` additionally enables the AI features (also
+requires Supabase); see `.cursor/rules/ai-service.mdc` for `service/`'s own setup.
 
 ## Run
 
@@ -63,6 +68,7 @@ Claude Code via [`CLAUDE.md`](CLAUDE.md); Cursor reads them natively. Do not res
 | Vitest / Testing Library conventions                                                | `.cursor/rules/frontend-testing.mdc`              |
 | Workspace storage and optional Supabase sync                                        | `.cursor/rules/workspace-supabase.mdc`            |
 | README accuracy                                                                     | `.cursor/rules/readme.mdc`                        |
+| `service/` (musing-ai-service): auth/budget/CORS, deploy, own toolchain             | `.cursor/rules/ai-service.mdc`                    |
 
 Step-by-step playbooks (both `.cursor/skills/*/SKILL.md` and `.claude/skills/` — same files,
 symlinked, auto-invoked by either tool based on the task):
@@ -86,6 +92,12 @@ symlinked, auto-invoked by either tool based on the task):
   a matching `prosemirror-*` alias.
 - **Assume Supabase is configured.** With no env vars set, the app is `localStorage`-only —
   don't add code paths that require a DB.
+- **Assume `musing-ai-service` is configured or reachable.** `isAiServiceConfigured()`
+  (`src/lib/aiClient.ts`) gates every AI code path in the frontend; with no
+  `VITE_AI_SERVICE_URL` (or no Supabase, which every AI request also requires), none of it
+  should render or run.
+- **Run root `npm run lint`/`test`/`build` and assume it covers `service/`.** It doesn't —
+  `service/` is a separate package with its own scripts; see `.cursor/rules/ai-service.mdc`.
 - **Bump React, Vite, TypeScript, or React Router without updating the docs in the same
   change** — `check_stack_docs.py` checks README / `musing-project.mdc` drift but does not
   fix it.

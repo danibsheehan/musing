@@ -30,9 +30,13 @@ Rolldown won’t resolve `@tiptap/pm/*` subpaths — keep the full `resolve.alia
 
 Schema/RLS: `supabase/schema.sql`. Env: `VITE_SUPABASE_*` in `.env.local`; same names as GitHub **repository secrets** for deploy/keepalive (README). No Supabase → localStorage only; don’t assume DB in all paths.
 
+## AI second-brain layer (optional)
+
+`service/` (`musing-ai-service`) — separate Node/TS backend, own toolchain, deployed to Cloud Run, called cross-origin from `src/lib/aiClient.ts`. See `.cursor/rules/ai-service.mdc` for the full picture; don’t assume it’s configured or reachable (`isAiServiceConfigured()` gates every FE code path).
+
 ## Scoped rules and skills
 
-- **Rules** (auto when matching files are open): `readme`, `frontend-testing`, `editor-tiptap`, `workspace-supabase` under `.cursor/rules/`.
+- **Rules** (auto when matching files are open): `readme`, `frontend-testing`, `editor-tiptap`, `workspace-supabase`, `ai-service` under `.cursor/rules/`.
 - **Skills** (read `.cursor/skills/<name>/SKILL.md` when the task fits):
   - **`editor-tiptap`** — TipTap doc model, slash/wiki, PM aliases
   - **`supabase-sync`** — anonymous auth, snapshot, RLS, env

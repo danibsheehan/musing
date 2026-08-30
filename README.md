@@ -150,6 +150,7 @@ This repo is an application, not a library: there is no separate package API.
 | ------------------------ | -------------------------- | ------------------------------------------------------------- |
 | `VITE_SUPABASE_URL`      | Cloud sync                 | Supabase project URL                                          |
 | `VITE_SUPABASE_ANON_KEY` | Cloud sync                 | Supabase anon (publishable) key                               |
+| `VITE_AI_SERVICE_URL`    | AI features                | `musing-ai-service` URL — also requires Supabase to be set    |
 | `VITE_BASE_PATH`         | Custom base path in builds | Optional override, e.g. `/custom/` — trailing slash preferred |
 
 Local development uses `.env.local`. **GitHub Actions** should define the same Supabase variables as **repository secrets** if you want sync on the live site or the **Supabase keepalive** workflow to run against your project.
