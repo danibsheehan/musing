@@ -23,6 +23,7 @@
 - [Configuration](#configuration)
 - [Supabase (optional cloud sync)](#supabase-optional-cloud-sync)
 - [Deploy to GitHub Pages](#deploy-to-github-pages)
+- [Deploy musing-ai-service (optional)](#deploy-musing-ai-service-optional)
 
 ## Overview
 
@@ -190,6 +191,28 @@ Scheduled workflows run from the **default branch** (typically `main`). If a rep
 3. Push to `main`. **CI** runs stack-docs drift, `npm audit` (high+), lint, format check, coverage, and build; on success it calls **Deploy to GitHub Pages** for the same commit (`npm ci`, `npm run build`, copy `dist/index.html` → `dist/404.html`, publish `dist`). You can also run **Deploy to GitHub Pages** alone via **Actions → Run workflow**. **Supabase keepalive** is scheduled from the default branch as well; it only performs the health ping when both Supabase secrets above are set (otherwise it skips).
 
 For a **user site** (`https://<username>.github.io` from a repo named `<username>.github.io`), `vite.config.ts` uses base path `/` automatically when `GITHUB_ACTIONS` and `GITHUB_REPOSITORY` indicate that naming convention.
+
+## Deploy musing-ai-service (optional)
+
+`service/` is a separate backend (Express + TypeScript) providing the AI second-brain
+layer — semantic search, summaries, related pages — over musing's notes. It deploys
+independently to Cloud Run via `.github/workflows/deploy-service.yml`, triggered by pushes
+to `main` that touch `service/**`. Like **Supabase keepalive**, this workflow **skips**
+(doesn't fail) until it's configured:
+
+1. Repository secrets: `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_SA_KEY` (a GCP service account
+   JSON key with Cloud Run Admin, Service Account User, and Secret Manager Secret Accessor
+   roles), plus non-sensitive config — `CHAT_MODEL`, `EMBEDDING_MODEL`,
+   `AI_MONTHLY_TOKEN_CAP`, `AI_MONTHLY_REQUEST_CAP`, `AI_MAX_QPS`,
+   `VOYAGE_MONTHLY_TOKEN_CAP`, `VOYAGE_MONTHLY_REQUEST_CAP`, `SUPABASE_URL`.
+2. GCP Secret Manager secrets (same names): `SUPABASE_SERVICE_ROLE_KEY`,
+   `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY` — these are the actual sensitive values, kept out
+   of plaintext env vars on the Cloud Run revision.
+3. The musing frontend and `service/` are unrelated hosts (GitHub Pages vs. Cloud Run)
+   fronted by a shared custom domain, with `/api/*` routed to `service/`.
+
+Without that setup, the app runs exactly as described above with no AI features — this is
+an optional layer on top of the core note-taking app.
 
 Simulate a Pages build locally:
 
