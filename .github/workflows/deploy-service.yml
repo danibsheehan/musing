@@ -58,6 +58,13 @@ jobs:
           region: ${{ secrets.GCP_REGION }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           source: ./service
+          # Without this, Cloud Run runs the container as the project's default compute
+          # service account, which has no Secret Manager access. Reuse the deploy SA (it
+          # already has secretmanager.secretAccessor) rather than granting that broad
+          # default account new permissions it doesn't need for anything else.
+          # deploy-cloudrun has no dedicated input for this — passed through via `flags`
+          # (verified against the action's action.yml; there is no `service_account` input).
+          flags: "--service-account=musing-ai-service-deploy@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
           # Non-sensitive config only. Actual secrets (API keys, service-role key) come from
           # GCP Secret Manager below — never put them here, they'd land as plaintext on the
           # Cloud Run revision, readable by anyone with run.viewer or console access.
