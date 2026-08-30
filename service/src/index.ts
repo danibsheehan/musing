@@ -1,4 +1,5 @@
 import express from "express";
+import { corsMiddleware } from "./lib/cors.js";
 import { requireAuth } from "./middleware/auth.js";
 import { requireBudget } from "./middleware/budget.js";
 import { embedPageHandler } from "./routes/embedPage.js";
@@ -8,6 +9,7 @@ import { relatedPagesHandler } from "./routes/relatedPages.js";
 import { usageHandler } from "./routes/usage.js";
 
 const app = express();
+app.use(corsMiddleware);
 app.use(express.json());
 
 app.get("/health", (_req, res) => {
