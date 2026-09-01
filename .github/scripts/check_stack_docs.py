@@ -7,7 +7,7 @@ Sources of truth:
 
 Checked docs:
   - README.md Stack table
-  - .cursor/rules/musing-project.mdc Stack line
+  - AGENTS.md Stack section
 """
 
 from __future__ import annotations
@@ -88,11 +88,11 @@ def check_readme(readme: Path, versions: dict[str, str], errors: list[str]) -> N
             )
 
 
-def check_project_rule(rule: Path, versions: dict[str, str], errors: list[str]) -> None:
-    text = rule.read_text(encoding="utf-8")
+def check_agents_md(agents_md: Path, versions: dict[str, str], errors: list[str]) -> None:
+    text = agents_md.read_text(encoding="utf-8")
     stack_match = re.search(r"(?ms)^## Stack\n(.*?)(?=\n## |\Z)", text)
     if not stack_match:
-        errors.append(f"{rule.relative_to(ROOT)}: missing ## Stack section")
+        errors.append(f"{agents_md.relative_to(ROOT)}: missing ## Stack section")
         return
     stack = stack_match.group(1)
     checks = [
@@ -104,7 +104,7 @@ def check_project_rule(rule: Path, versions: dict[str, str], errors: list[str]) 
     for needle, label in checks:
         if needle not in stack:
             errors.append(
-                f"{rule.relative_to(ROOT)} Stack line: missing {label} ({needle!r})"
+                f"{agents_md.relative_to(ROOT)} Stack line: missing {label} ({needle!r})"
             )
 
 
@@ -118,10 +118,10 @@ def main() -> int:
         return 1
 
     check_readme(ROOT / "README.md", versions, errors)
-    check_project_rule(ROOT / ".cursor/rules/musing-project.mdc", versions, errors)
+    check_agents_md(ROOT / "AGENTS.md", versions, errors)
 
     # If docs mention a Node major, it must match CI (CI is the source of truth).
-    for path in (ROOT / "README.md", ROOT / ".cursor/rules/musing-project.mdc"):
+    for path in (ROOT / "README.md", ROOT / "AGENTS.md"):
         text = path.read_text(encoding="utf-8")
         for match in re.finditer(r"\bNode(?:\.js)?\s+(\d+)\b", text):
             if match.group(1) != node_major:
@@ -135,7 +135,7 @@ def main() -> int:
         for err in errors:
             print(f"  - {err}", file=sys.stderr)
         print(
-            "\nUpdate README / .cursor/rules/musing-project.mdc to match "
+            "\nUpdate README / AGENTS.md to match "
             "package.json and .github/workflows/ci.yml.",
             file=sys.stderr,
         )

@@ -33,14 +33,14 @@ description: >-
 
 3. **Supabase helpers** — Mock the client module; assert parse/upsert logic with fixtures. See `lib/supabaseWorkspace.test.ts`, `lib/supabaseClient.test.ts`.
 
-4. **Editor / TipTap** — Prefer testing **public helpers** and serialization (`lib/pageDocument/*`, slash/menu helpers) over deep ProseMirror internals. Extend existing suites when changing behavior; see **`.cursor/skills/editor-tiptap/SKILL.md`**.
+4. **Editor / TipTap** — Prefer testing **public helpers** and serialization (`lib/pageDocument/*`, slash/menu helpers) over deep ProseMirror internals. Extend existing suites when changing behavior; see **`.claude/skills/editor-tiptap/SKILL.md`**.
 
 5. **UI** — Prefer **roles and accessible names**. Cover loading/error/empty when the UI surfaces them. For router-dependent views, use **`MemoryRouter`** from **`react-router`** (and `basename` awareness when relevant) like neighboring tests — not `react-router-dom`.
 
 6. **Commands**
    - **Task done**: `npm run test:run` (or Vitest watch) for suites you touched.
    - Coverage / gate: `npm run test:coverage` — thresholds in `vite.config.ts`; HTML under `coverage/`.
-   - **PR done**: **`.cursor/skills/pr-ready/SKILL.md`**.
+   - **PR done**: **`.claude/skills/pr-ready/SKILL.md`**.
 
 ## Anti-patterns
 

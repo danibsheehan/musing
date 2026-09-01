@@ -9,8 +9,14 @@ links, and lightweight database embeds. Data lives in `localStorage` by default;
 Supabase project adds cloud sync via anonymous sign-in and a JSON workspace snapshot. A
 second optional layer, `service/` (`musing-ai-service`), adds AI features — semantic search,
 summarization, related pages — as a separately-deployed Node/TypeScript backend the frontend
-calls cross-origin; see `.cursor/rules/ai-service.mdc` and the README's "Deploy
-musing-ai-service" section.
+calls cross-origin; see the `ai-service` skill and the README's "Deploy musing-ai-service"
+section.
+
+## Stack
+
+Vite 8, React 19, TypeScript, React Router 8 (`react-router` — do not use
+`react-router-dom`); TipTap 3 (one document per page via `PageDocumentEditor`). Optional
+Supabase.
 
 ## Install
 
@@ -30,7 +36,7 @@ cp .env.example .env.local   # repo root, next to package.json — Vite does not
 Then set `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (see `.env.example` and the
 `supabase-sync` skill below). `VITE_BASE_PATH` is only for simulating a non-root GitHub
 Pages base path locally. `VITE_AI_SERVICE_URL` additionally enables the AI features (also
-requires Supabase); see `.cursor/rules/ai-service.mdc` for `service/`'s own setup.
+requires Supabase); see the `ai-service` skill for `service/`'s own setup.
 
 ## Run
 
@@ -43,7 +49,7 @@ npm run preview     # serve the production build locally
 ## Test / CI parity
 
 ```bash
-python3 .github/scripts/check_stack_docs.py   # README / musing-project.mdc version drift
+python3 .github/scripts/check_stack_docs.py   # README / AGENTS.md version drift
 npm audit --audit-level=high
 npm run lint
 npm run format:check
@@ -57,36 +63,64 @@ iterating on a single suite. See the **`pr-ready`** skill below for the full pre
 
 ## Conventions
 
-Detailed, path-scoped conventions live in `.cursor/rules/*.mdc` and are read automatically by
-Claude Code via [`CLAUDE.md`](CLAUDE.md); Cursor reads them natively. Do not restate them here
-— this section is the map, not the content:
+Conventions for this repo, organized by area. Read automatically by Claude Code via
+[`CLAUDE.md`](CLAUDE.md); Cursor reads this file natively too.
 
-| Area                                                                                | Rule                                              |
-| ----------------------------------------------------------------------------------- | ------------------------------------------------- |
-| Stack, `src/` layout, Vite/TipTap aliases, `BASE_URL`, Supabase env, agent done bar | `.cursor/rules/musing-project.mdc` (always-apply) |
-| TipTap editor, slash menu, wiki links                                               | `.cursor/rules/editor-tiptap.mdc`                 |
-| Vitest / Testing Library conventions                                                | `.cursor/rules/frontend-testing.mdc`              |
-| Workspace storage and optional Supabase sync                                        | `.cursor/rules/workspace-supabase.mdc`            |
-| README accuracy                                                                     | `.cursor/rules/readme.mdc`                        |
-| `service/` (musing-ai-service): auth/budget/CORS, deploy, own toolchain             | `.cursor/rules/ai-service.mdc`                    |
+### Layout
 
-Step-by-step playbooks (both `.cursor/skills/*/SKILL.md` and `.claude/skills/` — same files,
-symlinked, auto-invoked by either tool based on the task):
+`src/`: routes (`main.tsx`, `App.tsx` — import routing APIs from `react-router`); workspace
+(`context/WorkspaceContext.tsx`, `useWorkspace.ts`, `lib/workspaceStorage.ts`); editor
+(`Editor.tsx`, `PageDocumentEditor.tsx`, `SlashMenu.tsx`, `PagePickerMenu.tsx`); extensions
+(`extensions/`, e.g. `wikiLink.ts`); slash/commands (`lib/slashMenuOptions.ts`,
+`lib/blockEditorCommands.ts`); types (`types/block.ts`, `types/page.ts`); Supabase
+(`lib/supabaseClient.ts`, `lib/supabaseWorkspace.ts` — not the `supabase/` SQL folder).
+
+### Editor (TipTap)
+
+Follow the `editor-tiptap` skill for the full doc model, slash menu, and wiki-link patterns.
+Vite's `@tiptap/pm/*` subpaths must resolve via the `resolve.alias` map in `vite.config.ts` —
+add a matching `prosemirror-*` alias for any new subpath; don't remove the map. Wiki links and
+other app URLs must use `import.meta.env.BASE_URL`, not assume a root path.
+
+### Vitest / Testing Library tests
+
+Follow the `musing-vitest-tests` skill for mocking `workspaceStorage` / `supabaseClient`,
+fixture shapes, and coverage commands (`npm run test:run`, `npm run test:coverage`). Import
+router test helpers (e.g. `MemoryRouter`) from `react-router`, not `react-router-dom`.
+
+### Workspace and Supabase sync
+
+Follow the `supabase-sync` skill for anonymous auth, snapshot shape, RLS, and env/CI details.
+Without `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (`isSupabaseConfigured()`), the app
+never calls Supabase.
+
+### AI service (`service/`)
+
+Follow the `ai-service` skill for the auth boundary, budget/rate-limit gating, and deploy
+gotchas. Own package and toolchain — not covered by root `lint`/`test`/`build`.
+
+### Documentation and README accuracy
+
+Follow the `doc-writer` skill, including its musing-specific section on keeping README
+features, scripts, the stack table, and env docs in sync with the repo.
+
+Step-by-step playbooks live in `.claude/skills/*/SKILL.md` (canonical — `.cursor/skills` is a
+symlink to it, kept for Cursor compatibility), auto-invoked by either tool based on the task:
 
 - `editor-tiptap` — TipTap/ProseMirror doc model, slash and wiki-link menus, `vite.config.ts`
   PM aliases.
-- `workspace-supabase` reference / `supabase-sync` skill — anonymous auth, workspace JSON
-  snapshot, RLS, env.
+- `supabase-sync` — anonymous auth, workspace JSON snapshot, RLS, env.
 - `musing-vitest-tests` — Vitest / Testing Library conventions and fakes for this repo.
 - `doc-writer` — README, JSDoc, and inline documentation.
 - `pr-ready` — local CI-parity checks and PR template before opening a PR.
+- `ai-service` — `service/` (musing-ai-service): auth/budget boundary, CORS, deploy, own
+  toolchain.
 
 ## Constraints — do not
 
 - **Import from `react-router-dom`.** This repo uses `react-router` directly (React Router 8).
 - **Assume the app is hosted at `/`.** Any app URL (wiki links, exports) must go through
-  `BASE_URL` (`import.meta.env.BASE_URL`), not a hardcoded root path — see
-  `musing-project.mdc`.
+  `BASE_URL` (`import.meta.env.BASE_URL`), not a hardcoded root path.
 - **Add a `@tiptap/pm/*` import without checking `vite.config.ts`'s `resolve.alias` map.**
   Rolldown (Vite 8) doesn't resolve those subpaths on its own; new ProseMirror subpaths need
   a matching `prosemirror-*` alias.
@@ -97,10 +131,9 @@ symlinked, auto-invoked by either tool based on the task):
   `VITE_AI_SERVICE_URL` (or no Supabase, which every AI request also requires), none of it
   should render or run.
 - **Run root `npm run lint`/`test`/`build` and assume it covers `service/`.** It doesn't —
-  `service/` is a separate package with its own scripts; see `.cursor/rules/ai-service.mdc`.
+  `service/` is a separate package with its own scripts; see the `ai-service` skill.
 - **Bump React, Vite, TypeScript, or React Router without updating the docs in the same
-  change** — `check_stack_docs.py` checks README / `musing-project.mdc` drift but does not
-  fix it.
+  change** — `check_stack_docs.py` checks README / `AGENTS.md` drift but does not fix it.
 - **Commit secrets** (`.env.local`, credentials) or amend/force-push without being explicitly
   asked.
 - **Open, push, or merge a PR unless the user asks.** (This repo has no autonomous exception of

@@ -74,7 +74,7 @@ AREA_RULES: list[tuple[str, tuple[str, ...]]] = [
     ),
     ("tests", (".test.", ".spec.")),
     ("ci", (".github/",)),
-    ("docs", ("README.md", "docs/", ".cursor/skills/", ".cursor/rules/")),
+    ("docs", ("README.md", "docs/", ".claude/skills/")),
     ("config", ("package.json", "package-lock.json", "vite.config", "eslint.config", "tsconfig")),
 ]
 
