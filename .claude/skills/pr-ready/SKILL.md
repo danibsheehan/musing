@@ -38,7 +38,7 @@ npm run build
 
 | Check              | What it covers                                                                                 |
 | ------------------ | ---------------------------------------------------------------------------------------------- |
-| `check_stack_docs` | README / project-rule stack versions vs `package.json` + CI Node (also in CI)                  |
+| `check_stack_docs` | README / AGENTS.md stack versions vs `package.json` + CI Node (also in CI)                     |
 | `npm audit`        | High/critical advisories (`--audit-level=high`; also in CI)                                    |
 | `lint`             | ESLint across the repo (also in `.github/workflows/ci.yml`)                                    |
 | `format:check`     | Prettier check across the repo (also in CI)                                                    |
@@ -52,7 +52,7 @@ Faster while iterating (not a substitute before PR):
 - `npm run test:run` — tests without coverage gate
 - Focused file/suite filters via Vitest CLI when debugging one area
 
-If editor or Supabase behavior changed, also skim **`.cursor/skills/editor-tiptap/SKILL.md`** / **`.cursor/skills/supabase-sync/SKILL.md`** for missed follow-ups (aliases, schema, env docs).
+If editor or Supabase behavior changed, also skim **`.claude/skills/editor-tiptap/SKILL.md`** / **`.claude/skills/supabase-sync/SKILL.md`** for missed follow-ups (aliases, schema, env docs).
 
 ### 2. PR description
 

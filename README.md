@@ -24,6 +24,7 @@
 - [Supabase (optional cloud sync)](#supabase-optional-cloud-sync)
 - [Deploy to GitHub Pages](#deploy-to-github-pages)
 - [Deploy musing-ai-service (optional)](#deploy-musing-ai-service-optional)
+- [Cursor — legacy compatibility only](#cursor--legacy-compatibility-only)
 
 ## Overview
 
@@ -89,7 +90,7 @@ Other useful scripts:
 
 **In plain English:** CI's job is to catch drift, regressions, and broken builds before they land on `main`. Pushes to **`main`** and **pull requests** run `.github/workflows/ci.yml`, in order:
 
-1. Stack-docs drift check (`python3 .github/scripts/check_stack_docs.py`) — keeps this README and `.cursor/rules/musing-project.mdc` in sync with `package.json`
+1. Stack-docs drift check (`python3 .github/scripts/check_stack_docs.py`) — keeps this README and `AGENTS.md` in sync with `package.json`
 2. `npm audit --audit-level=high`
 3. `npm run lint`
 4. `npm run format:check`
@@ -145,7 +146,7 @@ This repo is an application, not a library: there is no separate package API.
 - **UI and editor** — `src/` (routes, TipTap extensions including wiki links and the selection format bubble, Supabase client, export helpers)
 - **Sync schema and RLS** — `supabase/schema.sql`
 - **TipTap/Vite alias note** — `vite.config.ts` aliases `@tiptap/pm/*` to `prosemirror-*` packages so Vite 8 (Rolldown) resolves TipTap imports
-- **Agent docs** — **`AGENTS.md`** at the repo root is the tool-agnostic reference for coding agents (install/run/test commands, conventions, constraints, definition of done). Coding agents also use a thin always-apply rule (`.cursor/rules/musing-project.mdc`) plus scoped rules under `.cursor/rules/` (README, tests, TipTap, workspace/Supabase); optional skills live in `.cursor/skills/` (including **`pr-ready`** for pre-PR lint/format/coverage/build checks). Cursor reads `AGENTS.md` and the rules natively; **`CLAUDE.md`** imports both for Claude Code and maps the scoped rules to the paths they cover, and `.claude/skills` is a symlink to `.cursor/skills` so both tools share one set of skill files.
+- **Agent docs** — **`AGENTS.md`** at the repo root is the tool-agnostic reference for coding agents (install/run/test commands, conventions, constraints, definition of done). **`CLAUDE.md`** imports it for Claude Code. Skills live in **`.claude/skills/`** (canonical — including **`pr-ready`** for pre-PR lint/format/coverage/build checks); see [Cursor — legacy compatibility only](#cursor--legacy-compatibility-only) for how Cursor fits in.
 
 ## Configuration
 
@@ -235,6 +236,18 @@ GITHUB_ACTIONS=true GITHUB_REPOSITORY=yourname/yourrepo npm run build
 ```
 
 Optional: `VITE_BASE_PATH=/custom/` when building.
+
+## Cursor — legacy compatibility only
+
+This project is developed with Claude Code. Conventions live directly in
+[`AGENTS.md`](AGENTS.md) / [`CLAUDE.md`](CLAUDE.md) — there are no separate
+`.cursor/rules/*.mdc` files. `.cursor/skills` is kept only as a symlink to the canonical
+`.claude/skills/` directory, for compatibility if this repo is opened in Cursor.
+
+| Path                | Purpose                                                                                                                                 |
+| :------------------ | :-------------------------------------------------------------------------------------------------------------------------------------- |
+| `.claude/skills/*/` | Canonical skills: editor-tiptap, supabase-sync, musing-vitest-tests, doc-writer, pr-ready, ai-service — `.cursor/skills` symlinks here. |
+| `.prettierrc`       | Prettier style — agents and CI follow it; use `npm run format` / `format:check`.                                                        |
 
 ## License
 

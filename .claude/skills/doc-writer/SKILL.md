@@ -66,15 +66,30 @@ Then produce the output following those guidelines exactly.
 
 ---
 
-## Step 4: Deliver Output
+## Step 4: Deliver
 
-- **README**: Write to `/mnt/user-data/outputs/README.md` and call `present_files`
-- **API Docs**: Write to `/mnt/user-data/outputs/<filename>` preserving original filename, call `present_files`
-- **Inline Comments**: Write to `/mnt/user-data/outputs/<filename>` with comments added inline, call `present_files`
-- If multiple files: write each separately, present all at once
+- **Write files in the workspace** at the paths the user asked for (e.g. repo root `README.md`,
+  or next to the source file). Edit existing files in place when updating docs.
+- Do **not** use Claude-specific output paths or external "present file" steps — use normal
+  file create/edit in this project.
+- Summarize for the user: what changed, where, and any gaps they should fill in.
 
-Always tell the user:
+---
 
-1. What was generated
-2. Which files to copy where in their repo
-3. Any gaps (e.g., "I couldn't find a description for `X` — you may want to fill that in")
+## This repo (musing)
+
+- **Features**: reflect shipped UI (editor, wiki links, databases, export, theme). Do not list
+  planned work as shipped.
+- **Run / scripts**: match `package.json` scripts (`dev`, `build`, `lint`, `format`,
+  `format:check`, `test`, `test:run`, `test:coverage`).
+- **Stack / layout**: match real entry points under `src/` and TipTap / Vite alias notes in
+  `vite.config.ts`. Keep the README Stack table and AGENTS.md's `## Stack` line aligned with
+  `package.json` (CI runs `.github/scripts/check_stack_docs.py`).
+- **Configuration**: `VITE_SUPABASE_*`, `VITE_AI_SERVICE_URL`, `VITE_BASE_PATH` — same names as
+  `.env.example` and GitHub Actions secrets where documented.
+- **Supabase**: setup steps must match `supabase/schema.sql` and anonymous auth behavior in
+  `WorkspaceContext` / the `supabase-sync` skill.
+- **CI / Pages**: if coverage thresholds, deploy, keepalive, stack-docs, or PR-guide behavior
+  changes, update the README summary and the workflow files in the same spirit.
+- Prefer short tables and copy-pasteable commands. Link to `.github/pull_request_template.md`
+  for contribution expectations rather than duplicating long policy text.

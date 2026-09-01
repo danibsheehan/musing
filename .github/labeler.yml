@@ -75,8 +75,7 @@
       - any-glob-to-any-file:
           - "README.md"
           - "docs/**"
-          - ".cursor/skills/**"
-          - ".cursor/rules/**"
+          - ".claude/skills/**"
 
 "area: config":
   - changed-files:
