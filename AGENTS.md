@@ -101,8 +101,9 @@ gotchas. Own package and toolchain — not covered by root `lint`/`test`/`build`
 
 ### Documentation and README accuracy
 
-Follow the `doc-writer` skill, including its musing-specific section on keeping README
-features, scripts, the stack table, and env docs in sync with the repo.
+Follow the `foundations:doc-writer` skill (from the `dani-foundations` plugin, see
+`.claude/settings.json`) — its accuracy checklist covers keeping README features, scripts,
+the stack table, and env docs in sync with the repo; no local `doc-writer` copy needed.
 
 Step-by-step playbooks live in `.claude/skills/*/SKILL.md` (canonical — `.cursor/skills` is a
 symlink to it, kept for Cursor compatibility), auto-invoked by either tool based on the task:
@@ -111,10 +112,13 @@ symlink to it, kept for Cursor compatibility), auto-invoked by either tool based
   PM aliases.
 - `supabase-sync` — anonymous auth, workspace JSON snapshot, RLS, env.
 - `musing-vitest-tests` — Vitest / Testing Library conventions and fakes for this repo.
-- `doc-writer` — README, JSDoc, and inline documentation.
-- `pr-ready` — local CI-parity checks and PR template before opening a PR.
 - `ai-service` — `service/` (musing-ai-service): auth/budget boundary, CORS, deploy, own
   toolchain.
+
+This repo also installs the `foundations` plugin from the `dani-foundations` marketplace
+(see `.claude/settings.json`), providing `pr-ready` (namespaced `foundations:pr-ready`) —
+its checklist covers the Test/CI parity commands above. No local copy needed; the only
+musing-specific PR-readiness notes are in **Definition of done** below.
 
 ## Constraints — do not
 
@@ -147,5 +151,11 @@ symlink to it, kept for Cursor compatibility), auto-invoked by either tool based
   check (`npm run test:run` for touched suites, `npm run lint` if ESLint-relevant). Full
   coverage CI is not required for every small edit. For larger or riskier changes, run
   `/code-review` manually before committing to catch issues early.
-- **PR done**: run the checks under Test / CI parity above, then follow the `pr-ready` skill
-  (PR template filled, no secrets). Commit, push, or open a PR only when the user asks.
+- **PR done**: run the checks under Test / CI parity above, then follow the
+  `foundations:pr-ready` skill (PR template filled, no secrets). Same-repo PRs get an
+  automatic **PR guide** sticky comment (`.github/workflows/pr-guide.yml`) — keep the
+  template accurate anyway. This repo's current required CI check is named
+  **`Lint, test+coverage, build`** (not yet renamed to the `quality` convention other repos
+  are moving toward). If editor or Supabase behavior changed, also skim the `editor-tiptap`
+  / `supabase-sync` skills for missed follow-ups (aliases, schema, env docs). Commit, push,
+  or open a PR only when the user asks.
