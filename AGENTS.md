@@ -112,9 +112,13 @@ symlink to it, kept for Cursor compatibility), auto-invoked by either tool based
   PM aliases.
 - `supabase-sync` — anonymous auth, workspace JSON snapshot, RLS, env.
 - `musing-vitest-tests` — Vitest / Testing Library conventions and fakes for this repo.
-- `pr-ready` — local CI-parity checks and PR template before opening a PR.
 - `ai-service` — `service/` (musing-ai-service): auth/budget boundary, CORS, deploy, own
   toolchain.
+
+This repo also installs the `foundations` plugin from the `dani-foundations` marketplace
+(see `.claude/settings.json`), providing `pr-ready` (namespaced `foundations:pr-ready`) —
+its checklist covers the Test/CI parity commands above. No local copy needed; the only
+musing-specific PR-readiness notes are in **Definition of done** below.
 
 ## Constraints — do not
 
@@ -147,5 +151,11 @@ symlink to it, kept for Cursor compatibility), auto-invoked by either tool based
   check (`npm run test:run` for touched suites, `npm run lint` if ESLint-relevant). Full
   coverage CI is not required for every small edit. For larger or riskier changes, run
   `/code-review` manually before committing to catch issues early.
-- **PR done**: run the checks under Test / CI parity above, then follow the `pr-ready` skill
-  (PR template filled, no secrets). Commit, push, or open a PR only when the user asks.
+- **PR done**: run the checks under Test / CI parity above, then follow the
+  `foundations:pr-ready` skill (PR template filled, no secrets). Same-repo PRs get an
+  automatic **PR guide** sticky comment (`.github/workflows/pr-guide.yml`) — keep the
+  template accurate anyway. This repo's current required CI check is named
+  **`Lint, test+coverage, build`** (not yet renamed to the `quality` convention other repos
+  are moving toward). If editor or Supabase behavior changed, also skim the `editor-tiptap`
+  / `supabase-sync` skills for missed follow-ups (aliases, schema, env docs). Commit, push,
+  or open a PR only when the user asks.
