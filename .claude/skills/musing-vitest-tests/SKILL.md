@@ -1,43 +1,38 @@
 ---
 name: musing-vitest-tests
 description: >-
-  Writes or updates Vitest + Testing Library tests for musing: colocated
-  *.test.ts(x), jsdom setup, workspace/Supabase mocks, and editor helpers. Use when
-  adding or changing code under src/, writing tests, fixing flaky UI/hook tests,
-  coverage thresholds, or when the user mentions Vitest, RTL, or test coverage.
+  Writes or updates Vitest tests for musing: workspace/Supabase mocks and
+  editor helpers. Use when adding or changing code under src/, writing
+  tests, fixing flaky UI/hook tests, coverage thresholds, or when the user
+  mentions Vitest, RTL, or test coverage.
 ---
 
 # Vitest tests (musing)
+
+For the React+Vitest+Testing Library mechanics this follows (mocking the API/client module,
+the `renderHook` loading-race gotcha, roles/loading/error/empty checklist), see the
+**`foundations:react-vitest-testing`** skill. This file is musing's own mocking/fixture
+reference.
 
 ## When this applies
 
 - Editing `src/**/*.test.ts(x)`, `src/test/setup.ts`, or `vite.config.ts` `test` / `coverage` options.
 - Adding tests for components, context, `lib/`, extensions, or page-document helpers.
 
-## Stack (must match repo)
-
-- **Runner**: Vitest (`test` block in **`vite.config.ts`**).
-- **DOM**: **jsdom** (`environment: 'jsdom'`, `globals: true`).
-- **Matchers**: **`@testing-library/jest-dom/vitest`** via **`src/test/setup.ts`**.
-- **Components / hooks**: **`@testing-library/react`** (`render`, `screen`, `within`, `waitFor`, `renderHook`, `act`).
-- **Interactions**: **`@testing-library/user-event`** when exercising UI.
-
 ## Conventions
 
-1. **File placement** — Colocate: `Foo.test.tsx` next to `Foo.tsx`, `bar.test.ts` next to `bar.ts`. Include pattern: `src/**/*.{test,spec}.{ts,tsx}`.
-
-2. **Workspace / storage** — Prefer patterns from **`context/WorkspaceContext.test.tsx`**:
+1. **Workspace / storage** — Prefer patterns from **`context/WorkspaceContext.test.tsx`**:
    - `vi.hoisted` + `vi.mock` for `lib/workspaceStorage` (`loadWorkspace` / `saveWorkspace`) while keeping other exports.
    - Mock **`lib/supabaseClient`** (`isSupabaseConfigured`, `getSupabase`) so unit tests never hit a real project.
    - Use small **`WorkspaceSnapshot` / `Page` / `Block` fixtures** shaped like `types/page.ts` and `types/block.ts`.
 
-3. **Supabase helpers** — Mock the client module; assert parse/upsert logic with fixtures. See `lib/supabaseWorkspace.test.ts`, `lib/supabaseClient.test.ts`.
+2. **Supabase helpers** — Mock the client module; assert parse/upsert logic with fixtures. See `lib/supabaseWorkspace.test.ts`, `lib/supabaseClient.test.ts`.
 
-4. **Editor / TipTap** — Prefer testing **public helpers** and serialization (`lib/pageDocument/*`, slash/menu helpers) over deep ProseMirror internals. Extend existing suites when changing behavior; see **`.claude/skills/editor-tiptap/SKILL.md`**.
+3. **Editor / TipTap** — Prefer testing **public helpers** and serialization (`lib/pageDocument/*`, slash/menu helpers) over deep ProseMirror internals. Extend existing suites when changing behavior; see **`.claude/skills/editor-tiptap/SKILL.md`**.
 
-5. **UI** — Prefer **roles and accessible names**. Cover loading/error/empty when the UI surfaces them. For router-dependent views, use **`MemoryRouter`** from **`react-router`** (and `basename` awareness when relevant) like neighboring tests — not `react-router-dom`.
+4. **Router-dependent views** — use **`MemoryRouter`** from **`react-router`** (and `basename` awareness when relevant) like neighboring tests — not `react-router-dom`.
 
-6. **Commands**
+5. **Commands**
    - **Task done**: `npm run test:run` (or Vitest watch) for suites you touched.
    - Coverage / gate: `npm run test:coverage` — thresholds in `vite.config.ts`; HTML under `coverage/`.
    - **PR done**: **`.claude/skills/pr-ready/SKILL.md`**.
@@ -45,8 +40,7 @@ description: >-
 ## Anti-patterns
 
 - Real network calls to Supabase or other remotes in unit tests.
-- Asserting pixel layout or TipTap/ProseMirror private internals instead of blocks, labels, or exported helpers.
-- Duplicating huge snapshots when a minimal `Page` / `Block` fixture suffices.
+- Asserting TipTap/ProseMirror private internals instead of blocks, labels, or exported helpers.
 
 ## Reference locations
 
