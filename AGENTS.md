@@ -116,9 +116,11 @@ symlink to it, kept for Cursor compatibility), auto-invoked by either tool based
   toolchain.
 
 This repo also installs the `foundations` plugin from the `dani-foundations` marketplace
-(see `.claude/settings.json`), providing `pr-ready` (namespaced `foundations:pr-ready`) —
-its checklist covers the Test/CI parity commands above. No local copy needed; the only
-musing-specific PR-readiness notes are in **Definition of done** below.
+(see `.claude/settings.json`), providing `pr-ready` and `react-vitest-testing` (namespaced
+`foundations:*`). `pr-ready`'s checklist covers the Test/CI parity commands above (the only
+musing-specific PR-readiness notes are in **Definition of done** below); `react-vitest-testing`
+covers the React+Vitest+RTL mechanics `musing-vitest-tests` used to restate — that file now
+only carries musing's own mocking/fixture specifics.
 
 ## Constraints — do not
 
