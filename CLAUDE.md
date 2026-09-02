@@ -11,4 +11,7 @@ is Claude Code–specific session mechanics.
 `.claude/skills` is the canonical skills directory — add new skills here. `.cursor/skills` is
 a symlink to it, kept only for compatibility with the legacy Cursor rules/skills setup. Claude
 Code auto-discovers and invokes them by task: `editor-tiptap`, `supabase-sync`,
-`musing-vitest-tests`, `doc-writer`, `pr-ready`, `ai-service`.
+`musing-vitest-tests`, `pr-ready`, `ai-service`. This repo also installs the `foundations`
+plugin from the `dani-foundations` marketplace (see `.claude/settings.json`), providing
+`doc-writer` (namespaced `foundations:doc-writer`) — no local copy needed; verified generic
+enough on its own before removing it.

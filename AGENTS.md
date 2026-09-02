@@ -101,8 +101,9 @@ gotchas. Own package and toolchain — not covered by root `lint`/`test`/`build`
 
 ### Documentation and README accuracy
 
-Follow the `doc-writer` skill, including its musing-specific section on keeping README
-features, scripts, the stack table, and env docs in sync with the repo.
+Follow the `foundations:doc-writer` skill (from the `dani-foundations` plugin, see
+`.claude/settings.json`) — its accuracy checklist covers keeping README features, scripts,
+the stack table, and env docs in sync with the repo; no local `doc-writer` copy needed.
 
 Step-by-step playbooks live in `.claude/skills/*/SKILL.md` (canonical — `.cursor/skills` is a
 symlink to it, kept for Cursor compatibility), auto-invoked by either tool based on the task:
@@ -111,7 +112,6 @@ symlink to it, kept for Cursor compatibility), auto-invoked by either tool based
   PM aliases.
 - `supabase-sync` — anonymous auth, workspace JSON snapshot, RLS, env.
 - `musing-vitest-tests` — Vitest / Testing Library conventions and fakes for this repo.
-- `doc-writer` — README, JSDoc, and inline documentation.
 - `pr-ready` — local CI-parity checks and PR template before opening a PR.
 - `ai-service` — `service/` (musing-ai-service): auth/budget boundary, CORS, deploy, own
   toolchain.
