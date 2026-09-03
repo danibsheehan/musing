@@ -1,0 +1,17 @@
+# Audits a local production build (not the live site) with Lighthouse CI. Force root-relative
+# asset paths for this local audit -- vite.config.ts auto-detects GITHUB_ACTIONS + the repo
+# name and would otherwise bake in the /musing/ GitHub Pages base path, which 404s when
+# lighthouse-ci-action serves the build locally at root.
+name: Lighthouse CI
+
+on: pull_request
+
+jobs:
+  lighthouse:
+    if: github.event.pull_request.draft == false
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: danibsheehan/dani-actions/.github/workflows/lighthouse-ci.yml@v10
+    with:
+      build-command: "VITE_BASE_PATH=/ npm run build"

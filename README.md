@@ -126,9 +126,18 @@ for the full autonomy boundary (it opens, never merges).
 
 `.github/dependabot.yml` opens weekly PRs: a grouped `npm-minor-and-patch` bump and ungrouped
 GitHub Actions bumps (capped at 10 open each). `.github/workflows/dependabot-auto-merge.yml`
-auto-merges (squash) only the grouped `npm-minor-and-patch` PRs, and only once the required
-`Lint, test+coverage, build` status check on `main` passes. Ungrouped GitHub Actions bumps and
-any npm major bump still get a human review before merging, same as any other change.
+auto-merges (squash) only the grouped `npm-minor-and-patch` PRs, and only once every required
+`verify.yml` check passes. Ungrouped GitHub Actions bumps and any npm major bump still get a
+human review before merging, same as any other change.
+
+Also running on their own: **CodeQL** ([`codeql.yml`](.github/workflows/codeql.yml)) scans on
+push/PR/weekly schedule; **dependency review**
+([`dependency-review.yml`](.github/workflows/dependency-review.yml)) flags newly-introduced
+vulnerable/incompatible dependencies in a PR's diff; **PR guide**
+([`pr-guide.yml`](.github/workflows/pr-guide.yml)) scaffolds an empty PR description, posts a
+sticky checklist/reviewer-focus comment, and applies path-based labels (same-repo PRs only);
+**Lighthouse CI** ([`lighthouse.yml`](.github/workflows/lighthouse.yml)) audits a local
+production build and posts warn-level performance/accessibility/best-practices/SEO scores.
 
 ## Stack
 
