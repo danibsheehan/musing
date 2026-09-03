@@ -10,11 +10,11 @@ on:
     branches: [main]
     paths:
       - "service/**"
-      - ".github/workflows/deploy-service.yml"
+      - ".github/workflows/deploy-cloud-run.yml"
   workflow_dispatch:
 
 concurrency:
-  group: deploy-service-${{ github.ref }}
+  group: deploy-cloud-run-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:

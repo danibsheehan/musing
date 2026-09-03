@@ -24,7 +24,7 @@ it cross-origin (see `AGENTS.md` and the README's "Deploy musing-ai-service" sec
 - **`llmRateLimiter` (`lib/tokenBucket.ts`)**: `await .acquire()` before every outbound
   Anthropic/Voyage call, process-wide, independent of per-user budgets.
 - **CORS (`lib/cors.ts`)**: `ALLOWED_ORIGINS` is a plain comma-separated env var. If a value
-  ever needs a literal comma, it must be escaped in `deploy-service.yml`'s `escape_origins`
+  ever needs a literal comma, it must be escaped in `deploy-cloud-run.yml`'s `escape_origins`
   step — the `deploy-cloudrun` action's `env_vars` parses raw commas as entry separators.
 - **Two Postgres RPC functions** (`match_note_embeddings`, `match_related_pages` in
   `supabase/schema.sql`) back `/api/search` and `/api/related-pages` — both are revoked from

@@ -3,7 +3,7 @@
 
 Sources of truth:
   - package.json — react, typescript, vite, react-router, @tiptap/react
-  - .nvmrc — Node major (preferred); else ci.yml node-version
+  - .nvmrc — Node major (preferred); else verify.yml node-version
 
 Checked docs:
   - README.md Stack table
@@ -51,7 +51,10 @@ def read_package_versions(package_json: Path) -> dict[str, str]:
     }
 
 
-def read_node_major(root: Path, ci_yml: Path) -> str:
+def read_node_major(root: Path, verify_yml: Path) -> str:
+    # .nvmrc is the source of truth for CI's Node version: verify.yml calls dani-actions'
+    # npm-verify.yml, which defaults node-version-file to .nvmrc -- there's no literal
+    # version string left in this repo's own workflow file to cross-check against.
     nvmrc = root / ".nvmrc"
     if nvmrc.is_file():
         lines = [
@@ -67,21 +70,11 @@ def read_node_major(root: Path, ci_yml: Path) -> str:
             raise ValueError(f"{nvmrc}: expected Node version, got {lines[0]!r}")
         return major
 
-    text = ci_yml.read_text(encoding="utf-8")
+    text = verify_yml.read_text(encoding="utf-8")
     node = re.search(r"(?m)^\s*node-version:\s*['\"]?(\d+)['\"]?\s*$", text)
     if not node:
-        raise ValueError(f"{ci_yml}: no node-version and no .nvmrc")
+        raise ValueError(f"{verify_yml}: no node-version and no .nvmrc")
     return node.group(1)
-
-
-def read_ci_node_major(root: Path, ci_yml: Path) -> str:
-    text = ci_yml.read_text(encoding="utf-8")
-    node_major = read_node_major(root, ci_yml)
-    if (root / ".nvmrc").is_file() and "node-version-file:" not in text:
-        raise ValueError(
-            f"{ci_yml}: .nvmrc is present but no node-version-file (pin Actions to .nvmrc)"
-        )
-    return node_major
 
 
 def require_contains(path: Path, needle: str, label: str, errors: list[str]) -> None:
@@ -137,7 +130,7 @@ def main() -> int:
     errors: list[str] = []
     try:
         versions = read_package_versions(ROOT / "package.json")
-        node_major = read_ci_node_major(ROOT, ROOT / ".github/workflows/ci.yml")
+        node_major = read_node_major(ROOT, ROOT / ".github/workflows/verify.yml")
     except ValueError as exc:
         print(f"check_stack_docs: {exc}", file=sys.stderr)
         return 1
@@ -161,7 +154,7 @@ def main() -> int:
             print(f"  - {err}", file=sys.stderr)
         print(
             "\nUpdate README / AGENTS.md to match "
-            "package.json and .github/workflows/ci.yml.",
+            "package.json and .github/workflows/verify.yml.",
             file=sys.stderr,
         )
         return 1
