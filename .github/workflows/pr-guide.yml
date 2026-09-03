@@ -11,6 +11,10 @@ concurrency:
 
 jobs:
   guide:
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
     uses: danibsheehan/dani-actions/.github/workflows/pr-guide.yml@v9
     with:
       labels: |
