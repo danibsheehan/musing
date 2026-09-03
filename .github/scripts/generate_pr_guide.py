@@ -69,10 +69,10 @@ def main() -> int:
 
     repo_url = os.environ.get("GITHUB_REPO_URL", "").rstrip("/")
     if repo_url:
-        ci_href = f"{repo_url}/blob/main/.github/workflows/ci.yml"
+        ci_href = f"{repo_url}/blob/main/.github/workflows/verify.yml"
         template_href = f"{repo_url}/blob/main/.github/pull_request_template.md"
     else:
-        ci_href = ".github/workflows/ci.yml"
+        ci_href = ".github/workflows/verify.yml"
         template_href = ".github/pull_request_template.md"
 
     lines.extend(
@@ -80,7 +80,8 @@ def main() -> int:
             "",
             "### CI",
             "",
-            f"Primary check: [CI]({ci_href}) runs lint, Prettier format check, Vitest coverage, and build for every PR. Coverage tables are posted separately.",
+            f"Required checks: [verify]({ci_href}) runs format/lint/audit/typecheck/test/build "
+            "as separate per-concern checks for every PR. Coverage tables are posted separately.",
             "",
             "---",
             "",

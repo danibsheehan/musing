@@ -1,15 +1,9 @@
+# Sticky PR guide comment + path labels. Non-blocking; separate from verify.
 name: PR guide
 
-# Sticky PR guide comment + path labels. Non-blocking; separate from CI.
 on:
-  # Run the workflow definition from the base branch. Do not checkout or execute PR code below.
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
-
-permissions:
-  contents: read
-  issues: write
-  pull-requests: write
 
 concurrency:
   group: pr-guide-${{ github.event.pull_request.number }}
@@ -17,116 +11,19 @@ concurrency:
 
 jobs:
   guide:
-    # Keep this same-repo only; pull_request_target would otherwise grant write actions on fork PRs.
-    if: github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    env:
-      GITHUB_REPO_URL: ${{ github.server_url }}/${{ github.repository }}
-      PYTHONPATH: ${{ github.workspace }}/.github/scripts
-    steps:
-      - name: Checkout base branch automation
-        # actions/checkout@v4
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          # Run workflow scripts and labeler config from the trusted base commit, not the PR head.
-          ref: ${{ github.event.pull_request.base.sha }}
-          fetch-depth: 0
-
-      - name: Collect diff metadata
-        run: |
-          base="${{ github.event.pull_request.base.sha }}"
-          head="${{ github.event.pull_request.head.sha }}"
-          git fetch --no-tags origin "${head}"
-          git diff --name-only "${base}...${head}" > changed-files.txt
-          diff_shortstat="$(git diff --shortstat "${base}...${head}" | tr -d '\n')"
-          echo "DIFF_SHORTSTAT=${diff_shortstat}" >> "$GITHUB_ENV"
-          {
-            echo 'COMMIT_LINES<<EOF'
-            git log --oneline "${base}...${head}"
-            echo 'EOF'
-          } >> "$GITHUB_ENV"
-
-      - name: Write current PR description
-        # actions/github-script@v7
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
-        with:
-          script: |
-            const fs = require('fs');
-            fs.writeFileSync(
-              'current-body.md',
-              context.payload.pull_request.body ?? '',
-              'utf8',
-            );
-
-      - name: Generate PR description scaffold
-        id: body
-        run: |
-          if python3 .github/scripts/generate_pr_body.py changed-files.txt \
-            --current-body current-body.md > new-body.md; then
-            echo "update=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Update PR description
-        if: steps.body.outputs.update == 'true'
-        # actions/github-script@v7
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
-        with:
-          script: |
-            const fs = require('fs');
-            const body = fs.readFileSync('new-body.md', 'utf8');
-            await github.rest.pulls.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number,
-              body,
-            });
-
-      - name: Generate PR guide
-        run: python3 .github/scripts/generate_pr_guide.py changed-files.txt > pr-guide.md
-
-      - name: Post sticky PR guide comment
-        # marocchino/sticky-pull-request-comment@v2.9.4
-        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88
-        with:
-          header: pr-guide
-          path: pr-guide.md
-
-      - name: Ensure area labels exist
-        # actions/github-script@v7
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
-        with:
-          script: |
-            const labels = [
-              ['area: editor', 'bfdadc', 'TipTap editor, blocks, slash menu, links, or serialization'],
-              ['area: sync', 'c5def5', 'Workspace persistence, Supabase, or auth'],
-              ['area: database', 'd4c5f9', 'Database embed behavior'],
-              ['area: export', 'fef2c0', 'PDF or DOCX export'],
-              ['area: app', 'c2e0c6', 'App shell, layout, or routing'],
-              ['area: tests', 'fbca04', 'Test files or test tooling'],
-              ['area: ci', 'f9d0c4', 'GitHub Actions or PR automation'],
-              ['area: docs', 'eaeef2', 'Documentation or agent guidance'],
-              ['area: config', 'd1d5da', 'Dependencies or tooling configuration'],
-            ];
-            for (const [name, color, description] of labels) {
-              try {
-                await github.rest.issues.getLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  name,
-                });
-              } catch (error) {
-                if (error.status !== 404) throw error;
-                await github.rest.issues.createLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  name,
-                  color,
-                  description,
-                });
-              }
-            }
-
-      # actions/labeler@v5
-      - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13
-        with:
-          sync-labels: true
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    uses: danibsheehan/dani-actions/.github/workflows/pr-guide.yml@v9
+    with:
+      labels: |
+        [{"name": "area: editor", "color": "bfdadc", "description": "TipTap editor, blocks, slash menu, links, or serialization"},
+         {"name": "area: sync", "color": "c5def5", "description": "Workspace persistence, Supabase, or auth"},
+         {"name": "area: database", "color": "d4c5f9", "description": "Database embed behavior"},
+         {"name": "area: export", "color": "fef2c0", "description": "PDF or DOCX export"},
+         {"name": "area: app", "color": "c2e0c6", "description": "App shell, layout, or routing"},
+         {"name": "area: tests", "color": "fbca04", "description": "Test files or test tooling"},
+         {"name": "area: ci", "color": "f9d0c4", "description": "GitHub Actions or PR automation"},
+         {"name": "area: docs", "color": "eaeef2", "description": "Documentation or agent guidance"},
+         {"name": "area: config", "color": "d1d5da", "description": "Dependencies or tooling configuration"}]
