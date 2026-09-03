@@ -1,0 +1,28 @@
+# GitHub code scanning for the React/TypeScript app (root + service/). Runs on pushes to
+# main, on pull requests, and weekly to catch newly disclosed query patterns.
+
+name: CodeQL
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: "17 3 * * 1" # weekly, Monday
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    permissions:
+      contents: read
+      security-events: write
+    uses: danibsheehan/dani-actions/.github/workflows/codeql-js.yml@v8
