@@ -113,5 +113,16 @@ jobs:
       contents: read
       pages: write
       id-token: write
-    uses: ./.github/workflows/deploy-pages.yml
-    secrets: inherit
+    uses: danibsheehan/dani-actions/.github/workflows/deploy-github-pages.yml@v3
+    with:
+      build-command: >-
+        VITE_SUPABASE_URL="$BUILD_SECRET_1"
+        VITE_SUPABASE_ANON_KEY="$BUILD_SECRET_2"
+        VITE_AI_SERVICE_URL="$BUILD_SECRET_3"
+        npm run build
+      dist-path: dist
+      spa-fallback: true
+    secrets:
+      build-secret-1: ${{ secrets.VITE_SUPABASE_URL }}
+      build-secret-2: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      build-secret-3: ${{ secrets.VITE_AI_SERVICE_URL }}
