@@ -34,7 +34,7 @@ It runs entirely in your browser. By default your notes are saved to **localStor
 
 If you also add **`musing-ai-service`** (see [Deploy musing-ai-service](#deploy-musing-ai-service-optional)), musing gains an AI layer on top of your own notes: semantic search, one-click page summaries, and a "related pages" list that finds connections you never explicitly linked. It's entirely optional and additive — nothing about the core note-taking experience changes without it.
 
-The repo also includes GitHub Actions workflows for anyone hosting their own copy: one **deploys** to GitHub Pages with the correct asset base path (`https://<user>.github.io/<repo>/`) and copies `index.html` to `404.html` so client-side routes survive a refresh; another **pings** Supabase daily so a free-tier project is less likely to pause from inactivity; a third optionally **deploys** `musing-ai-service` to Cloud Run.
+The repo also includes GitHub Actions workflows for anyone hosting their own copy: one **deploys** to GitHub Pages with the correct asset base path (`https://<user>.github.io/<repo>/`) and copies `index.html` to `404.html` so client-side routes survive a refresh; another **pings** Supabase daily so a free-tier project is less likely to pause from inactivity; a third optionally **deploys** `musing-ai-service` to Cloud Run, and a fourth **probes** its `/health` endpoint weekly once deployed.
 
 ## Features
 
@@ -239,6 +239,11 @@ to `main` that touch `service/**`. Like **Supabase keepalive**, this workflow **
 
 Without that setup, the app runs exactly as described above with no AI features — this is
 an optional layer on top of the core note-taking app.
+
+Once deployed, **weekly probe smoke** (`.github/workflows/weekly-probe-smoke.yml`) checks
+`GET /health` on `service/` every Monday, reusing the `VITE_AI_SERVICE_URL` secret already
+set for the frontend build — a rare drift check, not a chatty uptime monitor, so it won't
+wake a scale-to-zero Cloud Run revision more than once a week.
 
 Simulate a Pages build locally:
 

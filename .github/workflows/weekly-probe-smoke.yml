@@ -1,0 +1,22 @@
+# Rare drift check — not a chatty uptime monitor (avoids waking scale-to-zero every minute).
+# Only /health exists on this service (unlike caught-looking's backend, which also has
+# /ready). Reads the Cloud Run URL from the VITE_AI_SERVICE_URL repository *variable* (not
+# secret) -- the shared health-probe.yml workflow needs vars.* here since secrets.* can't be
+# referenced in a workflow_call job's `with:` block, and the URL isn't actually confidential
+# (the service runs with --allow-unauthenticated and the URL ships in the frontend bundle).
+name: Weekly probe smoke
+
+on:
+  schedule:
+    # Mondays 13:35 UTC (offset from caught-looking's 13:17 to reduce shared-cron stampedes)
+    - cron: "35 13 * * 1"
+  workflow_dispatch:
+
+jobs:
+  probe:
+    permissions:
+      contents: read
+    uses: danibsheehan/dani-actions/.github/workflows/health-probe.yml@v11
+    with:
+      url: ${{ vars.VITE_AI_SERVICE_URL }}
+      paths: '["/health"]'
