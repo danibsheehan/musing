@@ -8,4 +8,4 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    uses: danibsheehan/dani-actions/.github/workflows/dependency-review.yml@v10
+    uses: danibsheehan/dani-actions/.github/workflows/dependency-review.yml@v11

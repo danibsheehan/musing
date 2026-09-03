@@ -13,4 +13,4 @@ permissions:
 
 jobs:
   auto-merge:
-    uses: danibsheehan/dani-actions/.github/workflows/dependabot-auto-merge.yml@v10
+    uses: danibsheehan/dani-actions/.github/workflows/dependabot-auto-merge.yml@v11
