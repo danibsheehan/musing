@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.111.0",
-    "@tiptap/core": "^3.30.2",
+    "@tiptap/core": "^3.30.4",
     "@tiptap/extension-emoji": "^3.30.2",
     "@tiptap/extension-placeholder": "^3.30.2",
     "@tiptap/pm": "^3.30.2",
