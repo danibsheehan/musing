@@ -25,4 +25,4 @@ jobs:
     permissions:
       contents: read
       security-events: write
-    uses: danibsheehan/dani-actions/.github/workflows/codeql-js.yml@v8
+    uses: danibsheehan/dani-actions/.github/workflows/codeql-js.yml@v10
