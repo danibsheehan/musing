@@ -3,7 +3,7 @@
 # deploy-cloud-run.yml -- separate files, different triggers (push to main only) and
 # different risk profile (side effects).
 
-name: verify
+name: CI
 
 on:
   push:
