@@ -1,6 +1,6 @@
 # musing
 
-[![CI](https://github.com/danibsheehan/musing/actions/workflows/ci.yml/badge.svg)](https://github.com/danibsheehan/musing/actions/workflows/ci.yml)
+[![CI](https://github.com/danibsheehan/musing/actions/workflows/verify.yml/badge.svg)](https://github.com/danibsheehan/musing/actions/workflows/verify.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![Live app](https://img.shields.io/badge/live-danibsheehan.com%2Fmusing-brightgreen?style=flat-square)](https://www.danibsheehan.com/musing/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=0a1018)](https://react.dev/)
@@ -76,6 +76,7 @@ Other useful scripts:
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
 | `npm run dev:clean`            | Same as `npm run dev`, but unsets `NODE_OPTIONS` for this run (handy if inherited flags break Vite)                          |
 | `npm run build`                | Production build (`dist/`)                                                                                                   |
+| `npm run typecheck`            | `tsc -b` — type-check only, no build output (CI)                                                                             |
 | `npm run preview`              | Serve the production build locally                                                                                           |
 | `npm run lint`                 | ESLint                                                                                                                       |
 | `npm audit --audit-level=high` | Fail on high/critical advisories (CI)                                                                                        |
@@ -88,16 +89,17 @@ Other useful scripts:
 
 ### Continuous integration
 
-**In plain English:** CI's job is to catch drift, regressions, and broken builds before they land on `main`. Pushes to **`main`** and **pull requests** run `.github/workflows/ci.yml`, in order:
+**In plain English:** CI's job is to catch drift, regressions, and broken builds before they land on `main`. Pushes to **`main`** and **pull requests** run `.github/workflows/verify.yml` (via dani-actions' shared `npm-verify.yml`), as separate parallel jobs — one required check per concern, per npm package (root app and `service/`):
 
-1. Stack-docs drift check (`python3 .github/scripts/check_stack_docs.py`) — keeps this README and `AGENTS.md` in sync with `package.json`
-2. `npm audit --audit-level=high`
-3. `npm run lint`
-4. `npm run format:check`
-5. `npm run test:coverage` — fails if coverage drops below the thresholds in `vite.config.ts`
-6. `npm run build`
+- Stack-docs drift check (`python3 .github/scripts/check_stack_docs.py`) — keeps this README and `AGENTS.md` in sync with `package.json`
+- `format` — `npm run format:check`
+- `lint` — `npm run lint`
+- `audit` — `npm audit --audit-level=high`
+- `typecheck` — `npm run typecheck` (root app only; `service/` type-checks as part of its own build)
+- `test` — `npm run test:coverage` for the root app (fails if coverage drops below the thresholds in `vite.config.ts`), `npm run test:run` for `service/` (no coverage yet)
+- `build` — `npm run build`
 
-Every run appends a Cobertura coverage summary to the workflow's job summary ([`irongut/CodeCoverageSummary`](https://github.com/irongut/CodeCoverageSummary)). On pull requests from the same repository — not forks, since a fork's `GITHUB_TOKEN` can't write to the base repo's PR thread — CI also posts a coverage table comment ([`5monkeys/cobertura-action`](https://github.com/5monkeys/cobertura-action)). `.github/workflows/pr-guide.yml` additionally posts a sticky **PR guide** comment with touched areas, suggested verification, reviewer focus, and path-based `area:*` labels.
+The `test` job appends a Cobertura coverage summary to the workflow's job summary ([`irongut/CodeCoverageSummary`](https://github.com/irongut/CodeCoverageSummary)) for any package with coverage. On pull requests from the same repository — not forks, since a fork's `GITHUB_TOKEN` can't write to the base repo's PR thread — it also posts a coverage table comment ([`5monkeys/cobertura-action`](https://github.com/5monkeys/cobertura-action)). `.github/workflows/pr-guide.yml` additionally posts a sticky **PR guide** comment with touched areas, suggested verification, reviewer focus, and path-based `area:*` labels.
 
 Optional: copy `.env.example` to **`.env.local` in the repo root** (next to `package.json`), set the variables below, then restart `npm run dev`.
 
@@ -193,7 +195,7 @@ Scheduled workflows run from the **default branch** (typically `main`). If a rep
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
      The build completes without them; the published app then behaves like local dev with no Supabase config (local-only persistence in the browser).
-3. Push to `main`. **CI** runs stack-docs drift, `npm audit` (high+), lint, format check, coverage, and build; on success it calls **Deploy to GitHub Pages** for the same commit (`npm ci`, `npm run build`, copy `dist/index.html` → `dist/404.html`, publish `dist`). You can also run **Deploy to GitHub Pages** alone via **Actions → Run workflow**. **Supabase keepalive** is scheduled from the default branch as well; it only performs the health ping when both Supabase secrets above are set (otherwise it skips).
+3. Push to `main`. The branch ruleset requires `verify.yml`'s checks (stack-docs drift, `npm audit`, lint, format check, typecheck, coverage, build) to pass before a PR can merge; **Deploy to GitHub Pages** (`.github/workflows/deploy-pages.yml`) then runs independently on that same push (`npm ci`, `npm run build`, copy `dist/index.html` → `dist/404.html`, publish `dist`). **Supabase keepalive** is scheduled from the default branch as well; it only performs the health ping when both Supabase secrets above are set (otherwise it skips).
 
 For a **user site** (`https://<username>.github.io` from a repo named `<username>.github.io`), `vite.config.ts` uses base path `/` automatically when `GITHUB_ACTIONS` and `GITHUB_REPOSITORY` indicate that naming convention.
 
@@ -201,7 +203,7 @@ For a **user site** (`https://<username>.github.io` from a repo named `<username
 
 `service/` is a separate backend (Express + TypeScript) providing the AI second-brain
 layer — semantic search, summaries, related pages — over musing's notes. It deploys
-independently to Cloud Run via `.github/workflows/deploy-service.yml`, triggered by pushes
+independently to Cloud Run via `.github/workflows/deploy-cloud-run.yml`, triggered by pushes
 to `main` that touch `service/**`. Like **Supabase keepalive**, this workflow **skips**
 (doesn't fail) until it's configured:
 

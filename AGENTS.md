@@ -53,13 +53,15 @@ python3 .github/scripts/check_stack_docs.py   # README / AGENTS.md version drift
 npm audit --audit-level=high
 npm run lint
 npm run format:check
+npm run typecheck       # tsc -b; split from build so type errors surface before a full bundle
 npm run test:coverage   # Vitest + v8 coverage; fails below thresholds in vite.config.ts
 npm run build
 ```
 
-This is the same sequence `.github/workflows/ci.yml` runs on push to `main` and on pull
-requests. `npm run test` / `npm run test:run` run Vitest without coverage; use those while
-iterating on a single suite. See the **`pr-ready`** skill below for the full pre-PR checklist.
+This is the same set of checks `.github/workflows/verify.yml` runs (via dani-actions'
+`npm-verify.yml`) as separate parallel jobs on push to `main` and on pull requests. `npm run
+test` / `npm run test:run` run Vitest without coverage; use those while iterating on a single
+suite. See the **`pr-ready`** skill below for the full pre-PR checklist.
 
 ## Conventions
 
@@ -156,8 +158,10 @@ only carries musing's own mocking/fixture specifics.
 - **PR done**: run the checks under Test / CI parity above, then follow the
   `foundations:pr-ready` skill (PR template filled, no secrets). Same-repo PRs get an
   automatic **PR guide** sticky comment (`.github/workflows/pr-guide.yml`) — keep the
-  template accurate anyway. This repo's current required CI check is named
-  **`Lint, test+coverage, build`** (not yet renamed to the `quality` convention other repos
-  are moving toward). If editor or Supabase behavior changed, also skim the `editor-tiptap`
-  / `supabase-sync` skills for missed follow-ups (aliases, schema, env docs). Commit, push,
-  or open a PR only when the user asks.
+  template accurate anyway. CI (`.github/workflows/verify.yml`, via dani-actions'
+  `npm-verify.yml`) reports one required check per package per concern — e.g. `verify /
+lint (app)`, `verify / test (service)` — rather than a single combined check; get exact
+  names from a real PR's checks, not from memory, before touching branch-ruleset config. If
+  editor or Supabase behavior changed, also skim the `editor-tiptap` / `supabase-sync`
+  skills for missed follow-ups (aliases, schema, env docs). Commit, push, or open a PR only
+  when the user asks.
