@@ -1,0 +1,55 @@
+# Rare drift check — not a chatty uptime monitor (avoids waking scale-to-zero every minute).
+# Reuses VITE_AI_SERVICE_URL, already a repository secret for the frontend build, as the
+# probe target -- no separate config needed. Only /health exists on this service (unlike
+# caught-looking's backend, which also has /ready).
+name: Weekly probe smoke
+
+on:
+  schedule:
+    # Mondays 13:35 UTC (offset from caught-looking's 13:17 to reduce shared-cron stampedes)
+    - cron: "35 13 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  api-probe:
+    if: ${{ github.event.repository.fork == false }}
+    name: Smoke API /health
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe Cloud Run
+        env:
+          API_URL: ${{ secrets.VITE_AI_SERVICE_URL }}
+        run: |
+          if [ -z "$API_URL" ]; then
+            echo "::error::Set VITE_AI_SERVICE_URL as a repository secret (already used for the frontend build) to enable weekly probe smoke"
+            exit 1
+          fi
+          API_URL="${API_URL%/}"
+          echo "Checking ${API_URL}/health…"
+          ok=0
+          for i in $(seq 1 5); do
+            code=$(curl -sS -o /tmp/probe-body -w '%{http_code}' --max-time 15 "${API_URL}/health" || true)
+            body=$(tr -d '\r' </tmp/probe-body 2>/dev/null || true)
+            if [ "$code" = "200" ]; then
+              echo "OK /health (attempt ${i}): ${body}"
+              ok=1
+              break
+            fi
+            echo "attempt ${i}: HTTP ${code} body=${body}"
+            sleep 5
+          done
+          if [ "$ok" != "1" ]; then
+            echo "::error::Probe /health did not return HTTP 200 after retries"
+            exit 1
+          fi
+          {
+            echo "## Weekly probe smoke"
+            echo ""
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| **API** | ${API_URL} |"
+            echo "| **probe** | \`GET /health\` → 200 |"
+          } >> "$GITHUB_STEP_SUMMARY"
