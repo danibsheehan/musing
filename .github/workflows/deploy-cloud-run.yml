@@ -1,8 +1,6 @@
-# Deploys service/ (musing-ai-service) to Cloud Run on push to main. Skips (not fails) until
-# the required repository secrets are set — see the check step below for the full list.
-# This is separate GCP/Cloud Run infra from GitHub Pages (deploy-pages.yml); the two are
-# unrelated hosts fronted by a shared domain — see AGENTS.md / musing-project.mdc.
-
+# Deploys service/ (musing-ai-service) to Cloud Run on push to main. This is separate
+# GCP/Cloud Run infra from GitHub Pages (deploy-pages.yml); the two are unrelated hosts
+# fronted by a shared domain — see AGENTS.md / musing-project.mdc.
 name: Deploy musing-ai-service
 
 on:
@@ -17,88 +15,34 @@ concurrency:
   group: deploy-cloud-run-${{ github.ref }}
   cancel-in-progress: false
 
-permissions:
-  contents: read
-  id-token: write
-
 jobs:
-  check-config:
-    runs-on: ubuntu-latest
-    outputs:
-      configured: ${{ steps.check.outputs.configured }}
-    steps:
-      - id: check
-        env:
-          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-          GCP_REGION: ${{ secrets.GCP_REGION }}
-        run: |
-          if [ -n "$GCP_PROJECT_ID" ] && [ -n "$GCP_SA_KEY" ] && [ -n "$GCP_REGION" ]; then
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping deploy: set GCP_PROJECT_ID, GCP_REGION, and GCP_SA_KEY as repository secrets (a GCP service account JSON key with Cloud Run Admin + Service Account User + Secret Manager Secret Accessor roles), create SUPABASE_SERVICE_ROLE_KEY / ANTHROPIC_API_KEY / VOYAGE_API_KEY in GCP Secret Manager, and set the remaining non-sensitive config as repository secrets (CHAT_MODEL, EMBEDDING_MODEL, AI_MONTHLY_TOKEN_CAP, AI_MONTHLY_REQUEST_CAP, AI_MAX_QPS, VOYAGE_MONTHLY_TOKEN_CAP, VOYAGE_MONTHLY_REQUEST_CAP, SUPABASE_URL, ALLOWED_ORIGINS) once the Cloud Run/Cloudflare infra from the project plan exists."
-          fi
-
   deploy:
-    needs: check-config
-    if: needs.check-config.outputs.configured == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - id: auth
-        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      # deploy-cloudrun's env_vars parses commas as entry separators between KEY=VALUE
-      # pairs (per its action.yml), so a comma *inside* ALLOWED_ORIGINS's value silently
-      # broke it into two garbage entries on every deploy so far — the deployed service
-      # only ever had the first origin. Escaping here keeps the GitHub secret itself in
-      # plain, readable comma-separated form rather than requiring it to be pre-escaped
-      # (fragile to maintain as more origins get added later).
-      - id: escape_origins
-        env:
-          ALLOWED_ORIGINS: ${{ secrets.ALLOWED_ORIGINS }}
-        run: |
-          escaped="${ALLOWED_ORIGINS//,/\\,}"
-          echo "value=$escaped" >> "$GITHUB_OUTPUT"
-
-      - uses: google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d # v3
-        with:
-          service: musing-ai-service
-          region: ${{ secrets.GCP_REGION }}
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          source: ./service
-          # Without this, Cloud Run runs the container as the project's default compute
-          # service account, which has no Secret Manager access. Reuse the deploy SA (it
-          # already has secretmanager.secretAccessor) rather than granting that broad
-          # default account new permissions it doesn't need for anything else.
-          # --allow-unauthenticated: Cloud Run is IAM-gated by default (blocks every request
-          # before the container even runs). The real access boundary here is app-level —
-          # requireAuth verifies the caller's Supabase JWT — not GCP IAM, since the actual
-          # callers (end-user browsers via Cloudflare) have no GCP identity to present.
-          # Neither flag has a dedicated action input — passed through via `flags`
-          # (verified against the action's action.yml; there is no `service_account` input).
-          flags: "--service-account=musing-ai-service-deploy@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com --allow-unauthenticated"
-          # Non-sensitive config only. Actual secrets (API keys, service-role key) come from
-          # GCP Secret Manager below — never put them here, they'd land as plaintext on the
-          # Cloud Run revision, readable by anyone with run.viewer or console access.
-          env_vars: |
-            CHAT_MODEL=${{ secrets.CHAT_MODEL }}
-            EMBEDDING_MODEL=${{ secrets.EMBEDDING_MODEL }}
-            AI_MONTHLY_TOKEN_CAP=${{ secrets.AI_MONTHLY_TOKEN_CAP }}
-            AI_MONTHLY_REQUEST_CAP=${{ secrets.AI_MONTHLY_REQUEST_CAP }}
-            AI_MAX_QPS=${{ secrets.AI_MAX_QPS }}
-            VOYAGE_MONTHLY_TOKEN_CAP=${{ secrets.VOYAGE_MONTHLY_TOKEN_CAP }}
-            VOYAGE_MONTHLY_REQUEST_CAP=${{ secrets.VOYAGE_MONTHLY_REQUEST_CAP }}
-            SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-            ALLOWED_ORIGINS=${{ steps.escape_origins.outputs.value }}
-          # Requires SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, and VOYAGE_API_KEY to
-          # already exist as GCP Secret Manager secrets (same names), and the service
-          # account behind GCP_SA_KEY to have roles/secretmanager.secretAccessor on each.
-          secrets: |
-            SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:latest
-            ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest
-            VOYAGE_API_KEY=VOYAGE_API_KEY:latest
+    permissions:
+      contents: read
+      id-token: write
+    uses: danibsheehan/dani-actions/.github/workflows/deploy-cloud-run.yml@feat/deploy-cloud-run
+    with:
+      service-name: ${{ vars.CLOUDRUN_SERVICE_NAME }}
+      region: ${{ vars.GCP_REGION }}
+      project-id: ${{ vars.GCP_PROJECT_ID }}
+      artifact-repository: ${{ vars.GCP_ARTIFACT_REPOSITORY }}
+      workload-identity-provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      deploy-service-account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      runtime-service-account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      source-path: service
+      startup-probe-path: /health
+      smoke-check-paths: '["/health"]'
+      env-vars-json: >-
+        {"CHAT_MODEL": "${{ vars.CHAT_MODEL }}",
+        "EMBEDDING_MODEL": "${{ vars.EMBEDDING_MODEL }}",
+        "AI_MONTHLY_TOKEN_CAP": "${{ vars.AI_MONTHLY_TOKEN_CAP }}",
+        "AI_MONTHLY_REQUEST_CAP": "${{ vars.AI_MONTHLY_REQUEST_CAP }}",
+        "AI_MAX_QPS": "${{ vars.AI_MAX_QPS }}",
+        "VOYAGE_MONTHLY_TOKEN_CAP": "${{ vars.VOYAGE_MONTHLY_TOKEN_CAP }}",
+        "VOYAGE_MONTHLY_REQUEST_CAP": "${{ vars.VOYAGE_MONTHLY_REQUEST_CAP }}",
+        "SUPABASE_URL": "${{ vars.SUPABASE_URL }}",
+        "ALLOWED_ORIGINS": "${{ vars.ALLOWED_ORIGINS }}"}
+      gcp-secrets-json: >-
+        {"SUPABASE_SERVICE_ROLE_KEY": "SUPABASE_SERVICE_ROLE_KEY:latest",
+        "ANTHROPIC_API_KEY": "ANTHROPIC_API_KEY:latest",
+        "VOYAGE_API_KEY": "VOYAGE_API_KEY:latest"}
