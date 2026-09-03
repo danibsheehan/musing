@@ -14,6 +14,8 @@ on:
 
 jobs:
   probe:
+    permissions:
+      contents: read
     uses: danibsheehan/dani-actions/.github/workflows/health-probe.yml@v11
     with:
       url: ${{ vars.VITE_AI_SERVICE_URL }}
