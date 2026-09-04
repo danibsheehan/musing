@@ -260,10 +260,10 @@ This project is developed with Claude Code. Conventions live directly in
 `.cursor/rules/*.mdc` files. `.cursor/skills` is kept only as a symlink to the canonical
 `.claude/skills/` directory, for compatibility if this repo is opened in Cursor.
 
-| Path                | Purpose                                                                                                                                 |
-| :------------------ | :-------------------------------------------------------------------------------------------------------------------------------------- |
-| `.claude/skills/*/` | Canonical skills: editor-tiptap, supabase-sync, musing-vitest-tests, doc-writer, pr-ready, ai-service — `.cursor/skills` symlinks here. |
-| `.prettierrc`       | Prettier style — agents and CI follow it; use `npm run format` / `format:check`.                                                        |
+| Path                | Purpose                                                                                                    |
+| :------------------ | :--------------------------------------------------------------------------------------------------------- |
+| `.claude/skills/*/` | Canonical skills: editor-tiptap, supabase-sync, vitest-tests, ai-service — `.cursor/skills` symlinks here. |
+| `.prettierrc`       | Prettier style — agents and CI follow it; use `npm run format` / `format:check`.                           |
 
 ## License
 

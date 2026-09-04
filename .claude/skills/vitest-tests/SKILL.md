@@ -1,5 +1,5 @@
 ---
-name: musing-vitest-tests
+name: vitest-tests
 description: >-
   Writes or updates Vitest tests for musing: workspace/Supabase mocks and
   editor helpers. Use when adding or changing code under src/, writing

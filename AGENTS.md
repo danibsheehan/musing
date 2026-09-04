@@ -86,7 +86,7 @@ other app URLs must use `import.meta.env.BASE_URL`, not assume a root path.
 
 ### Vitest / Testing Library tests
 
-Follow the `musing-vitest-tests` skill for mocking `workspaceStorage` / `supabaseClient`,
+Follow the `vitest-tests` skill for mocking `workspaceStorage` / `supabaseClient`,
 fixture shapes, and coverage commands (`npm run test:run`, `npm run test:coverage`). Import
 router test helpers (e.g. `MemoryRouter`) from `react-router`, not `react-router-dom`.
 
@@ -113,7 +113,7 @@ symlink to it, kept for Cursor compatibility), auto-invoked by either tool based
 - `editor-tiptap` — TipTap/ProseMirror doc model, slash and wiki-link menus, `vite.config.ts`
   PM aliases.
 - `supabase-sync` — anonymous auth, workspace JSON snapshot, RLS, env.
-- `musing-vitest-tests` — Vitest / Testing Library conventions and fakes for this repo.
+- `vitest-tests` — Vitest / Testing Library conventions and fakes for this repo.
 - `ai-service` — `service/` (musing-ai-service): auth/budget boundary, CORS, deploy, own
   toolchain.
 
@@ -121,7 +121,7 @@ This repo also installs the `foundations` plugin from the `dani-foundations` mar
 (see `.claude/settings.json`), providing `pr-ready` and `react-vitest-testing` (namespaced
 `foundations:*`). `pr-ready`'s checklist covers the Test/CI parity commands above (the only
 musing-specific PR-readiness notes are in **Definition of done** below); `react-vitest-testing`
-covers the React+Vitest+RTL mechanics `musing-vitest-tests` used to restate — that file now
+covers the React+Vitest+RTL mechanics `vitest-tests` used to restate — that file now
 only carries musing's own mocking/fixture specifics.
 
 ## Constraints — do not
