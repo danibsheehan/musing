@@ -1,0 +1,160 @@
+# Config for dani-actions' shared pr-guide-engine composite action (used by pr-guide.yml).
+# See dani-actions' README for the full schema. This is a faithful translation of what used
+# to be .github/scripts/pr_guide_lib.py + generate_pr_guide.py -- verified against a real PR
+# to produce byte-identical output before those scripts were removed.
+
+meta_start: "<!-- pr-guide-meta:start -->"
+meta_end: "<!-- pr-guide-meta:end -->"
+summary_prompt: "<!-- What changed and why? -->"
+verify_prompt: "<!-- Commands run, manual checks, or N/A with rationale. -->"
+legacy_template_markers: ["## Checklist", "No unintended secrets"]
+meta_block_template: |-
+  **Touches:** {touches}
+
+  Checklist and reviewer focus: see the **PR guide** comment on this PR (updated on each push).
+
+guide_intro: "_Auto-generated from changed paths. Fill in **Summary** and **How to verify** in the PR description above._"
+required_checks_description: >-
+  Required checks: [verify]({ci_href}) runs format/lint/audit/typecheck/test/build as
+  separate per-concern checks for every PR. Coverage tables are posted separately.
+
+always_checklist_items:
+  - "No unintended secrets or local-only config committed"
+
+fallback:
+  verify: "N/A - docs/tooling only; confirm locally if anything user-facing changed"
+  reviewer_focus: "Scope looks docs- or tooling-only; confirm there is no hidden runtime impact"
+
+tests_missing_rule:
+  tests_area_id: tests
+  trigger_areas: [editor, sync, database, export, app]
+  note: "Tests added or updated for changed behavior, or noted why not"
+
+test_file_rule:
+  suffixes: [".test.ts", ".test.tsx"]
+  substrings: [".test.", ".spec."]
+  note: "Test assertions cover the behavior under review rather than only implementation details"
+
+verify_groups:
+  full_suite:
+    - "`npm run lint`"
+    - "`npm run format:check`"
+    - "`npm run test:run` or targeted Vitest files for the changed area"
+    - "`npm run build`"
+  tests_only:
+    - "`npm run test:run` or targeted Vitest files"
+
+areas:
+  - id: editor
+    display: "editor"
+    prefixes:
+      - "src/components/Block.tsx"
+      - "src/components/Editor.tsx"
+      - "src/components/EditorTextFormatBubble.tsx"
+      - "src/components/EmojiSuggestionMenu.tsx"
+      - "src/components/PageBlockGutter.tsx"
+      - "src/components/PageDocument"
+      - "src/components/PagePickerMenu"
+      - "src/components/SlashMenu"
+      - "src/extensions/"
+      - "src/lib/blockEditorCommands"
+      - "src/lib/defaultBlocks"
+      - "src/lib/editorBlockText"
+      - "src/lib/editorBubbleMenuPortal"
+      - "src/lib/emojiSuggestion"
+      - "src/lib/resolveWikiPage"
+      - "src/lib/slashMenuOptions"
+      - "src/lib/tiptapMenuOpen"
+    verify_group: full_suite
+    checklist:
+      - "Editor interactions checked: typing, slash menu, page links, drag/reorder, and selection formatting as applicable"
+    reviewer_focus:
+      - "Block-editor behavior, TipTap/ProseMirror invariants, keyboard interactions, and serialization compatibility"
+
+  - id: sync
+    display: "sync / Supabase"
+    prefixes:
+      - "src/components/AccountAuthControls"
+      - "src/context/"
+      - "src/lib/supabase"
+      - "src/lib/workspaceStorage"
+      - "src/lib/workspaceTree"
+      - "supabase/"
+    verify_group: full_suite
+    verify_extra:
+      - "Optional Supabase smoke check with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` set"
+    checklist:
+      - "Local-only mode still works when Supabase env vars are absent"
+      - "Supabase mode remains RLS-scoped and anonymous-auth compatible"
+    reviewer_focus:
+      - "Workspace persistence, cross-tab behavior, Supabase auth/session handling, and RLS assumptions"
+
+  - id: database
+    display: "database embeds"
+    prefixes:
+      - "src/components/Database"
+      - "src/lib/database"
+      - "src/lib/findDatabaseOwnerPage"
+      - "src/extensions/musingDatabaseEmbed"
+    verify_group: full_suite
+    checklist:
+      - "Database table/canvas embeds preserve saved page data"
+    reviewer_focus:
+      - "Database embed ownership, row/field persistence, and page document rendering"
+
+  - id: export
+    display: "export"
+    prefixes:
+      - "src/lib/downloadPageDocx"
+      - "src/lib/downloadPagePdf"
+      - "src/lib/htmlToDocx"
+      - "src/lib/pageToExportHtml"
+      - "src/lib/sanitizeExportFilename"
+    verify_group: full_suite
+    checklist:
+      - "PDF and DOCX export still handle the changed page content"
+    reviewer_focus:
+      - "Exported HTML/PDF/DOCX output and filename handling"
+
+  - id: app
+    display: "app shell / routes"
+    prefixes:
+      - "src/App"
+      - "src/main"
+      - "src/components/AppLayout"
+      - "src/components/HomeRedirect"
+      - "src/components/PageChrome"
+      - "src/components/PageView"
+      - "src/components/Sidebar"
+      - "src/components/ThemePreferenceSelect"
+    verify_group: full_suite
+    checklist:
+      - "Routes work with `import.meta.env.BASE_URL` for GitHub Pages subpath hosting"
+    reviewer_focus:
+      - "Routing, layout state, and Pages `BASE_URL` behavior"
+
+  - id: tests
+    display: "tests"
+    prefixes: [".test.", ".spec."]
+    verify_group: tests_only
+
+  - id: ci
+    display: "CI / GitHub"
+    prefixes: [".github/"]
+    verify_extra:
+      - "Review workflow syntax and required permissions in GitHub Actions"
+    checklist:
+      - "Workflow permissions are scoped to the PR-guide behavior"
+    reviewer_focus:
+      - "Workflow event triggers, token permissions, and label/comment behavior on same-repo vs fork PRs"
+
+  - id: docs
+    display: "docs / agent guidance"
+    prefixes: ["README.md", "docs/", ".claude/skills/"]
+
+  - id: config
+    display: "tooling config"
+    prefixes: ["package.json", "package-lock.json", "vite.config", "eslint.config", "tsconfig"]
+    verify_group: full_suite
+    reviewer_focus:
+      - "Dependency, Vite, TypeScript, ESLint, and Prettier changes that can affect local and CI runs"

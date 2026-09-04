@@ -12,6 +12,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    uses: danibsheehan/dani-actions/.github/workflows/lighthouse-ci.yml@v16
+    uses: danibsheehan/dani-actions/.github/workflows/lighthouse-ci.yml@v17
     with:
       build-command: "VITE_BASE_PATH=/ npm run build"
