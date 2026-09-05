@@ -67,16 +67,19 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "text-summary", "html", "lcov", "cobertura"],
       reportsDirectory: "./coverage",
-      exclude: ["src/test/**"],
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/test/**", "src/**/*.d.ts", "src/main.tsx"],
       /**
-       * Floor vs current aggregate (~58% stmts, ~47% branches, ~60% funcs, ~61% lines).
-       * Raise gradually as suites grow; `npm run test:coverage` prints the table locally.
+       * Setting `include` (vs. relying on the default "only files a test imports") makes
+       * coverage measure every matching src file — floor is set a few points below the true
+       * aggregate this exposes (~24% stmts, ~21% branches, ~26% funcs, ~24% lines). Raise
+       * gradually as suites grow; `npm run test:coverage` prints the table locally.
        */
       thresholds: {
-        statements: 55,
-        branches: 44,
-        functions: 56,
-        lines: 58,
+        statements: 22,
+        branches: 18,
+        functions: 24,
+        lines: 22,
       },
     },
   },
