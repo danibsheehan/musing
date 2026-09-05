@@ -12,6 +12,8 @@ export default function PagePickerMenu({ position, pages, selectedIndex, onSelec
     <div
       data-musing-page-picker-menu
       className="musing-dropdown musing-dropdown--picker"
+      role="listbox"
+      aria-label="Pages"
       onMouseDown={(e) => e.preventDefault()}
       style={{
         position: "fixed",

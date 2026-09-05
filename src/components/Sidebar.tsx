@@ -91,6 +91,7 @@ function PageTreeRows({
                   type="button"
                   className="sidebar-icon-btn"
                   title="Move up"
+                  aria-label="Move up"
                   disabled={!canUp}
                   onClick={() => movePageWithinSiblings(p.id, "up")}
                 >
@@ -100,6 +101,7 @@ function PageTreeRows({
                   type="button"
                   className="sidebar-icon-btn"
                   title="Move down"
+                  aria-label="Move down"
                   disabled={!canDown}
                   onClick={() => movePageWithinSiblings(p.id, "down")}
                 >
@@ -109,6 +111,7 @@ function PageTreeRows({
                   type="button"
                   className="sidebar-icon-btn"
                   title="Rename"
+                  aria-label="Rename"
                   onClick={() => beginRename(p)}
                 >
                   ✎
@@ -117,6 +120,7 @@ function PageTreeRows({
                   type="button"
                   className="sidebar-icon-btn"
                   title="Add subpage"
+                  aria-label="Add subpage"
                   onClick={() => {
                     const id = createPage(p.id);
                     navigate(`/page/${id}`);
@@ -128,6 +132,7 @@ function PageTreeRows({
                   type="button"
                   className="sidebar-icon-btn sidebar-danger"
                   title="Delete page"
+                  aria-label="Delete page"
                   onClick={() => {
                     if (subtreeIds(allPages, p.id).size >= allPages.length) {
                       window.alert("You can't delete the last page.");

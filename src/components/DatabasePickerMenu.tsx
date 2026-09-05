@@ -17,6 +17,8 @@ export default function DatabasePickerMenu({
     <div
       data-musing-database-picker-menu
       className="musing-dropdown musing-dropdown--picker"
+      role="listbox"
+      aria-label="Databases"
       onMouseDown={(e) => e.preventDefault()}
       style={{
         position: "fixed",
