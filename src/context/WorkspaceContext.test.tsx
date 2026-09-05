@@ -1,4 +1,5 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import type { Block } from "../types/block";
 import type { Page, WorkspaceSnapshot } from "../types/page";
@@ -69,6 +70,38 @@ function StorageConsumer() {
 function OpenPageConsumer() {
   const id = useWorkspace().resolveOpenPageId();
   return <span data-testid="open">{id}</span>;
+}
+
+function TreeConsumer({ targetId }: { targetId: string | null }) {
+  const ws = useWorkspace();
+  return (
+    <div>
+      <pre data-testid="pages">{JSON.stringify(ws.pages)}</pre>
+      <pre data-testid="databases">{JSON.stringify(ws.databases)}</pre>
+      <span data-testid="home">{ws.homePageId}</span>
+      <span data-testid="lastOpened">{ws.lastOpenedPageId ?? ""}</span>
+      <button onClick={() => ws.createPage(targetId)}>createChild</button>
+      <button onClick={() => ws.createDatabasePage(targetId)}>createDbChild</button>
+      <button onClick={() => targetId && ws.updatePageTitle(targetId, "  New Title  ")}>
+        rename
+      </button>
+      <button onClick={() => targetId && ws.updatePageTitle(targetId, "   ")}>blankRename</button>
+      <button onClick={() => targetId && ws.updatePageBlocks(targetId, [paragraph("new-block")])}>
+        setBlocks
+      </button>
+    </div>
+  );
+}
+
+function getPages(): Page[] {
+  return JSON.parse(screen.getByTestId("pages").textContent ?? "[]") as Page[];
+}
+
+function getDatabases() {
+  return JSON.parse(screen.getByTestId("databases").textContent ?? "[]") as {
+    id: string;
+    title: string;
+  }[];
 }
 
 function SyncConsumer() {
@@ -163,6 +196,137 @@ describe("WorkspaceProvider", () => {
         expect(screen.getByTestId("sync")).toHaveTextContent("error");
       });
       expect(screen.getByTestId("sync-err")).toHaveTextContent("anon failed");
+    });
+  });
+
+  describe("page creation and edits", () => {
+    it("createPage appends a child under the given parent as the new lastOpenedPageId", async () => {
+      const user = userEvent.setup();
+      workspaceMocks.loadWorkspace.mockReturnValue(
+        snapshot({ pages: [page({ id: "page-a", title: "A" })] }),
+      );
+
+      render(
+        <WorkspaceProvider>
+          <TreeConsumer targetId="page-a" />
+        </WorkspaceProvider>,
+      );
+
+      await user.click(screen.getByRole("button", { name: "createChild" }));
+
+      const pages = getPages();
+      expect(pages).toHaveLength(2);
+      const child = pages.find((p) => p.id !== "page-a")!;
+      expect(child.parentId).toBe("page-a");
+      expect(child.title).toBe("Untitled");
+      expect(child.order).toBe(0);
+      expect(screen.getByTestId("lastOpened")).toHaveTextContent(child.id);
+    });
+
+    it("createPage assigns the next order among existing siblings", async () => {
+      const user = userEvent.setup();
+      workspaceMocks.loadWorkspace.mockReturnValue(
+        snapshot({
+          pages: [
+            page({ id: "root", title: "Root" }),
+            page({ id: "page-a", title: "A", parentId: "root", order: 0 }),
+            page({ id: "page-b", title: "B", parentId: "root", order: 2 }),
+          ],
+        }),
+      );
+
+      render(
+        <WorkspaceProvider>
+          <TreeConsumer targetId="root" />
+        </WorkspaceProvider>,
+      );
+
+      await user.click(screen.getByRole("button", { name: "createChild" }));
+
+      const pages = getPages();
+      const child = pages.find((p) => !["root", "page-a", "page-b"].includes(p.id))!;
+      expect(child.order).toBe(3);
+    });
+
+    it("createDatabasePage adds a database-layout page with a matching database entry", async () => {
+      const user = userEvent.setup();
+      workspaceMocks.loadWorkspace.mockReturnValue(
+        snapshot({ pages: [page({ id: "page-a", title: "A" })] }),
+      );
+
+      render(
+        <WorkspaceProvider>
+          <TreeConsumer targetId={null} />
+        </WorkspaceProvider>,
+      );
+
+      await user.click(screen.getByRole("button", { name: "createDbChild" }));
+
+      const pages = getPages();
+      const dbPage = pages.find((p) => p.id !== "page-a")!;
+      expect(dbPage.layout).toBe("database");
+      expect(dbPage.parentId).toBeNull();
+      expect(dbPage.databaseId).not.toBeNull();
+
+      const databases = getDatabases();
+      expect(databases).toHaveLength(1);
+      expect(databases[0].id).toBe(dbPage.databaseId);
+    });
+
+    it("updatePageTitle trims whitespace and defaults an empty title to 'Untitled'", async () => {
+      const user = userEvent.setup();
+      workspaceMocks.loadWorkspace.mockReturnValue(
+        snapshot({ pages: [page({ id: "page-a", title: "A" })] }),
+      );
+
+      render(
+        <WorkspaceProvider>
+          <TreeConsumer targetId="page-a" />
+        </WorkspaceProvider>,
+      );
+
+      await user.click(screen.getByRole("button", { name: "rename" }));
+      expect(getPages()[0].title).toBe("New Title");
+
+      await user.click(screen.getByRole("button", { name: "blankRename" }));
+      expect(getPages()[0].title).toBe("Untitled");
+    });
+
+    it("updatePageTitle cascades to a page's linked database title", async () => {
+      const user = userEvent.setup();
+      workspaceMocks.loadWorkspace.mockReturnValue(
+        snapshot({
+          pages: [page({ id: "page-a", title: "A", layout: "database", databaseId: "db-1" })],
+          databases: [{ id: "db-1", title: "A", properties: [], rows: [], views: [] }],
+        }),
+      );
+
+      render(
+        <WorkspaceProvider>
+          <TreeConsumer targetId="page-a" />
+        </WorkspaceProvider>,
+      );
+
+      await user.click(screen.getByRole("button", { name: "rename" }));
+
+      expect(getDatabases()[0].title).toBe("New Title");
+    });
+
+    it("updatePageBlocks replaces a page's blocks", async () => {
+      const user = userEvent.setup();
+      workspaceMocks.loadWorkspace.mockReturnValue(
+        snapshot({ pages: [page({ id: "page-a", title: "A" })] }),
+      );
+
+      render(
+        <WorkspaceProvider>
+          <TreeConsumer targetId="page-a" />
+        </WorkspaceProvider>,
+      );
+
+      await user.click(screen.getByRole("button", { name: "setBlocks" }));
+
+      expect(getPages()[0].blocks).toEqual([paragraph("new-block")]);
     });
   });
 });
