@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   deploy:
-    uses: danibsheehan/dani-actions/.github/workflows/deploy-github-pages.yml@v17
+    uses: danibsheehan/dani-actions/.github/workflows/deploy-github-pages.yml@v20
     with:
       build-command: >-
         VITE_SUPABASE_URL="$BUILD_SECRET_1"

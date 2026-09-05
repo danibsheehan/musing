@@ -16,7 +16,7 @@ jobs:
   probe:
     permissions:
       contents: read
-    uses: danibsheehan/dani-actions/.github/workflows/health-probe.yml@v17
+    uses: danibsheehan/dani-actions/.github/workflows/health-probe.yml@v20
     with:
       url: ${{ vars.VITE_AI_SERVICE_URL }}
       paths: '["/health"]'
