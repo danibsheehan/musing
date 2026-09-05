@@ -4,6 +4,7 @@ import { describe, expect, it, beforeEach, vi } from "vitest";
 import type { Block } from "../types/block";
 import type { Page, WorkspaceSnapshot } from "../types/page";
 import { STORAGE_KEY } from "../lib/workspaceStorage";
+import { stringifyDatabaseEmbedPayload } from "../lib/databaseEmbed";
 import { WorkspaceProvider } from "./WorkspaceContext";
 import { useWorkspace } from "./useWorkspace";
 import { isSupabaseConfigured, getSupabase } from "../lib/supabaseClient";
@@ -72,7 +73,15 @@ function OpenPageConsumer() {
   return <span data-testid="open">{id}</span>;
 }
 
-function TreeConsumer({ targetId }: { targetId: string | null }) {
+function TreeConsumer({
+  targetId,
+  ancestryId,
+  childrenParentId,
+}: {
+  targetId: string | null;
+  ancestryId?: string;
+  childrenParentId?: string | null;
+}) {
   const ws = useWorkspace();
   return (
     <div>
@@ -89,6 +98,21 @@ function TreeConsumer({ targetId }: { targetId: string | null }) {
       <button onClick={() => targetId && ws.updatePageBlocks(targetId, [paragraph("new-block")])}>
         setBlocks
       </button>
+      <button onClick={() => targetId && ws.movePageWithinSiblings(targetId, "up")}>moveUp</button>
+      <button onClick={() => targetId && ws.movePageWithinSiblings(targetId, "down")}>
+        moveDown
+      </button>
+      <button onClick={() => targetId && ws.deletePageSubtree(targetId)}>deleteSubtree</button>
+      {ancestryId != null && (
+        <pre data-testid="ancestry">
+          {JSON.stringify(ws.ancestryFor(ancestryId).map((p) => p.id))}
+        </pre>
+      )}
+      {childrenParentId !== undefined && (
+        <pre data-testid="children">
+          {JSON.stringify(ws.childrenOf(childrenParentId).map((p) => p.id))}
+        </pre>
+      )}
     </div>
   );
 }
@@ -327,6 +351,231 @@ describe("WorkspaceProvider", () => {
       await user.click(screen.getByRole("button", { name: "setBlocks" }));
 
       expect(getPages()[0].blocks).toEqual([paragraph("new-block")]);
+    });
+  });
+
+  describe("page moves and deletion", () => {
+    it("movePageWithinSiblings swaps order with the previous sibling on 'up'", async () => {
+      const user = userEvent.setup();
+      workspaceMocks.loadWorkspace.mockReturnValue(
+        snapshot({
+          pages: [
+            page({ id: "page-a", title: "A", order: 0 }),
+            page({ id: "page-b", title: "B", order: 1 }),
+          ],
+        }),
+      );
+
+      render(
+        <WorkspaceProvider>
+          <TreeConsumer targetId="page-b" />
+        </WorkspaceProvider>,
+      );
+
+      await user.click(screen.getByRole("button", { name: "moveUp" }));
+
+      const pages = getPages();
+      expect(pages.find((p) => p.id === "page-a")!.order).toBe(1);
+      expect(pages.find((p) => p.id === "page-b")!.order).toBe(0);
+    });
+
+    it("movePageWithinSiblings is a no-op at the first position", async () => {
+      const user = userEvent.setup();
+      workspaceMocks.loadWorkspace.mockReturnValue(
+        snapshot({
+          pages: [
+            page({ id: "page-a", title: "A", order: 0 }),
+            page({ id: "page-b", title: "B", order: 1 }),
+          ],
+        }),
+      );
+
+      render(
+        <WorkspaceProvider>
+          <TreeConsumer targetId="page-a" />
+        </WorkspaceProvider>,
+      );
+
+      await user.click(screen.getByRole("button", { name: "moveUp" }));
+
+      const pages = getPages();
+      expect(pages.find((p) => p.id === "page-a")!.order).toBe(0);
+      expect(pages.find((p) => p.id === "page-b")!.order).toBe(1);
+    });
+
+    it("movePageWithinSiblings is a no-op at the last position on 'down'", async () => {
+      const user = userEvent.setup();
+      workspaceMocks.loadWorkspace.mockReturnValue(
+        snapshot({
+          pages: [
+            page({ id: "page-a", title: "A", order: 0 }),
+            page({ id: "page-b", title: "B", order: 1 }),
+          ],
+        }),
+      );
+
+      render(
+        <WorkspaceProvider>
+          <TreeConsumer targetId="page-b" />
+        </WorkspaceProvider>,
+      );
+
+      await user.click(screen.getByRole("button", { name: "moveDown" }));
+
+      const pages = getPages();
+      expect(pages.find((p) => p.id === "page-a")!.order).toBe(0);
+      expect(pages.find((p) => p.id === "page-b")!.order).toBe(1);
+    });
+
+    it("movePageWithinSiblings is a no-op for an unknown page id", async () => {
+      const user = userEvent.setup();
+      workspaceMocks.loadWorkspace.mockReturnValue(
+        snapshot({ pages: [page({ id: "page-a", title: "A", order: 0 })] }),
+      );
+
+      render(
+        <WorkspaceProvider>
+          <TreeConsumer targetId="missing" />
+        </WorkspaceProvider>,
+      );
+
+      await user.click(screen.getByRole("button", { name: "moveUp" }));
+
+      expect(getPages()).toHaveLength(1);
+      expect(getPages()[0].order).toBe(0);
+    });
+
+    it("deletePageSubtree removes the target and its descendants, falling back to the parent", async () => {
+      const user = userEvent.setup();
+      workspaceMocks.loadWorkspace.mockReturnValue(
+        snapshot({
+          homePageId: "root",
+          lastOpenedPageId: "child",
+          pages: [
+            page({ id: "root", title: "Root" }),
+            page({ id: "target", title: "Target", parentId: "root" }),
+            page({ id: "child", title: "Child", parentId: "target" }),
+          ],
+        }),
+      );
+
+      render(
+        <WorkspaceProvider>
+          <TreeConsumer targetId="target" />
+        </WorkspaceProvider>,
+      );
+
+      await user.click(screen.getByRole("button", { name: "deleteSubtree" }));
+
+      const pages = getPages();
+      expect(pages.map((p) => p.id)).toEqual(["root"]);
+      expect(screen.getByTestId("lastOpened")).toHaveTextContent("root");
+    });
+
+    it("deletePageSubtree falls back to a remaining root when the parent is also removed", async () => {
+      const user = userEvent.setup();
+      workspaceMocks.loadWorkspace.mockReturnValue(
+        snapshot({
+          homePageId: "target",
+          pages: [
+            page({ id: "target", title: "Target" }),
+            page({ id: "child", title: "Child", parentId: "target" }),
+            page({ id: "other-root", title: "Other", order: 1 }),
+          ],
+        }),
+      );
+
+      render(
+        <WorkspaceProvider>
+          <TreeConsumer targetId="target" />
+        </WorkspaceProvider>,
+      );
+
+      await user.click(screen.getByRole("button", { name: "deleteSubtree" }));
+
+      expect(getPages().map((p) => p.id)).toEqual(["other-root"]);
+      expect(screen.getByTestId("home")).toHaveTextContent("other-root");
+    });
+
+    it("deletePageSubtree clears databaseEmbed blocks pointing at a removed database and drops it", async () => {
+      const user = userEvent.setup();
+      const embedBlock: Block = {
+        id: "embed-1",
+        type: "databaseEmbed",
+        content: stringifyDatabaseEmbedPayload("db-1"),
+      };
+      workspaceMocks.loadWorkspace.mockReturnValue(
+        snapshot({
+          pages: [
+            page({ id: "root", title: "Root" }),
+            page({
+              id: "target",
+              title: "Target",
+              parentId: "root",
+              layout: "database",
+              databaseId: "db-1",
+            }),
+            page({ id: "other", title: "Other", parentId: "root", order: 1, blocks: [embedBlock] }),
+          ],
+          databases: [{ id: "db-1", title: "Target", properties: [], rows: [], views: [] }],
+        }),
+      );
+
+      render(
+        <WorkspaceProvider>
+          <TreeConsumer targetId="target" />
+        </WorkspaceProvider>,
+      );
+
+      await user.click(screen.getByRole("button", { name: "deleteSubtree" }));
+
+      expect(getDatabases()).toHaveLength(0);
+      const other = getPages().find((p) => p.id === "other")!;
+      expect(other.blocks).toEqual([{ id: "embed-1", type: "paragraph", content: "<p></p>" }]);
+    });
+
+    it("ancestryFor returns the chain from root to the given page", () => {
+      workspaceMocks.loadWorkspace.mockReturnValue(
+        snapshot({
+          pages: [
+            page({ id: "root", title: "Root" }),
+            page({ id: "mid", title: "Mid", parentId: "root" }),
+            page({ id: "leaf", title: "Leaf", parentId: "mid" }),
+          ],
+        }),
+      );
+
+      render(
+        <WorkspaceProvider>
+          <TreeConsumer targetId={null} ancestryId="leaf" />
+        </WorkspaceProvider>,
+      );
+
+      expect(JSON.parse(screen.getByTestId("ancestry").textContent ?? "[]")).toEqual([
+        "root",
+        "mid",
+        "leaf",
+      ]);
+    });
+
+    it("childrenOf returns the direct children of the given parent, ordered", () => {
+      workspaceMocks.loadWorkspace.mockReturnValue(
+        snapshot({
+          pages: [
+            page({ id: "root", title: "Root" }),
+            page({ id: "b", title: "B", parentId: "root", order: 1 }),
+            page({ id: "a", title: "A", parentId: "root", order: 0 }),
+          ],
+        }),
+      );
+
+      render(
+        <WorkspaceProvider>
+          <TreeConsumer targetId={null} childrenParentId="root" />
+        </WorkspaceProvider>,
+      );
+
+      expect(JSON.parse(screen.getByTestId("children").textContent ?? "[]")).toEqual(["a", "b"]);
     });
   });
 });
