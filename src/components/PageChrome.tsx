@@ -96,6 +96,7 @@ export default function PageChrome({
         </nav>
       )}
       <div className="page-chrome-title-row">
+        <h1 className="visually-hidden">{draft.trim() || "Untitled"}</h1>
         <input
           className="page-title-input"
           value={draft}

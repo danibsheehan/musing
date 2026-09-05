@@ -146,6 +146,15 @@ export default function PageBlockGutter({ editor, measurementRootRef }: Props) {
     [editor],
   );
 
+  const onMove = useCallback(
+    (index: number, direction: "up" | "down") => {
+      if (!editor || editor.isDestroyed) return;
+      const toIndex = direction === "up" ? index - 1 : index + 1;
+      reorderTopLevelBlocksByIndex(editor, index, toIndex);
+    },
+    [editor],
+  );
+
   const onDragStart = useCallback(
     (e: React.DragEvent, index: number) => {
       const ed = editor;
@@ -249,6 +258,28 @@ export default function PageBlockGutter({ editor, measurementRootRef }: Props) {
               onClick={() => onAddBelow(index)}
             >
               +
+            </button>
+            <button
+              type="button"
+              className="page-block-gutter__btn page-block-gutter__btn--move"
+              aria-label="Move block up"
+              title="Move block up"
+              disabled={index === 0}
+              onPointerDown={(ev) => ev.preventDefault()}
+              onClick={() => onMove(index, "up")}
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              className="page-block-gutter__btn page-block-gutter__btn--move"
+              aria-label="Move block down"
+              title="Move block down"
+              disabled={index === rows.length - 1}
+              onPointerDown={(ev) => ev.preventDefault()}
+              onClick={() => onMove(index, "down")}
+            >
+              ↓
             </button>
             <button
               type="button"
