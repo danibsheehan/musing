@@ -27,6 +27,7 @@ jobs:
           "test-command": "npm run test:coverage",
           "build-command": "npm run build",
           "coverage-file": "coverage/cobertura-coverage.xml",
+          "coverage-minimum": 18,
           "typecheck-command": "npm run typecheck",
           "paths": "app:\n  - 'src/**'\n  - 'public/**'\n  - 'index.html'\n  - 'package.json'\n  - 'package-lock.json'\n  - 'tsconfig*.json'\n  - 'vite.config.ts'\n  - 'eslint.config.js'\n  - '.prettierrc*'\n  - '.prettierignore'\n  - '.nvmrc'\n  - '.github/workflows/**'\n  - '.github/dependabot.yml'"},
          {"name": "service", "path": "service",
