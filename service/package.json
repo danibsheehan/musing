@@ -13,7 +13,7 @@
     "test:run": "vitest run"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.123.0",
+    "@anthropic-ai/sdk": "^0.124.0",
     "@supabase/supabase-js": "^2.115.0",
     "cors": "^2.8.6",
     "express": "^5.1.0"
