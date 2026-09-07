@@ -8,6 +8,20 @@ updates:
       interval: daily
     open-pull-requests-limit: 10
     groups:
+      # vitest and @vitest/coverage-v8 have a strict peer dependency on each
+      # other's exact version. Grouped ahead of npm-minor-and-patch so a
+      # major bump always lands as one PR instead of splitting into two
+      # mutually-unresolvable ones. Major-only: minor/patch bumps of this
+      # pair still fall through to npm-minor-and-patch below and keep
+      # auto-merging, since dependabot-auto-merge.yml only allowlists that
+      # group name (see dani-actions README). Only needed here, not
+      # /service below, which doesn't depend on @vitest/coverage-v8.
+      vitest-family:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+        update-types:
+          - major
       npm-minor-and-patch:
         update-types:
           - minor
