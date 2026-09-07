@@ -12,6 +12,9 @@ updates:
         update-types:
           - minor
           - patch
+      security-updates:
+        applies-to: security-updates
+        patterns: ["*"]
 
   - package-ecosystem: npm
     directory: /service
@@ -23,6 +26,9 @@ updates:
         update-types:
           - minor
           - patch
+      security-updates:
+        applies-to: security-updates
+        patterns: ["*"]
 
   - package-ecosystem: github-actions
     # Scans .github/workflows (and root action manifests). Keep ungrouped so
