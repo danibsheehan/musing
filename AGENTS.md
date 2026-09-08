@@ -144,10 +144,18 @@ only carries musing's own mocking/fixture specifics.
   change** — `check_stack_docs.py` checks README / `AGENTS.md` drift but does not fix it.
 - **Commit secrets** (`.env.local`, credentials) or amend/force-push without being explicitly
   asked.
-- **Open, push, or merge a PR unless the user asks.** (This repo has no autonomous exception of
-  its own — see README's **Automation** section. A scheduled routine in
-  `danibsheehan/portfolio-automation` reads this repo read-only and may open a PR _in a different
-  repo_, `danibsheehan.github.io`; it never touches this one.)
+- **Open, push, or merge a PR unless the user asks — outside the coverage sweep.** Agents
+  never do this autonomously for any other work in this repo. The exceptions:
+  - **Coverage sweep** ([`.claude/coverage-sweep.md`](.claude/coverage-sweep.md)): a
+    scheduled routine may open a PR adding test coverage for a file on the curated
+    allowlist there, labeled `agent-coverage-sweep`.
+    [`coverage-sweep-auto-merge.yml`](.github/workflows/coverage-sweep-auto-merge.yml) merges
+    it automatically once required checks pass. If checks fail, the routine gets one fix
+    retry before relabeling the PR `coverage-sweep-needs-review` and stopping — it never
+    force-merges or loops indefinitely. No other work in this repo qualifies for autonomous
+    merge.
+  - A scheduled routine in `danibsheehan/portfolio-automation` reads this repo read-only and
+    may open a PR _in a different repo_, `danibsheehan.github.io`; it never touches this one.
 
 ## Definition of done
 

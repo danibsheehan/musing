@@ -110,10 +110,13 @@ cp .env.example .env.local
 
 ## Automation
 
-**In plain English:** this repo doesn't open PRs on its own, but it does merge one narrow kind
-automatically — grouped npm minor/patch Dependabot bumps, once CI passes (see below). Everything
-else — npm majors, GitHub Actions bumps, and all human-authored changes — is still reviewed and
-merged by hand. Separately, one thing runs unattended and lives elsewhere: a scheduled Claude Code
+**In plain English:** this repo merges two narrow kinds of change automatically, once CI
+passes — grouped npm minor/patch Dependabot bumps (see below), and test-only coverage
+additions to a small curated allowlist of files opened by a scheduled coverage-sweep routine
+(labeled `agent-coverage-sweep`; see [`AGENTS.md`](AGENTS.md) and
+[`.claude/coverage-sweep.md`](.claude/coverage-sweep.md)). Everything else — npm majors,
+GitHub Actions bumps, and all human-authored changes — is still reviewed and merged by hand.
+Separately, one thing runs unattended and lives elsewhere: a scheduled Claude Code
 routine, defined in
 [`danibsheehan/portfolio-automation`](https://github.com/danibsheehan/portfolio-automation)'s
 [`weekly-project-update`](https://github.com/danibsheehan/portfolio-automation/blob/main/.claude/skills/weekly-project-update/SKILL.md)
