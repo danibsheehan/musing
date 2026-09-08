@@ -1,0 +1,28 @@
+# Auto-merges only coverage-sweep PRs labeled `agent-coverage-sweep`, once required checks
+# (verify / lint (app), verify / test (app), verify / build (app), etc. per the branch
+# ruleset) pass. See the coverage-sweep exception in AGENTS.md and .claude/coverage-sweep.md.
+# Gate is by label, not actor — the coverage-sweep routine acts under a personal token, not a
+# bot identity, so the label is the only reliable signal that a PR came from the routine. The
+# label is applied by the routine itself when it opens the PR; never apply it by hand.
+
+name: Coverage sweep auto-merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    if: contains(github.event.pull_request.labels.*.name, 'agent-coverage-sweep')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Enable auto-merge
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
