@@ -129,7 +129,9 @@ enforced by a `PreToolUse` hook shipped with the plugin, so a non-conforming `gi
 -b`/`git switch -c` is blocked automatically. **`foundations:pr-chunk-plan`** — before
 starting a task that touches 3 or more files, or bundles multiple distinct concerns (e.g.
 data model, API, and UI in one task), break it into an ordered sequence of small,
-independently reviewable chunks first; skip it for single-file or one-line fixes.
+independently reviewable chunks first; skip it for single-file or one-line fixes. Once
+chunks are approved, **`foundations:pr-stack-ship`** ships them as a stack of small
+branches/PRs, retargeting and rebasing later PRs in the stack as earlier ones merge.
 
 ## Constraints — do not
 
@@ -173,8 +175,10 @@ independently reviewable chunks first; skip it for single-file or one-line fixes
   check (`npm run test:run` for touched suites, `npm run lint` if ESLint-relevant). Full
   coverage CI is not required for every small edit. For larger or riskier changes, run
   `/code-review` manually before committing to catch issues early.
-- **PR done**: run the checks under Test / CI parity above, then follow the
-  `foundations:pr-ready` skill (PR template filled, no secrets). Same-repo PRs get an
+- **PR done**: run the checks under Test / CI parity above, then follow
+  `foundations:pr-summary-draft` to draft the PR description from the actual diff and
+  commits, then the `foundations:pr-ready` skill (PR template filled, no secrets).
+  Same-repo PRs get an
   automatic **PR guide** sticky comment (`.github/workflows/pr-guide.yml`) — keep the
   template accurate anyway. CI (`.github/workflows/verify.yml`, via dani-actions'
   `npm-verify.yml`) reports one required check per package per concern — e.g. `verify /
