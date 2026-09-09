@@ -122,10 +122,20 @@ This repo also installs the `foundations` plugin from the `dani-foundations` mar
 `foundations:*`). `pr-ready`'s checklist covers the Test/CI parity commands above (the only
 musing-specific PR-readiness notes are in **Definition of done** below); `react-vitest-testing`
 covers the React+Vitest+RTL mechanics `vitest-tests` used to restate — that file now
-only carries musing's own mocking/fixture specifics.
+only carries musing's own mocking/fixture specifics. Two more from the same plugin apply to
+how any task in this repo gets branched and scoped: **`foundations:branch-naming`** —
+every branch follows `<type>/<slug>` (Conventional-Commits-style type prefix); this is now
+enforced by a `PreToolUse` hook shipped with the plugin, so a non-conforming `git checkout
+-b`/`git switch -c` is blocked automatically. **`foundations:pr-chunk-plan`** — before
+starting a task that touches 3 or more files, or bundles multiple distinct concerns (e.g.
+data model, API, and UI in one task), break it into an ordered sequence of small,
+independently reviewable chunks first; skip it for single-file or one-line fixes.
 
 ## Constraints — do not
 
+- **Commit or push directly to `main`.** Always branch first, following
+  `foundations:branch-naming`'s `<type>/<slug>` convention, then open a PR — even for small
+  or config-only changes.
 - **Import from `react-router-dom`.** This repo uses `react-router` directly (React Router 8).
 - **Assume the app is hosted at `/`.** Any app URL (wiki links, exports) must go through
   `BASE_URL` (`import.meta.env.BASE_URL`), not a hardcoded root path.
