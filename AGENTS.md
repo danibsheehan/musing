@@ -61,7 +61,9 @@ npm run build
 This is the same set of checks `.github/workflows/verify.yml` runs (via dani-actions'
 `npm-verify.yml`) as separate parallel jobs on push to `main` and on pull requests. `npm run
 test` / `npm run test:run` run Vitest without coverage; use those while iterating on a single
-suite. See the **`pr-ready`** skill below for the full pre-PR checklist.
+suite. See the **`pr-ready`** skill below for the full pre-PR checklist. If
+`test:coverage` fails below threshold, use `foundations:coverage-gap-diagnosis` to find
+which branches/error paths are undertested rather than chasing a bare percentage.
 
 ## Conventions
 
@@ -76,6 +78,12 @@ Conventions for this repo, organized by area. Read automatically by Claude Code 
 (`extensions/`, e.g. `wikiLink.ts`); slash/commands (`lib/slashMenuOptions.ts`,
 `lib/blockEditorCommands.ts`); types (`types/block.ts`, `types/page.ts`); Supabase
 (`lib/supabaseClient.ts`, `lib/supabaseWorkspace.ts` — not the `supabase/` SQL folder).
+
+### Accessibility
+
+Follow `foundations:accessibility-a11y` for keyboard use, focus, ARIA, and screen-reader
+concerns across the editor, `SlashMenu`, `PagePickerMenu`, and sidebar navigation — not just
+the TipTap surface.
 
 ### Editor (TipTap)
 
@@ -99,7 +107,19 @@ never calls Supabase.
 ### AI service (`service/`)
 
 Follow the `ai-service` skill for the auth boundary, budget/rate-limit gating, and deploy
-gotchas. Own package and toolchain — not covered by root `lint`/`test`/`build`.
+gotchas. Own package and toolchain — not covered by root `lint`/`test`/`build`. For general
+route/middleware hardening (validation, safe upstream calls, CORS/rate-limit defaults)
+beyond `ai-service`'s own auth/budget specifics, also check `foundations:api-hardening`; for
+tuning caching/TTLs/QPS against the AI provider itself, check
+`foundations:caching-and-upstream-perf`.
+
+### Deploy
+
+Follow `foundations:github-pages-deploy` for base-path handling, workflow structure, and
+`dist` layout when touching `.github/workflows/deploy-pages.yml`, `VITE_BASE_PATH`, or
+`import.meta.env.BASE_URL` usage. Follow `foundations:bundle-performance` before adding a
+heavy dependency or new editor extension, or when `.github/workflows/lighthouse.yml`
+regresses.
 
 ### Documentation and README accuracy
 
@@ -153,7 +173,8 @@ branches/PRs, retargeting and rebasing later PRs in the stack as earlier ones me
 - **Run root `npm run lint`/`test`/`build` and assume it covers `service/`.** It doesn't —
   `service/` is a separate package with its own scripts; see the `ai-service` skill.
 - **Bump React, Vite, TypeScript, or React Router without updating the docs in the same
-  change** — `check_stack_docs.py` checks README / `AGENTS.md` drift but does not fix it.
+  change** — `check_stack_docs.py` checks README / `AGENTS.md` drift but does not fix it;
+  use `foundations:doc-sync-patch` to patch it after a version bump (manual or Dependabot).
 - **Commit secrets** (`.env.local`, credentials) or amend/force-push without being explicitly
   asked.
 - **Open, push, or merge a PR unless the user asks — outside the coverage sweep.** Agents
