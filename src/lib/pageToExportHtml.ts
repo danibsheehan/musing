@@ -2,6 +2,7 @@ import type { Block } from "../types/block";
 import type { WorkspaceDatabase } from "../types/database";
 import type { Page } from "../types/page";
 import { parseDatabaseEmbedPayload } from "./databaseEmbed";
+import { sanitizeBlockHtml } from "./sanitizeBlockHtml";
 
 function escapeHtml(text: string): string {
   return text
@@ -48,7 +49,7 @@ function blockToHtml(
     case "horizontalRule":
       return `<div class="pdf-block"><hr class="pdf-hr" /></div>`;
     default:
-      return `<div class="pdf-block">${block.content}</div>`;
+      return `<div class="pdf-block">${sanitizeBlockHtml(block.content)}</div>`;
   }
 }
 

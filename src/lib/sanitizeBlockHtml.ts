@@ -1,15 +1,17 @@
 import DOMPurify from "dompurify";
 
 /**
- * Allowlist matches exactly what the current TipTap schema (StarterKit with headings
- * limited to h1/h2, WikiLink mark, Emoji node, block-id attributes) can legitimately
- * produce — see `editor-tiptap` skill and `extensions/*.ts` for the schema itself.
+ * Allowlist matches what the current TipTap schema (StarterKit with headings limited to
+ * h1/h2, WikiLink mark, Emoji node, block-id attributes) can legitimately produce — see
+ * `editor-tiptap` skill and `extensions/*.ts` for the schema itself — plus h3, which the
+ * live editor never emits but `htmlToDocx.ts`'s export conversion supports regardless.
  * `databaseEmbed` blocks store JSON, not HTML, and must never be passed through this.
  */
 const ALLOWED_TAGS = [
   "p",
   "h1",
   "h2",
+  "h3",
   "blockquote",
   "pre",
   "code",

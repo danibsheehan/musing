@@ -20,6 +20,12 @@ describe("injectBlockIdOnRoot", () => {
     expect(out).not.toContain("ignored");
   });
 
+  it("sanitizes malicious markup while still injecting the block id", () => {
+    const out = injectBlockIdOnRoot('<p>hi<img src="x.png" onerror="alert(1)"></p>', "id-a");
+    expect(out).not.toContain("onerror");
+    expect(out).toContain('data-block-id="id-a"');
+  });
+
   it("escapes blockId in the SSR-style path when document is undefined", () => {
     vi.stubGlobal("document", undefined);
     const out = injectBlockIdOnRoot("<p>x</p>", 'a&b"c');

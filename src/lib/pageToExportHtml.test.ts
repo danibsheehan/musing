@@ -84,6 +84,12 @@ describe("pageToExportHtml", () => {
     expect(html).toContain("This database no longer exists.");
   });
 
+  it("sanitizes block content before embedding it", () => {
+    const blocks: Block[] = [paragraph('<p>hi</p><img src="x.png" onerror="alert(1)">')];
+    const html = pageToExportHtml(docPage({ blocks }), () => undefined);
+    expect(html).not.toContain("onerror");
+  });
+
   it("renders database embed blocks and handles invalid or missing databases", () => {
     const db = sampleDb("db-1");
     const blocks: Block[] = [
