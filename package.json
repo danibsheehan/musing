@@ -30,6 +30,7 @@
     "@tiptap/react": "^3.31.3",
     "@tiptap/starter-kit": "^3.31.3",
     "docx": "^9.7.1",
+    "dompurify": "^3.4.15",
     "html2pdf.js": "^0.14.0",
     "prosemirror-model": "^1.25.4",
     "prosemirror-state": "^1.4.3",
