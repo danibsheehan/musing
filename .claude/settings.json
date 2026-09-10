@@ -14,6 +14,8 @@
     "allow": [
       "Edit",
       "Write",
+      "Edit(.claude/coverage-sweep-log.md)",
+      "Write(.claude/coverage-sweep-log.md)",
       "Bash(git status*)",
       "Bash(git diff*)",
       "Bash(git log*)",
@@ -23,6 +25,7 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git checkout -b *)",
+      "Bash(git checkout -B *)",
       "Bash(git switch -c *)",
       "Bash(git push origin *)",
       "Bash(git push -u origin *)",
