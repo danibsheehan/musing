@@ -15,7 +15,7 @@ jobs:
       contents: read
       issues: write
       pull-requests: write
-    uses: danibsheehan/dani-actions/.github/workflows/pr-guide.yml@v27
+    uses: danibsheehan/dani-actions/.github/workflows/pr-guide.yml@v29
     with:
       labels: |
         [{"name": "area: editor", "color": "bfdadc", "description": "TipTap editor, blocks, slash menu, links, or serialization"},
