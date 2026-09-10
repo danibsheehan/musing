@@ -1,5 +1,6 @@
 import type { Editor } from "@tiptap/core";
 import type { Block, BlockType } from "../types/block";
+import { sanitizeBlockHtml } from "./sanitizeBlockHtml";
 
 /** True when HTML has no visible text (whitespace / ZWSP / empty tags only). */
 export function isBlockHtmlVisuallyEmpty(html: string): boolean {
@@ -11,7 +12,7 @@ export function isBlockHtmlVisuallyEmpty(html: string): boolean {
     return stripped.length === 0;
   }
   const host = document.createElement("div");
-  host.innerHTML = html.trim() || "<p></p>";
+  host.innerHTML = sanitizeBlockHtml(html.trim() || "<p></p>");
   const text = (host.textContent ?? "").replace(/[\u200b-\u200d\ufeff]/g, "").trim();
   return text.length === 0;
 }

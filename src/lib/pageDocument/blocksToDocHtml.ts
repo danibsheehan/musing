@@ -1,5 +1,6 @@
 import type { Block } from "../../types/block";
 import { tipTapContentFromBlock } from "../blockEditorCommands";
+import { sanitizeBlockHtml } from "../sanitizeBlockHtml";
 
 function escapeAttr(s: string): string {
   return s
@@ -15,7 +16,7 @@ export function injectBlockIdOnRoot(html: string, blockId: string): string {
     return html.replace(/^<(\w+)/, `<$1 data-block-id="${escapeAttr(blockId)}" `);
   }
   const wrap = document.createElement("div");
-  wrap.innerHTML = html.trim();
+  wrap.innerHTML = sanitizeBlockHtml(html.trim());
   const first = wrap.firstElementChild;
   if (!first) {
     const p = document.createElement("p");

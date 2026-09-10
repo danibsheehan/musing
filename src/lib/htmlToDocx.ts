@@ -1,5 +1,6 @@
 import { convertInchesToTwip, ExternalHyperlink, HeadingLevel, Paragraph, TextRun } from "docx";
 import type { ParagraphChild } from "docx";
+import { sanitizeBlockHtml } from "./sanitizeBlockHtml";
 
 function absoluteUrl(href: string): string {
   if (!href) return "";
@@ -178,7 +179,7 @@ function elementToDocx(el: Element): Paragraph[] {
 /** Convert a TipTap HTML fragment into Word blocks (headings, lists, and tables are added elsewhere). */
 export function htmlFragmentToDocxBlocks(html: string): Paragraph[] {
   const host = document.createElement("div");
-  host.innerHTML = html.trim() || "<p></p>";
+  host.innerHTML = sanitizeBlockHtml(html.trim() || "<p></p>");
   const out: Paragraph[] = [];
   for (const node of Array.from(host.childNodes)) {
     if (node.nodeType === Node.TEXT_NODE) {

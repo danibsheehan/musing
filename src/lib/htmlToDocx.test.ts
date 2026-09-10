@@ -34,6 +34,11 @@ describe("htmlFragmentToDocxBlocks", () => {
     expect(s).toContain('"BI"');
   });
 
+  it("sanitizes malicious markup before converting", () => {
+    const blocks = htmlFragmentToDocxBlocks('<p>hi</p><img src="x.png" onerror="alert(1)">');
+    expect(blocks.every((b) => !serialized(b).includes("onerror"))).toBe(true);
+  });
+
   it("produces multiple blocks for sibling paragraphs", () => {
     const blocks = htmlFragmentToDocxBlocks("<p>One</p><p>Two</p>");
     expect(blocks.length).toBe(2);

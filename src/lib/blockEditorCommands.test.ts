@@ -83,6 +83,11 @@ describe("isBlockHtmlVisuallyEmpty", () => {
     expect(isBlockHtmlVisuallyEmpty("<p><br /></p>")).toBe(true);
     expect(isBlockHtmlVisuallyEmpty("<p>\u200b</p>")).toBe(true);
   });
+
+  it("sanitizes malicious markup without throwing", () => {
+    expect(isBlockHtmlVisuallyEmpty('<img src="x.png" onerror="alert(1)">')).toBe(true);
+    expect(isBlockHtmlVisuallyEmpty('<p>hi</p><img src="x.png" onerror="alert(1)">')).toBe(false);
+  });
 });
 
 describe("applyBlockTypeToEditor", () => {

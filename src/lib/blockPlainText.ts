@@ -1,4 +1,5 @@
 import type { Block } from "../types/block";
+import { sanitizeBlockHtml } from "./sanitizeBlockHtml";
 
 const ZERO_WIDTH_CHARS = /[\u200b-\u200d\ufeff]/g;
 
@@ -12,7 +13,7 @@ export function blockHtmlToPlainText(html: string): string {
       .trim();
   }
   const host = document.createElement("div");
-  host.innerHTML = html.trim() || "<p></p>";
+  host.innerHTML = sanitizeBlockHtml(html.trim() || "<p></p>");
   return (host.textContent ?? "").replace(ZERO_WIDTH_CHARS, "").trim();
 }
 
