@@ -4,6 +4,7 @@ import type { WorkspaceDatabase } from "../types/database";
 import type { Page, WorkspaceSnapshot } from "../types/page";
 import { createEmptyBlocks } from "./defaultBlocks";
 import { parseDatabaseEmbedPayload } from "./databaseEmbed";
+import { sanitizeBlockHtml } from "./sanitizeBlockHtml";
 
 export const STORAGE_KEY = "musing:workspace";
 
@@ -103,6 +104,12 @@ function normalizeDatabase(d: WorkspaceDatabase): WorkspaceDatabase {
   return d;
 }
 
+/** Sanitizes a validated block's HTML against the known TipTap schema; `databaseEmbed` content is JSON, not HTML. */
+function sanitizeBlock(block: Block): Block {
+  if (block.type === "databaseEmbed") return block;
+  return { ...block, content: sanitizeBlockHtml(block.content) };
+}
+
 function normalizePage(p: Page): Page {
   const raw = p as Record<string, unknown>;
   let layout: Page["layout"] = raw.layout === "database" ? "database" : "document";
@@ -119,7 +126,7 @@ function normalizePage(p: Page): Page {
   if (!Array.isArray(p.blocks) || p.blocks.length === 0 || !p.blocks.every(isValidBlock)) {
     return { ...base, blocks: createEmptyBlocks(), updatedAt: nowIso() };
   }
-  return base;
+  return { ...base, blocks: base.blocks.map(sanitizeBlock) };
 }
 
 type LegacyPageV1 = {

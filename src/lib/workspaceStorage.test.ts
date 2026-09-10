@@ -123,6 +123,28 @@ describe("parseWorkspaceJson", () => {
     expect(out!.pages[0].blocks[0].content).toBe("<p></p>");
   });
 
+  it("sanitizes malicious block HTML on parse", () => {
+    const maliciousPage = minimalPage({
+      blocks: [
+        {
+          id: "b1",
+          type: "paragraph",
+          content: '<p>hi</p><img src="x.png" onerror="alert(1)">',
+        },
+      ],
+    });
+    const snap = {
+      version: 2,
+      homePageId: "page-1",
+      lastOpenedPageId: null,
+      pages: [maliciousPage],
+      databases: [],
+    };
+    const out = parseWorkspaceJson(JSON.stringify(snap));
+    expect(out).not.toBeNull();
+    expect(out!.pages[0].blocks[0].content).not.toContain("onerror");
+  });
+
   it("accepts valid databaseEmbed block content", () => {
     const embed = minimalPage({
       blocks: [
