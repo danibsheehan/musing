@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Block } from "../types/block";
 import { blockHtmlToPlainText, blocksToPlainText, pageBlocksToPlainText } from "./blockPlainText";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 describe("blockHtmlToPlainText", () => {
   it("strips HTML tags and returns the visible text", () => {
@@ -11,6 +16,22 @@ describe("blockHtmlToPlainText", () => {
     const text = blockHtmlToPlainText('<p>hi</p><img src="x.png" onerror="alert(1)">');
     expect(text).not.toContain("onerror");
     expect(text).toBe("hi");
+  });
+
+  it("falls back to an empty paragraph for blank/whitespace-only html", () => {
+    expect(blockHtmlToPlainText("   ")).toBe("");
+  });
+
+  it("returns an empty string when the sanitized host reports no textContent", () => {
+    const fakeHost = { innerHTML: "", textContent: null } as unknown as HTMLDivElement;
+    vi.spyOn(document, "createElement").mockImplementation(() => fakeHost);
+    expect(blockHtmlToPlainText("<p>Hi</p>")).toBe("");
+  });
+
+  it("uses the regex-strip path when document is unavailable (SSR)", () => {
+    vi.stubGlobal("document", undefined);
+    const text = blockHtmlToPlainText("<p>Hello&nbsp;world</p>");
+    expect(text).toBe("Hello world");
   });
 });
 
