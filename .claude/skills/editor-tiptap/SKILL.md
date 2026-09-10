@@ -42,6 +42,7 @@ Imports like `@tiptap/pm/state` **must** resolve via **`vite.config.ts`** aliase
 - **Wiki link `href`** uses **`import.meta.env.BASE_URL`** so links work on GitHub Pages subpaths (`extensions/wikiLink.ts`).
 - **Slash / `@` detection** uses **`textBeforeCursorInBlock`** — keep behavior aligned with `Editor.tsx` menu state.
 - New **block types**: extend `BlockType` and `slashMenuOptions`, implement command behavior in **`blockEditorCommands`** / serialization, and ensure **`workspaceStorage` / snapshot** still round-trips.
+- New **mark, node, or attribute**: also add it to **`lib/sanitizeBlockHtml.ts`**'s `ALLOWED_TAGS`/`ALLOWED_ATTR` — that allowlist is hand-matched to today's schema, so an unlisted tag/attribute is silently stripped from stored content (on workspace load and at every export/plaintext call site), not rejected with an error.
 - **External workspace sync**: `setContent(blocksToDocHtml(...), { emitUpdate: false })` when replacing from outside so TipTap does not double-emit updates.
 
 ## Do not break
@@ -49,6 +50,7 @@ Imports like `@tiptap/pm/state` **must** resolve via **`vite.config.ts`** aliase
 - **Selection and focus** in a single doc — test Enter, Backspace, slash commands, and cross-block selection.
 - **Serialization**: `content` is stored as used by TipTap HTML pipeline; changing schema or marks affects existing data.
 - **StarterKit + custom blocks**: database embeds and special types follow `serializeDocToBlocks` / `blocksToDocHtml`.
+- **Sanitizer allowlist**: `lib/sanitizeBlockHtml.ts` must stay in sync with the schema — a schema change without a matching allowlist update degrades silently (missing content, not a build/test failure).
 
 ## Tests
 

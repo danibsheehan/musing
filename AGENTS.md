@@ -164,6 +164,10 @@ branches/PRs, retargeting and rebasing later PRs in the stack as earlier ones me
 - **Add a `@tiptap/pm/*` import without checking `vite.config.ts`'s `resolve.alias` map.**
   Rolldown (Vite 8) doesn't resolve those subpaths on its own; new ProseMirror subpaths need
   a matching `prosemirror-*` alias.
+- **Add a new TipTap mark, node, or attribute without updating `sanitizeBlockHtml.ts`'s
+  allowlist** (`src/lib/sanitizeBlockHtml.ts`'s `ALLOWED_TAGS`/`ALLOWED_ATTR`) — an unlisted
+  tag/attribute is silently stripped from stored content, not rejected with an error. See
+  the `editor-tiptap` skill.
 - **Assume Supabase is configured.** With no env vars set, the app is `localStorage`-only —
   don't add code paths that require a DB.
 - **Assume `musing-ai-service` is configured or reachable.** `isAiServiceConfigured()`
