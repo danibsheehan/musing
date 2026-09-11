@@ -14,8 +14,6 @@
     "allow": [
       "Edit",
       "Write",
-      "Edit(.claude/coverage-sweep-log.md)",
-      "Write(.claude/coverage-sweep-log.md)",
       "Bash(git status*)",
       "Bash(git diff*)",
       "Bash(git log*)",
