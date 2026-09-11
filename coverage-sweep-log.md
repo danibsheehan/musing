@@ -1,6 +1,12 @@
 # Coverage sweep log
 
-One row per run of the [coverage sweep](coverage-sweep.md), including no-op runs.
+One row per run of the [coverage sweep](.claude/coverage-sweep.md), including no-op runs.
+
+Lives at the repo root rather than under `.claude/` because `.claude/` is a Claude-Code-protected
+path — no `permissions.allow` rule can pre-approve a write there, so the routine could never
+append a row without a live human approval every run. See the history in this file's own PRs
+(#175, #193, #197) and the settings-permission PRs that tried to fix it from inside `.claude/`
+(#176, #194) before this file moved.
 
 | Date       | File                               | Branch coverage before → after | PR                                              | Outcome |
 | ---------- | ---------------------------------- | ------------------------------ | ----------------------------------------------- | ------- |

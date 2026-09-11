@@ -58,7 +58,9 @@ Each run:
 4. Open a PR labeled `agent-coverage-sweep`.
 5. Watch required checks. On failure, one fix retry; if still failing, relabel the PR
    `coverage-sweep-needs-review` and stop — never force-merge, never retry indefinitely.
-6. Append a row to [`coverage-sweep-log.md`](coverage-sweep-log.md).
+6. Append a row to [`coverage-sweep-log.md`](../coverage-sweep-log.md) — at the repo root, not
+   under `.claude/`, because `.claude/` is a Claude-Code-protected path that no `permissions.allow`
+   rule can pre-approve a write to.
 
 ## Growth
 
