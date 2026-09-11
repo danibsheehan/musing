@@ -140,4 +140,182 @@ describe("SidebarSearch", () => {
 
     expect(screen.getByText("Second Page")).toBeInTheDocument();
   });
+
+  it("dedupes matches for the same page keeping the highest similarity, sorts by similarity, falls back to 'Untitled' for an unknown page, and truncates a long snippet", async () => {
+    const longText = "A".repeat(90);
+    mocks.searchNotes.mockResolvedValue({
+      matches: [
+        { pageId: "p1", blockId: "b1", similarity: 0.5 },
+        { pageId: "p1", blockId: "b2", similarity: 0.9 },
+        { pageId: "p1", blockId: "b3", similarity: 0.3 },
+        { pageId: "p2", blockId: "b4", similarity: 0.6 },
+        { pageId: "p3", blockId: "b-match", similarity: 0.7 },
+      ],
+    });
+
+    const SidebarSearch = await loadComponent();
+    const value = createMockWorkspaceValue({
+      getPage: vi.fn((id: string) => {
+        if (id === "p1") return { id: "p1", title: "Page One", blocks: [] } as never;
+        if (id === "p3") {
+          return {
+            id: "p3",
+            title: "Page Three",
+            blocks: [{ id: "b-match", type: "paragraph", content: `<p>${longText}</p>` }],
+          } as never;
+        }
+        return undefined;
+      }),
+    });
+
+    render(
+      <MemoryRouter>
+        <WorkspaceContext.Provider value={value}>
+          <SidebarSearch />
+        </WorkspaceContext.Provider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.change(screen.getByLabelText("Search notes"), { target: { value: "hello" } });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+
+    const options = await screen.findAllByRole("option");
+    expect(options).toHaveLength(3);
+
+    expect(screen.getByText("Page One")).toBeInTheDocument();
+    expect(screen.getByText("Untitled")).toBeInTheDocument();
+    expect(screen.getByText("Page Three")).toBeInTheDocument();
+    expect(screen.getByText(`${"A".repeat(80)}…`)).toBeInTheDocument();
+
+    const untitledOption = screen.getByText("Untitled").closest("button");
+    expect(untitledOption?.querySelector(".sidebar-search-result-snippet")).toBeNull();
+  });
+
+  it("closes the results panel on an outside click and reopens it on focus", async () => {
+    mocks.searchNotes.mockResolvedValue({ matches: [] });
+    const SidebarSearch = await loadComponent();
+    const value = createMockWorkspaceValue();
+
+    render(
+      <MemoryRouter>
+        <WorkspaceContext.Provider value={value}>
+          <SidebarSearch />
+        </WorkspaceContext.Provider>
+      </MemoryRouter>,
+    );
+
+    const input = screen.getByLabelText("Search notes");
+
+    // Focusing before any search has run does nothing (no results yet).
+    fireEvent.focus(input);
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: "hello" } });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+    expect(await screen.findByRole("listbox")).toBeInTheDocument();
+
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+    fireEvent.focus(input);
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+  });
+
+  it("closes the results panel and blurs the input on Escape, but not on other keys", async () => {
+    mocks.searchNotes.mockResolvedValue({ matches: [] });
+    const SidebarSearch = await loadComponent();
+    const value = createMockWorkspaceValue();
+
+    render(
+      <MemoryRouter>
+        <WorkspaceContext.Provider value={value}>
+          <SidebarSearch />
+        </WorkspaceContext.Provider>
+      </MemoryRouter>,
+    );
+
+    const input = screen.getByLabelText("Search notes");
+    fireEvent.change(input, { target: { value: "hello" } });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+    expect(await screen.findByRole("listbox")).toBeInTheDocument();
+
+    fireEvent.keyDown(input, { key: "a" });
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(document.activeElement).not.toBe(input);
+  });
+
+  it("shows an empty state and logs an error when the search request rejects", async () => {
+    mocks.searchNotes.mockRejectedValueOnce(new Error("boom"));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const SidebarSearch = await loadComponent();
+    const value = createMockWorkspaceValue();
+
+    render(
+      <MemoryRouter>
+        <WorkspaceContext.Provider value={value}>
+          <SidebarSearch />
+        </WorkspaceContext.Provider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.change(screen.getByLabelText("Search notes"), { target: { value: "hello" } });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+
+    expect(await screen.findByText("No matches.")).toBeInTheDocument();
+    expect(consoleError).toHaveBeenCalledWith("Search failed", expect.any(Error));
+
+    consoleError.mockRestore();
+  });
+
+  it("ignores a rejected search response once the query has changed", async () => {
+    let rejectFirst: (err: unknown) => void = () => {};
+    const firstCall = new Promise<{ matches: [] }>((_resolve, reject) => {
+      rejectFirst = reject;
+    });
+    mocks.searchNotes.mockImplementationOnce(() => firstCall);
+    mocks.searchNotes.mockResolvedValueOnce({ matches: [] });
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const SidebarSearch = await loadComponent();
+    const value = createMockWorkspaceValue();
+
+    render(
+      <MemoryRouter>
+        <WorkspaceContext.Provider value={value}>
+          <SidebarSearch />
+        </WorkspaceContext.Provider>
+      </MemoryRouter>,
+    );
+
+    const input = screen.getByLabelText("Search notes");
+    fireEvent.change(input, { target: { value: "first" } });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+
+    // Changing the query before the first request settles cancels it.
+    fireEvent.change(input, { target: { value: "second" } });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+    expect(await screen.findByText("No matches.")).toBeInTheDocument();
+
+    await act(async () => {
+      rejectFirst(new Error("stale"));
+    });
+
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
 });
