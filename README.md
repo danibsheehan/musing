@@ -13,10 +13,13 @@
 
 ## Contents
 
+- [Start here](#start-here)
 - [Overview](#overview)
 - [Features](#features)
+- [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Quick start](#quick-start)
+- [CI](#ci)
 - [Automation](#automation)
 - [Stack](#stack)
 - [Code layout](#code-layout)
@@ -25,6 +28,17 @@
 - [Deploy to GitHub Pages](#deploy-to-github-pages)
 - [Deploy musing-ai-service (optional)](#deploy-musing-ai-service-optional)
 - [Cursor — legacy compatibility only](#cursor--legacy-compatibility-only)
+
+## Start here
+
+| I want to…                           | Go here                                                                                                    |
+| :----------------------------------- | :--------------------------------------------------------------------------------------------------------- |
+| **Try it live**                      | [danibsheehan.com/musing](https://www.danibsheehan.com/musing/) — no install                               |
+| **Run it on my machine**             | [Prerequisites](#prerequisites) → [Installation](#installation) → [Quick start](#quick-start)              |
+| **Understand what it does**          | [Overview](#overview) → [Features](#features)                                                              |
+| **Set up cloud sync or AI features** | [Supabase](#supabase-optional-cloud-sync) → [Deploy musing-ai-service](#deploy-musing-ai-service-optional) |
+| **Deploy my own copy**               | [Deploy to GitHub Pages](#deploy-to-github-pages)                                                          |
+| **See what CI and automation do**    | [CI](#ci) → [Automation](#automation)                                                                      |
 
 ## Overview
 
@@ -49,6 +63,12 @@ The repo also includes GitHub Actions workflows for anyone hosting their own cop
 - Optional **Supabase** sync (workspace snapshot in Postgres, RLS-scoped to the signed-in user)
 - Optional **AI second-brain layer** (`musing-ai-service`, requires Supabase too): a search box in the sidebar for semantic search across your notes, a **Summarize** button per page, a collapsible **Related pages** list, and a usage indicator showing how much of your monthly AI budget is used
 - **Vite** + **TypeScript**; **React Router 8** (`react-router`, not `react-router-dom`) with `basename` derived from `import.meta.env.BASE_URL` for subpath hosting
+
+## Prerequisites
+
+| Requirement           | Notes                    |
+| :-------------------- | :----------------------- |
+| **Node.js `22.22.3`** | Matches `.nvmrc` and CI. |
 
 ## Installation
 
@@ -87,7 +107,7 @@ Other useful scripts:
 | `npm run test:coverage`        | Vitest once with **v8 coverage**, HTML + `lcov` under `coverage/`, and **threshold checks** (configured in `vite.config.ts`) |
 | `npm run test:coverage:watch`  | Same coverage settings while iterating in watch mode                                                                         |
 
-### Continuous integration
+## CI
 
 **In plain English:** CI's job is to catch drift, regressions, and broken builds before they land on `main`. Pushes to **`main`** and **pull requests** run `.github/workflows/verify.yml` (via dani-actions' shared `npm-verify.yml`), as separate parallel jobs — one required check per concern, per npm package (root app and `service/`):
 
@@ -100,13 +120,6 @@ Other useful scripts:
 - `build` — `npm run build`
 
 The `test` job appends a Cobertura coverage summary to the workflow's job summary ([`irongut/CodeCoverageSummary`](https://github.com/irongut/CodeCoverageSummary)) for any package with coverage. On pull requests from the same repository — not forks, since a fork's `GITHUB_TOKEN` can't write to the base repo's PR thread — it also posts a coverage table comment ([`5monkeys/cobertura-action`](https://github.com/5monkeys/cobertura-action)). `.github/workflows/pr-guide.yml` additionally posts a sticky **PR guide** comment with touched areas, suggested verification, reviewer focus, and path-based `area:*` labels.
-
-Optional: copy `.env.example` to **`.env.local` in the repo root** (next to `package.json`), set the variables below, then restart `npm run dev`.
-
-```bash
-cp .env.example .env.local
-# edit .env.local — Vite only loads env from the project root, not from src/
-```
 
 ## Automation
 
@@ -170,6 +183,14 @@ This repo is an application, not a library: there is no separate package API.
 | `VITE_SUPABASE_ANON_KEY` | Cloud sync                 | Supabase anon (publishable) key                               |
 | `VITE_AI_SERVICE_URL`    | AI features                | `musing-ai-service` URL — also requires Supabase to be set    |
 | `VITE_BASE_PATH`         | Custom base path in builds | Optional override, e.g. `/custom/` — trailing slash preferred |
+
+Optional: copy `.env.example` to **`.env.local` in the repo root** (next to `package.json`), set
+the variables above, then restart `npm run dev`.
+
+```bash
+cp .env.example .env.local
+# edit .env.local — Vite only loads env from the project root, not from src/
+```
 
 Local development uses `.env.local`. **GitHub Actions** should define the same Supabase variables as **repository secrets** if you want sync on the live site or the **Supabase keepalive** workflow to run against your project.
 
