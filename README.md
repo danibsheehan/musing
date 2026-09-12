@@ -24,21 +24,19 @@
 - [Stack](#stack)
 - [Code layout](#code-layout)
 - [Configuration](#configuration)
-- [Supabase (optional cloud sync)](#supabase-optional-cloud-sync)
-- [Deploy to GitHub Pages](#deploy-to-github-pages)
-- [Deploy musing-ai-service (optional)](#deploy-musing-ai-service-optional)
+- [Deploy](#deploy)
 - [Cursor — legacy compatibility only](#cursor--legacy-compatibility-only)
 
 ## Start here
 
-| I want to…                           | Go here                                                                                                    |
-| :----------------------------------- | :--------------------------------------------------------------------------------------------------------- |
-| **Try it live**                      | [danibsheehan.com/musing](https://www.danibsheehan.com/musing/) — no install                               |
-| **Run it on my machine**             | [Prerequisites](#prerequisites) → [Installation](#installation) → [Quick start](#quick-start)              |
-| **Understand what it does**          | [Overview](#overview) → [Features](#features)                                                              |
-| **Set up cloud sync or AI features** | [Supabase](#supabase-optional-cloud-sync) → [Deploy musing-ai-service](#deploy-musing-ai-service-optional) |
-| **Deploy my own copy**               | [Deploy to GitHub Pages](#deploy-to-github-pages)                                                          |
-| **See what CI and automation do**    | [CI](#ci) → [Automation](#automation)                                                                      |
+| I want to…                           | Go here                                                                                       |
+| :----------------------------------- | :-------------------------------------------------------------------------------------------- |
+| **Try it live**                      | [danibsheehan.com/musing](https://www.danibsheehan.com/musing/) — no install                  |
+| **Run it on my machine**             | [Prerequisites](#prerequisites) → [Installation](#installation) → [Quick start](#quick-start) |
+| **Understand what it does**          | [Overview](#overview) → [Features](#features)                                                 |
+| **Set up cloud sync or AI features** | [Configuration](#configuration)                                                               |
+| **Deploy my own copy**               | [Deploy](#deploy)                                                                             |
+| **See what CI and automation do**    | [CI](#ci) → [Automation](#automation)                                                         |
 
 ## Overview
 
@@ -46,7 +44,7 @@ musing is a block-based note app in the spirit of Notion — write in blocks, li
 
 It runs entirely in your browser. By default your notes are saved to **localStorage** on your own device — there's nothing to sign up for, and nothing leaves your machine. If you want the same notes to follow you across devices, add a free **Supabase** project and musing will sync that workspace to the cloud behind an anonymous sign-in, with no separate account system to set up.
 
-If you also add **`musing-ai-service`** (see [Deploy musing-ai-service](#deploy-musing-ai-service-optional)), musing gains an AI layer on top of your own notes: semantic search, one-click page summaries, and a "related pages" list that finds connections you never explicitly linked. It's entirely optional and additive — nothing about the core note-taking experience changes without it.
+If you also add **`musing-ai-service`** (see [Deploy](#deploy)), musing gains an AI layer on top of your own notes: semantic search, one-click page summaries, and a "related pages" list that finds connections you never explicitly linked. It's entirely optional and additive — nothing about the core note-taking experience changes without it.
 
 The repo also includes GitHub Actions workflows for anyone hosting their own copy: one **deploys** to GitHub Pages with the correct asset base path (`https://<user>.github.io/<repo>/`) and copies `index.html` to `404.html` so client-side routes survive a refresh; another **pings** Supabase daily so a free-tier project is less likely to pause from inactivity; a third optionally **deploys** `musing-ai-service` to Cloud Run, and a fourth **probes** its `/health` endpoint weekly once deployed.
 
@@ -177,105 +175,15 @@ This repo is an application, not a library: there is no separate package API.
 
 ## Configuration
 
-| Variable                 | When needed                | Description                                                   |
-| ------------------------ | -------------------------- | ------------------------------------------------------------- |
-| `VITE_SUPABASE_URL`      | Cloud sync                 | Supabase project URL                                          |
-| `VITE_SUPABASE_ANON_KEY` | Cloud sync                 | Supabase anon (publishable) key                               |
-| `VITE_AI_SERVICE_URL`    | AI features                | `musing-ai-service` URL — also requires Supabase to be set    |
-| `VITE_BASE_PATH`         | Custom base path in builds | Optional override, e.g. `/custom/` — trailing slash preferred |
+musing runs with zero configuration by default — no env vars, **localStorage** only. Env vars
+for cloud sync and AI features, full Supabase setup, and keeping a free-tier Supabase project
+awake all live in **[docs/configuration.md](docs/configuration.md)**.
 
-Optional: copy `.env.example` to **`.env.local` in the repo root** (next to `package.json`), set
-the variables above, then restart `npm run dev`.
+## Deploy
 
-```bash
-cp .env.example .env.local
-# edit .env.local — Vite only loads env from the project root, not from src/
-```
-
-Local development uses `.env.local`. **GitHub Actions** should define the same Supabase variables as **repository secrets** if you want sync on the live site or the **Supabase keepalive** workflow to run against your project.
-
-## Supabase (optional cloud sync)
-
-**In plain English:** there's no email or password to manage — Supabase just needs an anonymous session to scope your data to you, so sync stays a background detail rather than a separate account.
-
-1. Create a project and copy **Project URL** and the **anon (publishable) key**.
-2. In **SQL Editor**, run `supabase/schema.sql` (creates `workspaces`, indexes, and RLS
-   policies, plus the `vector` extension and `note_embeddings`/`ai_outputs`/`ai_usage` tables
-   used by the optional `musing-ai-service` backend under `service/`).
-3. Under **Authentication → Providers**, enable **Anonymous** sign-ins (used for sync without a custom auth UI).
-4. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` and restart the dev server.
-
-Without those env vars, the app still runs using **localStorage** only.
-
-If auth misbehaves on the deployed URL, open **Authentication → URL Configuration** in Supabase and set **Site URL** and **Redirect URLs** to your GitHub Pages origin, e.g. `https://<user>.github.io/<repo>/`.
-
-### Keep free-tier projects active (optional)
-
-Supabase can **pause** free-tier projects after roughly a week without activity. The **Supabase keepalive** workflow (`.github/workflows/supabase-keepalive.yml`) sends a daily `GET` to your project’s `/auth/v1/health` endpoint using the **anon** key only—no service role key.
-
-| Item       | Detail                                                                                                                                                          |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Secrets    | Same as Pages: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. If either is missing, the job **skips** and succeeds so the repo stays green without Supabase. |
-| Schedule   | Daily at **06:00 UTC**; edit the `cron` expression in the workflow file to change the time.                                                                     |
-| Manual run | **Actions** → **Supabase keepalive** → **Run workflow**.                                                                                                        |
-
-Scheduled workflows run from the **default branch** (typically `main`). If a repository has no activity for a long time, GitHub may disable scheduled workflows until the repo is active again.
-
-## Deploy to GitHub Pages
-
-1. Repo **Settings → Pages** → **Build and deployment**: source **GitHub Actions**.
-2. **Settings → Secrets and variables → Actions** → add repository secrets if you want cloud sync on the live site (same values as `.env.local`):
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-     The build completes without them; the published app then behaves like local dev with no Supabase config (local-only persistence in the browser).
-3. Push to `main`. The branch ruleset requires `verify.yml`'s checks (stack-docs drift, `npm audit`, lint, format check, typecheck, coverage, build) to pass before a PR can merge; **Deploy to GitHub Pages** (`.github/workflows/deploy-pages.yml`) then runs independently on that same push (`npm ci`, `npm run build`, copy `dist/index.html` → `dist/404.html`, publish `dist`). **Supabase keepalive** is scheduled from the default branch as well; it only performs the health ping when both Supabase secrets above are set (otherwise it skips).
-
-For a **user site** (`https://<username>.github.io` from a repo named `<username>.github.io`), `vite.config.ts` uses base path `/` automatically when `GITHUB_ACTIONS` and `GITHUB_REPOSITORY` indicate that naming convention.
-
-## Deploy musing-ai-service (optional)
-
-`service/` is a separate backend (Express + TypeScript) providing the AI second-brain
-layer — semantic search, summaries, related pages — over musing's notes. It deploys
-independently to Cloud Run via `.github/workflows/deploy-cloud-run.yml`, triggered by pushes
-to `main` that touch `service/**`. Like **Supabase keepalive**, this workflow **skips**
-(doesn't fail) until it's configured:
-
-1. A GCP service account (deploys as, and Cloud Run runs the container as) with: Cloud Run
-   Admin, Service Account User, Secret Manager Secret Accessor, Cloud Build Editor (source
-   builds run through Cloud Build), Artifact Registry Administrator (the first deploy
-   creates the repo, not just pushes to it — plain Writer isn't enough), and Storage Admin
-   (source upload needs a Cloud Storage staging bucket created on first deploy).
-2. Repository secrets: `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_SA_KEY` (that service account's
-   JSON key), plus non-sensitive config — `CHAT_MODEL`, `EMBEDDING_MODEL`,
-   `AI_MONTHLY_TOKEN_CAP`, `AI_MONTHLY_REQUEST_CAP`, `AI_MAX_QPS`,
-   `VOYAGE_MONTHLY_TOKEN_CAP`, `VOYAGE_MONTHLY_REQUEST_CAP`, `SUPABASE_URL`, and
-   `ALLOWED_ORIGINS` (comma-separated list of origins allowed to call the API — see below).
-3. GCP Secret Manager secrets (same names): `SUPABASE_SERVICE_ROLE_KEY`,
-   `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY` — these are the actual sensitive values, kept out
-   of plaintext env vars on the Cloud Run revision.
-4. The musing frontend and `service/` are unrelated hosts (GitHub Pages vs. Cloud Run) on
-   different origins — the frontend calls `service/` cross-origin directly (no same-origin
-   proxy), so the API enforces CORS via `ALLOWED_ORIGINS` rather than relying on shared-domain
-   routing.
-5. Cloud Run is deployed with `--allow-unauthenticated` — the actual access boundary is
-   app-level (the API verifies each request's Supabase JWT), not GCP IAM, since callers are
-   end-user browsers with no GCP identity to present.
-
-Without that setup, the app runs exactly as described above with no AI features — this is
-an optional layer on top of the core note-taking app.
-
-Once deployed, **weekly probe smoke** (`.github/workflows/weekly-probe-smoke.yml`) checks
-`GET /health` on `service/` every Monday, reusing the `VITE_AI_SERVICE_URL` secret already
-set for the frontend build — a rare drift check, not a chatty uptime monitor, so it won't
-wake a scale-to-zero Cloud Run revision more than once a week.
-
-Simulate a Pages build locally:
-
-```bash
-GITHUB_ACTIONS=true GITHUB_REPOSITORY=yourname/yourrepo npm run build
-```
-
-Optional: `VITE_BASE_PATH=/custom/` when building.
+Two independent deploy targets — the frontend to GitHub Pages, and the optional
+`musing-ai-service` backend to Cloud Run (secrets, GCP IAM setup, and rollback notes): see
+**[docs/deploy.md](docs/deploy.md)**.
 
 ## Cursor — legacy compatibility only
 
