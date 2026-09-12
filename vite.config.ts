@@ -72,14 +72,15 @@ export default defineConfig({
       /**
        * Setting `include` (vs. relying on the default "only files a test imports") makes
        * coverage measure every matching src file — floor is set a few points below the true
-       * aggregate this exposes (~24% stmts, ~21% branches, ~26% funcs, ~24% lines). Raise
-       * gradually as suites grow; `npm run test:coverage` prints the table locally.
+       * aggregate this exposes (as of 2026-09-12: ~45% stmts, ~42% branches, ~55% funcs,
+       * ~46% lines). Raise gradually as suites grow; `npm run test:coverage` prints the
+       * table locally.
        */
       thresholds: {
-        statements: 22,
-        branches: 18,
-        functions: 24,
-        lines: 22,
+        statements: 33,
+        branches: 30,
+        functions: 39,
+        lines: 34,
       },
     },
   },
