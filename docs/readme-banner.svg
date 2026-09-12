@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 160" width="880" height="160">
+  <title>musing banner</title>
+  <rect width="880" height="160" fill="#16171d"/>
+  <rect width="880" height="160" fill="#1f2028" opacity="0.5"/>
+  <path d="M0 40h880M0 80h880M0 120h880" stroke="#c1d185" stroke-opacity="0.08" stroke-width="0.75"/>
+  <path d="M110 0v160M220 0v160M330 0v160M440 0v160M550 0v160M660 0v160M770 0v160" stroke="#c1d185" stroke-opacity="0.05" stroke-width="0.75"/>
+
+  <!-- Page 1: block page -->
+  <rect x="56" y="28" width="300" height="104" rx="10" fill="#1f2028" stroke="#2e303a" stroke-width="1.5"/>
+  <rect x="76" y="46" width="140" height="10" rx="3" fill="#f3f4f6" opacity="0.85"/>
+  <rect x="76" y="66" width="240" height="8" rx="3" fill="#9ca3af" opacity="0.5"/>
+  <rect x="76" y="82" width="200" height="8" rx="3" fill="#9ca3af" opacity="0.5"/>
+  <rect x="76" y="98" width="160" height="8" rx="3" fill="#c1d185" opacity="0.9"/>
+
+  <!-- Page 2: block page -->
+  <rect x="524" y="28" width="300" height="104" rx="10" fill="#1f2028" stroke="#2e303a" stroke-width="1.5"/>
+  <rect x="544" y="46" width="140" height="10" rx="3" fill="#f3f4f6" opacity="0.85"/>
+  <rect x="544" y="66" width="220" height="8" rx="3" fill="#9ca3af" opacity="0.5"/>
+  <rect x="544" y="82" width="150" height="8" rx="3" fill="#c1d185" opacity="0.9"/>
+  <rect x="544" y="98" width="190" height="8" rx="3" fill="#9ca3af" opacity="0.5"/>
+
+  <!-- Wiki-style link between the two pages -->
+  <path d="M316 102 C 380 102, 460 86, 524 86" stroke="#c1d185" stroke-width="2" fill="none" stroke-dasharray="4 4" opacity="0.85"/>
+  <circle cx="316" cy="102" r="3.25" fill="#c1d185"/>
+  <circle cx="524" cy="86" r="3.25" fill="#c1d185"/>
+
+  <rect x="0" y="154" width="880" height="4" fill="#c1d185" opacity="0.25"/>
+</svg>

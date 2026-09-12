@@ -7,6 +7,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
 
+[![musing banner](./docs/readme-banner.svg)](https://www.danibsheehan.com/musing/)
+
 > Notion-style block pages and editor in the browser, with optional **Supabase** sync and a **GitHub Pages** deployment path.
 
 **[Try it live →](https://www.danibsheehan.com/musing/)** — nothing to install, no account required. Everything below this is for running musing yourself or contributing to it.
