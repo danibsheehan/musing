@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { WorkspaceDatabase } from "../types/database";
@@ -83,5 +83,63 @@ describe("DatabaseTableView", () => {
   it("does not render the add-row button without an onChange handler", () => {
     render(<DatabaseTableView database={sampleDatabase()} />);
     expect(screen.queryByRole("button", { name: "+ New row" })).not.toBeInTheDocument();
+  });
+
+  it("does not call onChange when a cell is edited on a readOnly table", () => {
+    const onChange = vi.fn();
+    const database = sampleDatabase({
+      rows: [{ id: "r1", values: { name: "Buy milk", status: "todo" } }],
+    });
+    render(<DatabaseTableView database={database} onChange={onChange} readOnly />);
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Status cell" }), {
+      target: { value: "done" },
+    });
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("does not throw when a cell is edited without an onChange handler", () => {
+    const database = sampleDatabase({
+      rows: [{ id: "r1", values: { name: "Buy milk", status: "todo" } }],
+    });
+    render(<DatabaseTableView database={database} />);
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Status cell" }), {
+      target: { value: "done" },
+    });
+
+    expect(screen.getByRole("textbox", { name: "Status cell" })).toBeInTheDocument();
+  });
+
+  it("leaves other rows unchanged when one row's cell is edited", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const database = sampleDatabase({
+      rows: [
+        { id: "r1", values: { name: "Buy milk", status: "todo" } },
+        { id: "r2", values: { name: "Walk dog", status: "todo" } },
+      ],
+    });
+    render(<DatabaseTableView database={database} onChange={onChange} />);
+
+    await user.type(screen.getAllByRole("textbox", { name: "Status cell" })[0], "x");
+
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...database,
+      rows: [
+        { id: "r1", values: { name: "Buy milk", status: "todox" } },
+        { id: "r2", values: { name: "Walk dog", status: "todo" } },
+      ],
+    });
+  });
+
+  it("renders an empty cell when a row has no stored value for a property", () => {
+    const database = sampleDatabase({
+      rows: [{ id: "r1", values: { name: "Buy milk" } }],
+    });
+    render(<DatabaseTableView database={database} />);
+
+    expect(screen.getByRole("textbox", { name: "Status cell" })).toHaveValue("");
   });
 });
