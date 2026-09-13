@@ -17,8 +17,21 @@ file:
   not mutate the doc model.
 - `src/components/SidebarSearch.tsx` — UI component with debounce/effect logic; calls
   `aiClient`/`useWorkspace` but does not touch doc-model or sync internals directly.
+- `src/lib/emojiSuggestionItems.ts` — pure filter over a static emoji list; no TipTap doc
+  model, no Supabase.
+- `src/lib/resolveWikiPage.ts` — pure `Page[]` lookup/filter logic; no TipTap doc model, no
+  Supabase.
+- `src/components/DatabaseTableView.tsx` — UI component over `WorkspaceDatabase`
+  props/callbacks; no TipTap, no Supabase, mutations flow back through an `onChange` prop
+  owned by the caller.
+- `src/components/PageChrome.tsx` — pure UI chrome; export/summarize actions are callback
+  props it wires up, doesn't call TipTap/AI/Supabase itself.
+- `src/components/RelatedPagesSection.tsx` — UI component calling `aiClient`/`useWorkspace`,
+  same pattern as `SidebarSearch.tsx`; does not touch doc-model or sync internals directly.
+- `src/components/Sidebar.tsx` — UI component calling `useWorkspace` and the pure
+  `workspaceTree` lib; does not touch doc-model or sync internals directly.
 
-All three already have an adjacent `.test.ts`/`.test.tsx` file — the routine extends existing
+All nine already have an adjacent `.test.ts`/`.test.tsx` file — the routine extends existing
 suites, it does not create test infrastructure from scratch.
 
 ## Explicit exclusions
