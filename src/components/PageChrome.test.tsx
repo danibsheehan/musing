@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import type { ComponentProps } from "react";
@@ -182,6 +182,35 @@ describe("PageChrome", () => {
       await user.click(screen.getByRole("menuitem", { name: /Word/ }));
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Could not export as Word.");
+    });
+
+    it("forces the export dropdown closed if it is toggled open while an export is in progress", async () => {
+      const user = userEvent.setup();
+      const { promise, resolve } = deferred<void>();
+      const onDownloadPdf = vi.fn(() => promise);
+      const { container } = renderChrome({ onDownloadPdf });
+
+      await user.click(screen.getByRole("menuitem", { name: /PDF/ }));
+      expect(screen.getByText("PDF…")).toBeInTheDocument();
+
+      const details = container.querySelector("details.page-export-dropdown") as HTMLDetailsElement;
+      details.open = true;
+      fireEvent(details, new Event("toggle"));
+      expect(details.open).toBe(false);
+
+      await act(async () => {
+        resolve();
+        await promise;
+      });
+    });
+
+    it("leaves the export dropdown open when toggled while no export is in progress", () => {
+      renderChrome({ onDownloadPdf: vi.fn() });
+
+      const details = screen.getByText("Export").closest("details") as HTMLDetailsElement;
+      details.open = true;
+      fireEvent(details, new Event("toggle"));
+      expect(details.open).toBe(true);
     });
   });
 
