@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { WorkspaceContext, type WorkspaceContextValue } from "../context/workspace-context";
-import { isAiServiceConfigured, relatedPages } from "../lib/aiClient";
+import { isAiServiceConfigured, relatedPages, type RelatedPagesResult } from "../lib/aiClient";
 import RelatedPagesSection from "./RelatedPagesSection";
 
 vi.mock("../lib/aiClient", () => ({
@@ -95,5 +95,42 @@ describe("RelatedPagesSection", () => {
     renderSection(createMockWorkspaceValue());
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not load related pages.");
+  });
+
+  it("ignores a successful response that resolves after the component unmounts", async () => {
+    vi.mocked(isAiServiceConfigured).mockReturnValue(true);
+    let resolveRelatedPages: (result: RelatedPagesResult) => void;
+    vi.mocked(relatedPages).mockReturnValue(
+      new Promise((resolve) => {
+        resolveRelatedPages = resolve;
+      }),
+    );
+
+    const { unmount } = renderSection(createMockWorkspaceValue());
+    unmount();
+
+    resolveRelatedPages!({ related: [] });
+    await Promise.resolve();
+  });
+
+  it("ignores a rejection that arrives after the component unmounts", async () => {
+    vi.mocked(isAiServiceConfigured).mockReturnValue(true);
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    let rejectRelatedPages: (reason: unknown) => void;
+    vi.mocked(relatedPages).mockReturnValue(
+      new Promise((_resolve, reject) => {
+        rejectRelatedPages = reject;
+      }),
+    );
+
+    const { unmount } = renderSection(createMockWorkspaceValue());
+    unmount();
+
+    const error = new Error("boom");
+    rejectRelatedPages!(error);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to load related pages", error);
+    consoleErrorSpy.mockRestore();
   });
 });
