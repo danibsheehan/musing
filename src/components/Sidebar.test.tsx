@@ -139,6 +139,21 @@ describe("Sidebar", () => {
 
       expect(value.movePageWithinSiblings).toHaveBeenCalledWith("b", "up");
     });
+
+    it("calls movePageWithinSiblings with 'down' when Move down is clicked", async () => {
+      const user = userEvent.setup();
+      const pages = [
+        page({ id: "a", title: "A", order: 0 }),
+        page({ id: "b", title: "B", order: 1 }),
+      ];
+      const value = createMockWorkspaceValue(pages);
+      renderSidebar(value);
+
+      const rows = screen.getAllByRole("listitem");
+      await user.click(within(rows[0]).getByRole("button", { name: "Move down" }));
+
+      expect(value.movePageWithinSiblings).toHaveBeenCalledWith("a", "down");
+    });
   });
 
   describe("renaming", () => {
@@ -171,6 +186,19 @@ describe("Sidebar", () => {
       fireEvent.keyDown(input, { key: "Escape" });
 
       expect(screen.getByRole("link", { name: "Alpha" })).toBeInTheDocument();
+    });
+
+    it("commits the rename on Enter by blurring the input", () => {
+      const pages = [page({ id: "page-a", title: "Alpha" })];
+      const value = createMockWorkspaceValue(pages);
+      renderSidebar(value);
+
+      fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+      const input = screen.getByLabelText("Rename page");
+      fireEvent.change(input, { target: { value: "Beta" } });
+      fireEvent.keyDown(input, { key: "Enter" });
+
+      expect(value.updatePageTitle).toHaveBeenCalledWith("page-a", "Beta");
     });
   });
 
