@@ -184,6 +184,18 @@ describe("PageChrome", () => {
       expect(await screen.findByRole("alert")).toHaveTextContent("Could not export as Word.");
     });
 
+    it("shows a PDF-specific error message when the pdf export fails", async () => {
+      const user = userEvent.setup();
+      const onDownloadPdf = vi.fn().mockRejectedValue(new Error("boom"));
+      renderChrome({ onDownloadPdf });
+
+      await user.click(screen.getByRole("menuitem", { name: /PDF/ }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Could not export as PDF. Try again, or use Print and choose Save as PDF.",
+      );
+    });
+
     it("forces the export dropdown closed if it is toggled open while an export is in progress", async () => {
       const user = userEvent.setup();
       const { promise, resolve } = deferred<void>();
