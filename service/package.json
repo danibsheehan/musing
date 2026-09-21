@@ -13,7 +13,7 @@
     "test:run": "vitest run"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.125.0",
+    "@anthropic-ai/sdk": "^0.126.0",
     "@supabase/supabase-js": "^2.116.0",
     "cors": "^2.8.6",
     "express": "^5.1.0"
@@ -22,11 +22,11 @@
     "@eslint/js": "^10.0.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
-    "@types/node": "^26.5.1",
+    "@types/node": "^26.6.1",
     "eslint": "^10.10.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.12.0",
-    "prettier": "^3.9.6",
+    "prettier": "^3.9.8",
     "tsx": "^4.23.13",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.70.0",
