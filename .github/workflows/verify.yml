@@ -20,7 +20,7 @@ jobs:
       contents: read
       pull-requests: write
       checks: write
-    uses: danibsheehan/dani-actions/.github/workflows/npm-verify.yml@v34
+    uses: danibsheehan/dani-actions/.github/workflows/npm-verify.yml@v35
     with:
       packages: |
         [{"name": "app", "path": ".",
