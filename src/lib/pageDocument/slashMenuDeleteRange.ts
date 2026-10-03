@@ -1,4 +1,5 @@
 import type { Node as PMNode } from "@tiptap/pm/model";
+import { matchSlashToken } from "../tiptapMenuOpen";
 
 /**
  * Finds doc positions for the slash-menu filter suffix (`/…` at end of the block’s text)
@@ -21,10 +22,10 @@ export function findSlashMenuFilterDeleteRange(
     if (innerTo <= innerFrom) return null;
 
     const text = doc.textBetween(innerFrom, innerTo, "\n", " ");
-    const m = text.match(/\/[^ \n]*$/);
-    if (!m) return null;
+    const token = matchSlashToken(text);
+    if (!token) return null;
 
-    const suffix = m[0];
+    const suffix = `/${token.query}`;
     for (let len = suffix.length; len <= innerTo - innerFrom; len++) {
       const from = innerTo - len;
       if (from < innerFrom) break;

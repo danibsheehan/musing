@@ -24,6 +24,8 @@ import { findSlashMenuFilterDeleteRange } from "../lib/pageDocument/slashMenuDel
 import {
   isPagePickerOpen,
   isSlashMenuOpen,
+  matchPageToken,
+  matchSlashToken,
   removePagePickerToken,
   removeSlashCommandToken,
 } from "../lib/tiptapMenuOpen";
@@ -295,14 +297,14 @@ export default function Editor({
 
         const { from, $from } = ed.state.selection;
         const textBefore = textBeforeCursorInBlock($from);
-        const m = textBefore.match(/\/[^ \n]*$/);
-        if (!m) {
+        const token = matchSlashToken(textBefore);
+        if (!token) {
           if (ed.view.composing) return;
           closeSlashForThisRow();
           return;
         }
 
-        const slashPos = from - m[0].length;
+        const slashPos = from - token.length;
         const coords = viewCoordsForFloatingMenu(ed.view, slashPos, from);
         const top = coords.bottom + 4;
         const left = coords.left;
@@ -315,7 +317,7 @@ export default function Editor({
         menuBlockIdRef.current = activeBlockId;
         onSlashMenuOpenChange(activeBlockId);
         closePagePickerMenu();
-        setSlashMenuQuery(m[0].slice(1));
+        setSlashMenuQuery(token.query);
         setMenuPosition({ top, left });
         setShowMenu(true);
         setMenuBlockId(activeBlockId);
@@ -368,14 +370,14 @@ export default function Editor({
 
         const { from, $from } = ed.state.selection;
         const textBefore = textBeforeCursorInBlock($from);
-        const m = textBefore.match(/@([^ \n]*)$/);
-        if (!m) {
+        const token = matchPageToken(textBefore);
+        if (!token) {
           if (ed.view.composing) return;
           closePickerForThisRow();
           return;
         }
 
-        const atPos = from - m[0].length;
+        const atPos = from - token.length;
         const coords = viewCoordsForFloatingMenu(ed.view, atPos, from);
         const top = coords.bottom + 4;
         const left = coords.left;
@@ -388,7 +390,7 @@ export default function Editor({
         closeSlashMenu();
         pagePickerBlockIdRef.current = activeBlockId;
         setPagePickerPosition({ top, left });
-        setPagePickerQuery(m[1] ?? "");
+        setPagePickerQuery(token.query);
         setShowPagePicker(true);
         setPagePickerBlockId(activeBlockId);
       });
@@ -492,9 +494,9 @@ export default function Editor({
           .command(({ tr, state }) => {
             const { $from } = state.selection;
             const textBefore = textBeforeCursorInBlock($from);
-            const m = textBefore.match(/\/[^ \n]*$/);
-            if (!m) return false;
-            tr.delete($from.pos - m[0].length, $from.pos);
+            const token = matchSlashToken(textBefore);
+            if (!token) return false;
+            tr.delete($from.pos - token.length, $from.pos);
             return true;
           })
           .run();
@@ -591,9 +593,9 @@ export default function Editor({
           .command(({ tr, state }) => {
             const { $from } = state.selection;
             const textBefore = textBeforeCursorInBlock($from);
-            const m = textBefore.match(/@([^ \n]*)$/);
-            if (!m) return false;
-            const delFrom = $from.pos - m[0].length;
+            const token = matchPageToken(textBefore);
+            if (!token) return false;
+            const delFrom = $from.pos - token.length;
             const markType = state.schema.marks.wikiLink;
             if (!markType) return false;
             const textNode = state.schema.text(page.title, [markType.create({ pageId: page.id })]);
@@ -619,8 +621,7 @@ export default function Editor({
       if (!isSlashMenuOpen(ed)) return;
 
       const textBefore = textBeforeCursorInBlock(ed.state.selection.$from);
-      const slashM = textBefore.match(/\/[^ \n]*$/);
-      const query = slashM ? slashM[0].slice(1) : "";
+      const query = matchSlashToken(textBefore)?.query ?? "";
       const items = filterSlashMenuItems(SLASH_MENU_ITEMS, query);
       const n = items.length;
 
@@ -689,8 +690,7 @@ export default function Editor({
       if (!isPagePickerOpen(ed)) return;
 
       const textBefore = textBeforeCursorInBlock(ed.state.selection.$from);
-      const atM = textBefore.match(/@([^ \n]*)$/);
-      const pageQuery = atM ? (atM[1] ?? "") : "";
+      const pageQuery = matchPageToken(textBefore)?.query ?? "";
       const livePickerPages = filterPagesForPicker(pages, {
         query: pageQuery,
         excludePageId: pageId,
