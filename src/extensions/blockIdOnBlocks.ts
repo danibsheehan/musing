@@ -22,6 +22,8 @@ export const blockIdOnBlocks = Extension.create({
         attributes: {
           blockId: {
             default: null as string | null,
+            /** TipTap defaults this to true, which clones the id onto the new block when Enter is pressed at the end of a block; `ensureTopLevelBlockIds` assigns a fresh one instead. Splits in the middle or at the start are cloned by ProseMirror itself and are caught by `ensureTopLevelBlockIds` too. */
+            keepOnSplit: false,
             parseHTML: (el) => (el as HTMLElement).getAttribute?.("data-block-id") ?? null,
             renderHTML: (attrs) => {
               const id = attrs.blockId as string | null | undefined;

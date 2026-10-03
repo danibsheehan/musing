@@ -43,6 +43,7 @@ Imports like `@tiptap/pm/state` **must** resolve via **`vite.config.ts`** aliase
 - **Slash / `@` detection** uses **`textBeforeCursorInBlock`** — keep behavior aligned with `Editor.tsx` menu state.
 - New **block types**: extend `BlockType` and `slashMenuOptions`, implement command behavior in **`blockEditorCommands`** / serialization, and ensure **`workspaceStorage` / snapshot** still round-trips.
 - New **mark, node, or attribute**: also add it to **`lib/sanitizeBlockHtml.ts`**'s `ALLOWED_TAGS`/`ALLOWED_ATTR` — that allowlist is hand-matched to today's schema, so an unlisted tag/attribute is silently stripped from stored content (on workspace load and at every export/plaintext call site), not rejected with an error.
+- **Block ids are unique per page.** `blockId` is `keepOnSplit: false` (covers Enter at the end of a block) and `ensureTopLevelBlockIds` gives a fresh id to any top-level node whose id is missing or repeats an earlier one (mid-block splits, paste, list lifts, old saved data); the first occurrence keeps its id. `Editor.tsx` and the `lib/pageDocument/*` helpers look blocks up by id and rely on this — don't weaken it (e.g. by skipping the dedupe) unless those lookups are changed to use position.
 - **External workspace sync**: `setContent(blocksToDocHtml(...), { emitUpdate: false })` when replacing from outside so TipTap does not double-emit updates.
 
 ## Do not break
