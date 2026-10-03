@@ -2,11 +2,7 @@ import { Editor } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import { afterEach, describe, expect, it } from "vitest";
 import { blockIdOnBlocks } from "../../extensions/blockIdOnBlocks";
-import {
-  insertParagraphBelowBlock,
-  insertParagraphBelowBlockAtIndex,
-  reorderTopLevelBlocksByIndex,
-} from "./blockGutterOps";
+import { insertParagraphBelowBlockAtIndex, reorderTopLevelBlocksByIndex } from "./blockGutterOps";
 
 function makeEditor(html: string) {
   const el = document.createElement("div");
@@ -42,30 +38,6 @@ describe("insertParagraphBelowBlockAtIndex", () => {
     const { editor, el } = makeEditor(`<p data-block-id="a">x</p>`);
     expect(insertParagraphBelowBlockAtIndex(editor, -1)).toBe(false);
     expect(insertParagraphBelowBlockAtIndex(editor, 1)).toBe(false);
-    expect(editor.state.doc.childCount).toBe(1);
-    editor.destroy();
-    el.remove();
-  });
-});
-
-describe("insertParagraphBelowBlock", () => {
-  it("inserts after the last top-level node with the given blockId", () => {
-    const { editor, el } = makeEditor(
-      `<p data-block-id="dup">first</p><p data-block-id="dup">second</p>`,
-    );
-    expect(insertParagraphBelowBlock(editor, "dup")).toBe(true);
-    expect(editor.state.doc.childCount).toBe(3);
-    expect(editor.state.doc.child(1).textContent).toBe("second");
-    const inserted = editor.state.doc.child(2);
-    expect(inserted.type.name).toBe("paragraph");
-    expect(inserted.textContent).toBe("");
-    editor.destroy();
-    el.remove();
-  });
-
-  it("returns false when no block has the id", () => {
-    const { editor, el } = makeEditor(`<p data-block-id="a">x</p>`);
-    expect(insertParagraphBelowBlock(editor, "missing")).toBe(false);
     expect(editor.state.doc.childCount).toBe(1);
     editor.destroy();
     el.remove();

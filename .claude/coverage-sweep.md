@@ -40,8 +40,8 @@ Off-limits regardless of coverage percentage, until manually promoted (see Growt
 
 - Anything under `src/extensions/` or `src/lib/pageDocument/` (TipTap doc model / extensions
   — see the `editor-tiptap` skill).
-- `Editor.tsx`, `Block.tsx`, `PageDocumentEditor.tsx`, `DatabaseEmbedNodeView.tsx`,
-  `DatabaseEmbedBlock.tsx`, `musingDatabaseEmbed.ts` (editor core / node views).
+- `Editor.tsx`, `PageDocumentEditor.tsx`, `DatabaseEmbedNodeView.tsx`,
+  `musingDatabaseEmbed.ts` (editor core / node views).
 - `WorkspaceContext.tsx`, `workspaceStorage.ts`, `supabaseClient.ts`, `supabaseWorkspace.ts`
   (core data layer / Supabase sync — see the `supabase-sync` skill).
 - Everything under `service/` (separate toolchain, own auth/budget boundary — see the

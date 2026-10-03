@@ -4,7 +4,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { BlockType } from "../types/block";
 import {
   applyBlockTypeToEditor,
-  collapseEditorToSingleRootBlock,
   isBlockHtmlVisuallyEmpty,
   tipTapContentFromBlock,
 } from "./blockEditorCommands";
@@ -22,18 +21,6 @@ function makeEditor(html: string) {
 
 afterEach(() => {
   document.body.replaceChildren();
-});
-
-describe("collapseEditorToSingleRootBlock", () => {
-  it("removes extra top-level siblings", () => {
-    const { editor, el } = makeEditor("<p>a</p><p>b</p>");
-    expect(editor.state.doc.childCount).toBe(2);
-    collapseEditorToSingleRootBlock(editor);
-    expect(editor.state.doc.childCount).toBe(1);
-    expect(editor.getText()).toBe("a");
-    editor.destroy();
-    el.remove();
-  });
 });
 
 describe("tipTapContentFromBlock", () => {
