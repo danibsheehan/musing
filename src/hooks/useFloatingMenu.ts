@@ -25,9 +25,15 @@ type OpenState = { blockId: string; position: MenuPosition };
 
 export type FloatingMenuConfig<TItem> = {
   editorRef: RefObject<TiptapEditor | null>;
-  /** Pure: the trigger token at the end of the text before the caret (e.g. `@query`), or null. */
-  matchToken: (textBefore: string) => TokenMatch | null;
-  /** When false the menu never opens and closes if it was open (e.g. no other pages to link to). */
+  /**
+   * Pure: the trigger token at the end of the text before the caret (e.g. `@query`), or null.
+   * Omit it for a menu that is opened with `open()` and has no typed token.
+   */
+  matchToken?: (textBefore: string) => TokenMatch | null;
+  /**
+   * When false a token menu never opens and closes if it was open (e.g. no other pages to link to);
+   * for an imperative menu it only turns the keyboard handling off.
+   */
   enabled: boolean;
   /** Items for a query. Called with the live document query on key presses, and with the state query for rendering. */
   getItems: (query: string) => TItem[];
@@ -50,7 +56,7 @@ export type FloatingMenuConfig<TItem> = {
 export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
   const { editorRef, enabled, getItems } = config;
 
-  const [open, setOpen] = useState<OpenState | null>(null);
+  const [anchor, setAnchor] = useState<OpenState | null>(null);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -68,10 +74,10 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
   });
 
   useLayoutEffect(() => {
-    isOpenRef.current = open !== null;
-    blockIdRef.current = open?.blockId ?? null;
+    isOpenRef.current = anchor !== null;
+    blockIdRef.current = anchor?.blockId ?? null;
     selectedIndexRef.current = selectedIndex;
-  }, [open, selectedIndex]);
+  }, [anchor, selectedIndex]);
 
   useEffect(
     () => () => {
@@ -86,7 +92,7 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
     if (ed && !ed.isDestroyed) {
       configRef.current.removeTokenOnClose?.(ed);
     }
-    setOpen(null);
+    setAnchor(null);
     setQuery("");
     setSelectedIndex(0);
   }, [editorRef]);
@@ -94,7 +100,14 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
   /** The token is already gone from the document, so just hide the menu. */
   const hide = useCallback(() => {
     blockIdRef.current = null;
-    setOpen(null);
+    setAnchor(null);
+  }, []);
+
+  /** Opens a menu that has no typed token, anchored to a block at a screen position. */
+  const open = useCallback((args: { blockId: string; position: MenuPosition }) => {
+    setAnchor(args);
+    setQuery("");
+    setSelectedIndex(0);
   }, []);
 
   const select = useCallback(
@@ -112,6 +125,7 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
       rafRef.current = requestAnimationFrame(() => {
         if (ed.isDestroyed) return;
         const cfg = configRef.current;
+        if (!cfg.matchToken) return;
         if (!cfg.enabled) {
           if (blockIdRef.current) hide();
           return;
@@ -142,7 +156,7 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
 
         cfg.onBeforeOpen?.();
         blockIdRef.current = activeBlockId;
-        setOpen({ blockId: activeBlockId, position: { top, left } });
+        setAnchor({ blockId: activeBlockId, position: { top, left } });
         setQuery(token.query);
         setSelectedIndex(0);
       });
@@ -154,14 +168,20 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
     if (!enabled) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
-      const ed = editorRef.current;
-      if (!ed || ed.isDestroyed) return;
       const cfg = configRef.current;
-      // React state lags a frame behind typing, so the document is the source of truth for "open".
-      const token = cfg.matchToken(textBeforeCursorInBlock(ed.state.selection.$from));
-      if (!token) return;
+      let query = "";
+      if (cfg.matchToken) {
+        // React state lags a frame behind typing, so the document is the source of truth for "open".
+        const ed = editorRef.current;
+        if (!ed || ed.isDestroyed) return;
+        const token = cfg.matchToken(textBeforeCursorInBlock(ed.state.selection.$from));
+        if (!token) return;
+        query = token.query;
+      } else if (!isOpenRef.current) {
+        return;
+      }
 
-      const items = cfg.getItems(token.query);
+      const items = cfg.getItems(query);
       const n = items.length;
       const swallow = () => {
         e.preventDefault();
@@ -203,11 +223,11 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
   const items = useMemo(() => getItems(query), [getItems, query]);
 
   return {
-    isOpen: open !== null,
+    isOpen: anchor !== null,
     /** Synchronous mirror of `isOpen`, for handlers that run before React commits. */
     isOpenRef: isOpenRef as RefObject<boolean>,
-    blockId: open?.blockId ?? null,
-    position: open?.position ?? null,
+    blockId: anchor?.blockId ?? null,
+    position: anchor?.position ?? null,
     query,
     items,
     /** Selected index clamped to the current items. */
@@ -215,6 +235,7 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
     /** Attach to the menu's wrapper so outside-click handling can tell inside from outside. */
     menuRef,
     handleEditorActivity,
+    open,
     select,
     close,
   };
