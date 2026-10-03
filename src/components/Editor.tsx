@@ -68,7 +68,6 @@ export default function Editor({
   const { pages, databases } = useWorkspace();
 
   const [localBlocks, setLocalBlocks] = useState<BlockType[]>(blocks);
-  const [focusedBlockId, setFocusedBlockId] = useState<string | null>(blocks[0]?.id ?? null);
   const [showMenu, setShowMenu] = useState(false);
   const [menuBlockId, setMenuBlockId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
@@ -82,16 +81,11 @@ export default function Editor({
   const slashSelectedIndexRef = useRef(0);
   /** Set synchronously from Block when `/` menu opens — `menuBlockId` state/ref can lag one frame behind `showMenu`. */
   const slashAnchorBlockIdRef = useRef<string | null>(null);
-  /** While applying a non-embed slash command, block `addBlockAfter` for this row (re-entrant Enter / focus). */
-  const slashMutatingBlockIdRef = useRef<string | null>(null);
-  const slashMutatingClearTimerRef = useRef(0);
   /** Re-enable `setEditable(true)` after a slash apply — must clear on unmount. */
   const slashEditableRestoreTimerRef = useRef(0);
   const postSlashWaveRef = useRef<{
     slashAt: number;
     anchorBlockId: string;
-    lastInsertedChildId: string | null;
-    lastInsertAt: number;
   } | null>(null);
   const showPagePickerRef = useRef(false);
   const showDatabasePickerRef = useRef(false);
@@ -162,11 +156,6 @@ export default function Editor({
   );
 
   const blocksRef = useRef(blocks);
-  /** Latest `localBlocks` for synchronous reads inside `addBlockAfter` (must see inserts before chained PM handlers run). */
-  const localBlocksRef = useRef(localBlocks);
-  localBlocksRef.current = localBlocks;
-  const focusedBlockIdRef = useRef(focusedBlockId);
-  focusedBlockIdRef.current = focusedBlockId;
   const lastExternalRevisionRef = useRef(externalWorkspaceRevision);
   /** Set in `replaceBlocks` when local edits need persisting — flushed in `useLayoutEffect`, not inside `setLocalBlocks`. */
   const shouldPersistToWorkspaceRef = useRef(false);
@@ -180,9 +169,6 @@ export default function Editor({
     lastExternalRevisionRef.current = externalWorkspaceRevision;
     const next = blocksRef.current;
     setLocalBlocks(next);
-    setFocusedBlockId((prev) =>
-      prev && next.some((b) => b.id === prev) ? prev : (next[0]?.id ?? null),
-    );
   }, [externalWorkspaceRevision]);
 
   const pageEditorRef = useRef<TiptapEditor | null>(null);
@@ -192,7 +178,6 @@ export default function Editor({
 
   useEffect(
     () => () => {
-      window.clearTimeout(slashMutatingClearTimerRef.current);
       window.clearTimeout(slashEditableRestoreTimerRef.current);
     },
     [],
@@ -413,8 +398,6 @@ export default function Editor({
 
   const handlePageEditorActivity = useCallback(
     (ed: TiptapEditor) => {
-      const bid = blockIdAtSelection(ed);
-      if (bid) setFocusedBlockId(bid);
       queueSlashMenuFromEditor(ed);
       queuePagePickerFromEditor(ed);
     },
@@ -517,7 +500,6 @@ export default function Editor({
           if (e && !e.isDestroyed) {
             e.chain().focus().insertContent(":").run();
           }
-          setFocusedBlockId(blockId);
         });
         return;
       }
@@ -531,7 +513,6 @@ export default function Editor({
         setDatabasePickerSelectedIndex(0);
         setShowDatabasePicker(true);
         requestAnimationFrame(() => {
-          setFocusedBlockId(blockId);
           pageEditorRef.current?.commands.focus();
         });
         return;
@@ -540,11 +521,7 @@ export default function Editor({
       postSlashWaveRef.current = {
         slashAt: performance.now(),
         anchorBlockId: blockId,
-        lastInsertedChildId: null,
-        lastInsertAt: 0,
       };
-      slashMutatingBlockIdRef.current = blockId;
-      const focusBlockIdAfterSlash = blockId;
       const ed = pageEditorRef.current;
       try {
         removeSlash();
@@ -557,36 +534,16 @@ export default function Editor({
         flushSync(() => {
           updateBlockType(blockId, type);
         });
-        if (type === "horizontalRule") {
-          const insertedAt = performance.now();
-          const w = postSlashWaveRef.current;
-          if (w) {
-            postSlashWaveRef.current = {
-              slashAt: w.slashAt,
-              anchorBlockId: w.anchorBlockId,
-              lastInsertedChildId: null,
-              lastInsertAt: insertedAt,
-            };
-          }
-        }
       } finally {
         window.clearTimeout(slashEditableRestoreTimerRef.current);
         slashEditableRestoreTimerRef.current = window.setTimeout(() => {
           slashEditableRestoreTimerRef.current = 0;
-          const focusEditorId = focusBlockIdAfterSlash;
           const pe = pageEditorRef.current;
           if (pe && !pe.isDestroyed) {
             pe.setEditable(true);
             pe.commands.focus();
           }
-          setFocusedBlockId(focusEditorId);
         }, 48);
-        window.clearTimeout(slashMutatingClearTimerRef.current);
-        slashMutatingClearTimerRef.current = window.setTimeout(() => {
-          if (slashMutatingBlockIdRef.current === blockId) {
-            slashMutatingBlockIdRef.current = null;
-          }
-        }, 500);
       }
     },
     [menuPosition, updateBlockType, closeSlashMenu],
@@ -610,7 +567,6 @@ export default function Editor({
         pageEditorRef.current?.commands.setContent(blocksToDocHtml(nextBlocks), {
           emitUpdate: false,
         });
-        setFocusedBlockId(blockId);
       });
     },
     [databasePickerBlockId, replaceBlocks, closeDatabasePicker],
@@ -640,7 +596,6 @@ export default function Editor({
       }
       closePagePickerMenu();
       requestAnimationFrame(() => {
-        setFocusedBlockId(blockId);
         pageEditorRef.current?.commands.focus();
       });
     },
