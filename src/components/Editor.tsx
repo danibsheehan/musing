@@ -12,14 +12,14 @@ import {
   filterSlashMenuItems,
   SLASH_MENU_ITEMS,
   type SlashMenuChoice,
+  type SlashMenuItem,
 } from "../lib/slashMenuOptions";
 import { filterPagesForPicker } from "../lib/resolveWikiPage";
 import { stringifyDatabaseEmbedPayload } from "../lib/databaseEmbed";
 import { useWorkspace } from "../context/useWorkspace";
 import { useFloatingMenu } from "../hooks/useFloatingMenu";
-import { textBeforeCursorInBlock, viewCoordsForFloatingMenu } from "../lib/editorBlockText";
+import { textBeforeCursorInBlock } from "../lib/editorBlockText";
 import { applyBlockTypeToEditor, isBlockHtmlVisuallyEmpty } from "../lib/blockEditorCommands";
-import { blockIdAtSelection } from "../lib/pageDocument/blockIdAtSelection";
 import { blocksToDocHtml } from "../lib/pageDocument/blocksToDocHtml";
 import { findSlashMenuFilterDeleteRange } from "../lib/pageDocument/slashMenuDeleteRange";
 import {
@@ -54,6 +54,8 @@ function trimDuplicateEmptyParagraphBelowSlashAnchor(
   return blocks;
 }
 
+const getSlashItems = (query: string) => filterSlashMenuItems(SLASH_MENU_ITEMS, query);
+
 type Props = {
   pageId: string;
   blocks: BlockType[];
@@ -78,19 +80,6 @@ export default function Editor({
    * the old blocks, and it never runs again.
    */
   const [documentRevision, setDocumentRevision] = useState(externalWorkspaceRevision);
-  const [showMenu, setShowMenu] = useState(false);
-  const [menuBlockId, setMenuBlockId] = useState<string | null>(null);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  /** Text after `/` in the block (drives filtering; typed in the editor, not a separate input). */
-  const [slashMenuQuery, setSlashMenuQuery] = useState("");
-
-  /** Avoid stale closures on `window` keydown (effect timing vs `flushSync` / menu open). */
-  const showMenuRef = useRef(false);
-  const menuBlockIdRef = useRef<string | null>(null);
-  const slashSelectedIndexRef = useRef(0);
-  /** Set synchronously from Block when `/` menu opens — `menuBlockId` state/ref can lag one frame behind `showMenu`. */
-  const slashAnchorBlockIdRef = useRef<string | null>(null);
   /** Re-enable `setEditable(true)` after a slash apply — must clear on unmount. */
   const slashEditableRestoreTimerRef = useRef(0);
   const postSlashWaveRef = useRef<{
@@ -98,32 +87,10 @@ export default function Editor({
     anchorBlockId: string;
   } | null>(null);
 
-  const slashMenuQueryRef = useRef("");
-
-  useLayoutEffect(() => {
-    showMenuRef.current = showMenu;
-    menuBlockIdRef.current = menuBlockId;
-    slashSelectedIndexRef.current = selectedIndex;
-    slashMenuQueryRef.current = slashMenuQuery;
-  }, [showMenu, menuBlockId, selectedIndex, slashMenuQuery]);
-
   const otherPageCount = useMemo(
     () => pages.filter((p) => p.id !== pageId).length,
     [pages, pageId],
   );
-
-  const filteredSlashItems = useMemo(
-    () => filterSlashMenuItems(SLASH_MENU_ITEMS, slashMenuQuery),
-    [slashMenuQuery],
-  );
-
-  const safeSlashIndex =
-    filteredSlashItems.length === 0 ? 0 : Math.min(selectedIndex, filteredSlashItems.length - 1);
-
-  useEffect(() => {
-    if (!showMenu) return;
-    setSelectedIndex(0);
-  }, [slashMenuQuery, showMenu]);
 
   const getPickerPages = useCallback(
     (query: string) => filterPagesForPicker(pages, { query, excludePageId: pageId }),
@@ -148,8 +115,6 @@ export default function Editor({
   }, [externalWorkspaceRevision]);
 
   const pageEditorRef = useRef<TiptapEditor | null>(null);
-  const slashMenuActivityRafRef = useRef(0);
-  const slashMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(
     () => () => {
@@ -179,26 +144,12 @@ export default function Editor({
     onBlocksChange(localBlocks);
   }, [localBlocks, onBlocksChange]);
 
-  const closeSlashMenu = useCallback(() => {
-    const ed = pageEditorRef.current;
-    if (ed && !ed.isDestroyed) {
-      removeSlashCommandToken(ed);
-    }
-    slashAnchorBlockIdRef.current = null;
-    /** Same-tick as Backspace / pointer close so `window` capture listeners see a closed menu immediately. */
-    showMenuRef.current = false;
-    menuBlockIdRef.current = null;
-    slashMenuQueryRef.current = "";
-    setShowMenu(false);
-    setMenuBlockId(null);
-    setMenuPosition(null);
-    setSelectedIndex(0);
-    setSlashMenuQuery("");
-  }, []);
-
-  const onSlashMenuOpenChange = useCallback((blockId: string | null) => {
-    slashAnchorBlockIdRef.current = blockId;
-  }, []);
+  /**
+   * Late-bound, so the menus can close each other and the slash hook can call the slash command
+   * handler before all of them are defined.
+   */
+  const closeSlashMenuRef = useRef<() => void>(() => {});
+  const applySlashCommandRef = useRef<(type: SlashMenuChoice, blockId?: string) => void>(() => {});
 
   const applyPagePickerSelect = useCallback((page: Page, ctx: { close: () => void }) => {
     const ed = pageEditorRef.current;
@@ -242,8 +193,9 @@ export default function Editor({
     enabled: otherPageCount > 0,
     getItems: getPickerPages,
     onSelect: applyPagePickerSelect,
-    onBeforeOpen: closeSlashMenu,
+    onBeforeOpen: () => closeSlashMenuRef.current(),
     removeTokenOnClose: removePagePickerToken,
+    resetSelectionOnEveryActivity: true,
   });
 
   const applyDatabasePickerSelect = useCallback(
@@ -285,77 +237,31 @@ export default function Editor({
     onSelect: applyDatabasePickerSelect,
   });
 
+  const {
+    isOpen: showMenu,
+    isOpenRef: showMenuRef,
+    blockIdRef: slashBlockIdRef,
+    position: menuPosition,
+    items: filteredSlashItems,
+    selectedIndex: safeSlashIndex,
+    menuRef: slashMenuRef,
+    handleEditorActivity: queueSlashMenuFromEditor,
+    close: closeSlashMenu,
+  } = useFloatingMenu<SlashMenuItem>({
+    editorRef: pageEditorRef,
+    matchToken: matchSlashToken,
+    enabled: true,
+    getItems: getSlashItems,
+    onSelect: (item, ctx) => applySlashCommandRef.current(item.type, ctx.blockId),
+    onBeforeOpen: closePagePickerMenu,
+    removeTokenOnClose: removeSlashCommandToken,
+    blockRepeatedEnter: true,
+    onEmptyEnter: "ignore",
+  });
+
   const registerPageEditor = useCallback((instance: TiptapEditor | null) => {
     pageEditorRef.current = instance;
   }, []);
-
-  const queueSlashMenuFromEditor = useCallback(
-    (ed: TiptapEditor) => {
-      cancelAnimationFrame(slashMenuActivityRafRef.current);
-      slashMenuActivityRafRef.current = requestAnimationFrame(() => {
-        if (ed.isDestroyed) return;
-        const activeBlockId =
-          blockIdAtSelection(ed) ?? menuBlockIdRef.current ?? slashAnchorBlockIdRef.current;
-        if (!activeBlockId) return;
-
-        const thisBlockOwnsSlashMenu = () =>
-          menuBlockId === activeBlockId || menuBlockIdRef.current === activeBlockId;
-
-        const closeSlashForThisRow = () => {
-          if (!thisBlockOwnsSlashMenu()) return;
-          menuBlockIdRef.current = null;
-          onSlashMenuOpenChange(null);
-          setSlashMenuQuery("");
-          setShowMenu(false);
-          setMenuBlockId(null);
-          setMenuPosition(null);
-        };
-
-        const open = isSlashMenuOpen(ed);
-        if (!open) {
-          if (ed.view.composing) return;
-          closeSlashForThisRow();
-          return;
-        }
-
-        const { from, $from } = ed.state.selection;
-        const textBefore = textBeforeCursorInBlock($from);
-        const token = matchSlashToken(textBefore);
-        if (!token) {
-          if (ed.view.composing) return;
-          closeSlashForThisRow();
-          return;
-        }
-
-        const slashPos = from - token.length;
-        const coords = viewCoordsForFloatingMenu(ed.view, slashPos, from);
-        const top = coords.bottom + 4;
-        const left = coords.left;
-        if (!Number.isFinite(top) || !Number.isFinite(left)) {
-          if (ed.view.composing) return;
-          closeSlashForThisRow();
-          return;
-        }
-
-        menuBlockIdRef.current = activeBlockId;
-        onSlashMenuOpenChange(activeBlockId);
-        closePagePickerMenu();
-        setSlashMenuQuery(token.query);
-        setMenuPosition({ top, left });
-        setShowMenu(true);
-        setMenuBlockId(activeBlockId);
-      });
-    },
-    [
-      menuBlockId,
-      closePagePickerMenu,
-      setMenuBlockId,
-      setMenuPosition,
-      setShowMenu,
-      setSlashMenuQuery,
-      onSlashMenuOpenChange,
-    ],
-  );
 
   const handlePageEditorActivity = useCallback(
     (ed: TiptapEditor) => {
@@ -388,14 +294,7 @@ export default function Editor({
       }
       return false;
     },
-    [closeSlashMenu, closePagePickerMenu, otherPageCount, showPagePickerRef],
-  );
-
-  useEffect(
-    () => () => {
-      cancelAnimationFrame(slashMenuActivityRafRef.current);
-    },
-    [],
+    [closeSlashMenu, closePagePickerMenu, otherPageCount, showMenuRef, showPagePickerRef],
   );
 
   const slashCommandDedupeRef = useRef<{
@@ -414,7 +313,7 @@ export default function Editor({
 
   const applySlashCommand = useCallback(
     (type: SlashMenuChoice, slashBlockId?: string) => {
-      const blockId = slashBlockId ?? menuBlockIdRef.current ?? slashAnchorBlockIdRef.current;
+      const blockId = slashBlockId ?? slashBlockIdRef.current;
       if (!blockId) return;
 
       const now = performance.now();
@@ -503,70 +402,13 @@ export default function Editor({
         }, 48);
       }
     },
-    [menuPosition, updateBlockType, closeSlashMenu, openDatabasePicker],
+    [menuPosition, slashBlockIdRef, updateBlockType, closeSlashMenu, openDatabasePicker],
   );
 
   useLayoutEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const ed = pageEditorRef.current;
-      if (!ed || ed.isDestroyed) return;
-      // React menu state is updated in rAF after `/` — use doc + selection as source of truth
-      // so Arrow/Enter run before ProseMirror moves the caret to another block.
-      if (!isSlashMenuOpen(ed)) return;
-
-      const textBefore = textBeforeCursorInBlock(ed.state.selection.$from);
-      const query = matchSlashToken(textBefore)?.query ?? "";
-      const items = filterSlashMenuItems(SLASH_MENU_ITEMS, query);
-      const n = items.length;
-
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        if (n === 0) return;
-        setSelectedIndex((prev) => {
-          const cur = Math.min(prev, n - 1);
-          return (cur + 1) % n;
-        });
-      }
-
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        if (n === 0) return;
-        setSelectedIndex((prev) => {
-          const cur = Math.min(prev, n - 1);
-          return cur === 0 ? n - 1 : cur - 1;
-        });
-      }
-
-      if (e.key === "Enter") {
-        if (e.repeat) {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-          return;
-        }
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        if (n === 0) return;
-        const idx = Math.min(slashSelectedIndexRef.current, n - 1);
-        applySlashCommand(items[idx]!.type);
-      }
-
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        closeSlashMenu();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [applySlashCommand, closeSlashMenu]);
+    applySlashCommandRef.current = applySlashCommand;
+    closeSlashMenuRef.current = closeSlashMenu;
+  });
 
   useEffect(() => {
     if (!showMenu && !showPagePicker && !showDatabasePicker) return;
@@ -596,6 +438,7 @@ export default function Editor({
     return () => document.removeEventListener("pointerdown", onPointerDown, true);
   }, [
     showMenu,
+    slashMenuRef,
     showPagePicker,
     pagePickerRef,
     showDatabasePicker,
@@ -617,7 +460,7 @@ export default function Editor({
         onEditorKeyDown={handlePageDocumentKeyDown}
       />
 
-      {showMenu && menuBlockId && menuPosition && (
+      {menuPosition && (
         <div ref={slashMenuRef}>
           <SlashMenu
             position={menuPosition}
