@@ -12,7 +12,7 @@ function escapeHtml(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
-export function databaseToExportTableHtml(db: WorkspaceDatabase): string {
+function databaseToExportTableHtml(db: WorkspaceDatabase): string {
   const cols = db.properties;
   const colCount = Math.max(1, cols.length);
   const head = `<thead><tr>${cols.map((c) => `<th>${escapeHtml(c.name)}</th>`).join("")}</tr></thead>`;

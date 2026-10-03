@@ -1,34 +1,42 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Block } from "../../types/block";
-import { blocksToDocHtml, injectBlockIdOnRoot } from "./blocksToDocHtml";
+import { blocksToDocHtml } from "./blocksToDocHtml";
 
-describe("injectBlockIdOnRoot", () => {
-  it("creates an empty paragraph with data-block-id when there is no element root", () => {
-    const out = injectBlockIdOnRoot("", "block-1");
+const paragraphBlock = (id: string, content: string): Block => ({
+  id,
+  type: "paragraph",
+  content,
+});
+
+describe("blocksToDocHtml block id injection", () => {
+  it("creates an empty paragraph with data-block-id when the content has no element root", () => {
+    const out = blocksToDocHtml([paragraphBlock("block-1", "hi")]);
     expect(out).toBe('<p data-block-id="block-1"></p>');
   });
 
   it("adds data-block-id to the first element when missing", () => {
-    const out = injectBlockIdOnRoot("<p>hi</p>", "id-a");
+    const out = blocksToDocHtml([paragraphBlock("id-a", "<p>hi</p>")]);
     expect(out).toContain('data-block-id="id-a"');
     expect(out).toContain("hi");
   });
 
   it("does not overwrite an existing data-block-id", () => {
-    const out = injectBlockIdOnRoot('<p data-block-id="keep-me">x</p>', "ignored");
+    const out = blocksToDocHtml([paragraphBlock("ignored", '<p data-block-id="keep-me">x</p>')]);
     expect(out).toContain('data-block-id="keep-me"');
     expect(out).not.toContain("ignored");
   });
 
   it("sanitizes malicious markup while still injecting the block id", () => {
-    const out = injectBlockIdOnRoot('<p>hi<img src="x.png" onerror="alert(1)"></p>', "id-a");
+    const out = blocksToDocHtml([
+      paragraphBlock("id-a", '<p>hi<img src="x.png" onerror="alert(1)"></p>'),
+    ]);
     expect(out).not.toContain("onerror");
     expect(out).toContain('data-block-id="id-a"');
   });
 
   it("escapes blockId in the SSR-style path when document is undefined", () => {
     vi.stubGlobal("document", undefined);
-    const out = injectBlockIdOnRoot("<p>x</p>", 'a&b"c');
+    const out = blocksToDocHtml([paragraphBlock('a&b"c', "<p>x</p>")]);
     expect(out).toContain("data-block-id=");
     expect(out).toContain("&amp;");
     expect(out).toContain("&quot;");

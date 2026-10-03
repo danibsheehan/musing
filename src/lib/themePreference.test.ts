@@ -1,10 +1,8 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   THEME_PREF_STORAGE_KEY,
-  resolveTheme,
   getStoredThemePreference,
   setStoredThemePreference,
-  applyResolvedTheme,
   applyThemeFromStorage,
   bindSystemThemeListener,
 } from "./themePreference";
@@ -26,29 +24,39 @@ function mockMatchMedia(
   );
 }
 
-describe("resolveTheme", () => {
+describe("applyThemeFromStorage resolution", () => {
   afterEach(() => {
+    localStorage.clear();
+    delete document.documentElement.dataset.theme;
     vi.unstubAllGlobals();
   });
 
-  it("returns light when preference is light", () => {
+  it("resolves to light when preference is light, ignoring the system", () => {
+    localStorage.setItem(THEME_PREF_STORAGE_KEY, "light");
     mockMatchMedia(true);
-    expect(resolveTheme("light")).toBe("light");
+    expect(applyThemeFromStorage()).toBe("light");
+    expect(document.documentElement.dataset.theme).toBe("light");
   });
 
-  it("returns dark when preference is dark", () => {
+  it("resolves to dark when preference is dark, ignoring the system", () => {
+    localStorage.setItem(THEME_PREF_STORAGE_KEY, "dark");
     mockMatchMedia(false);
-    expect(resolveTheme("dark")).toBe("dark");
+    expect(applyThemeFromStorage()).toBe("dark");
+    expect(document.documentElement.dataset.theme).toBe("dark");
   });
 
   it("follows system when dark", () => {
+    localStorage.setItem(THEME_PREF_STORAGE_KEY, "system");
     mockMatchMedia(true);
-    expect(resolveTheme("system")).toBe("dark");
+    expect(applyThemeFromStorage()).toBe("dark");
+    expect(document.documentElement.dataset.theme).toBe("dark");
   });
 
   it("follows system when light", () => {
+    localStorage.setItem(THEME_PREF_STORAGE_KEY, "system");
     mockMatchMedia(false);
-    expect(resolveTheme("system")).toBe("light");
+    expect(applyThemeFromStorage()).toBe("light");
+    expect(document.documentElement.dataset.theme).toBe("light");
   });
 });
 
@@ -100,20 +108,6 @@ describe("setStoredThemePreference", () => {
       throw new Error("private mode");
     });
     expect(() => setStoredThemePreference("light")).not.toThrow();
-  });
-});
-
-describe("applyResolvedTheme", () => {
-  afterEach(() => {
-    delete document.documentElement.dataset.theme;
-  });
-
-  it("sets the data-theme attribute on the document element", () => {
-    applyResolvedTheme("dark");
-    expect(document.documentElement.dataset.theme).toBe("dark");
-
-    applyResolvedTheme("light");
-    expect(document.documentElement.dataset.theme).toBe("light");
   });
 });
 
