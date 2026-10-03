@@ -22,17 +22,17 @@ export function setStoredThemePreference(pref: ThemePreference): void {
   }
 }
 
-export function getSystemDark(): boolean {
+function getSystemDark(): boolean {
   return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
-export function resolveTheme(pref: ThemePreference): ResolvedTheme {
+function resolveTheme(pref: ThemePreference): ResolvedTheme {
   if (pref === "dark") return "dark";
   if (pref === "light") return "light";
   return getSystemDark() ? "dark" : "light";
 }
 
-export function applyResolvedTheme(resolved: ResolvedTheme): void {
+function applyResolvedTheme(resolved: ResolvedTheme): void {
   document.documentElement.dataset.theme = resolved;
 }
 

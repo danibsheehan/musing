@@ -3,7 +3,7 @@ import type { Block } from "../types/block";
 import type { Page } from "../types/page";
 import type { WorkspaceDatabase } from "../types/database";
 import { stringifyDatabaseEmbedPayload } from "./databaseEmbed";
-import { databaseToExportTableHtml, pageToExportHtml } from "./pageToExportHtml";
+import { pageToExportHtml } from "./pageToExportHtml";
 
 const paragraph = (content: string): Block => ({
   id: "b1",
@@ -22,9 +22,21 @@ const sampleDb = (id: string): WorkspaceDatabase => ({
   views: [{ id: "v1", name: "Default", type: "table" }],
 });
 
-describe("databaseToExportTableHtml", () => {
+const databasePage = (db: WorkspaceDatabase): Page => ({
+  id: "p1",
+  title: "T",
+  parentId: null,
+  order: 0,
+  updatedAt: "",
+  layout: "database",
+  databaseId: db.id,
+  blocks: [],
+});
+
+describe("pageToExportHtml database table rendering", () => {
   it("escapes header and cell text", () => {
-    const html = databaseToExportTableHtml(sampleDb("db1"));
+    const db = sampleDb("db1");
+    const html = pageToExportHtml(databasePage(db), (id) => (id === db.id ? db : undefined));
     expect(html).toContain("&amp;");
     expect(html).toContain("&lt;ok&gt;");
     expect(html).toContain("A &amp; B");
@@ -35,7 +47,7 @@ describe("databaseToExportTableHtml", () => {
       ...sampleDb("db1"),
       rows: [],
     };
-    const html = databaseToExportTableHtml(db);
+    const html = pageToExportHtml(databasePage(db), (id) => (id === db.id ? db : undefined));
     expect(html).toContain("No rows yet");
     expect(html).toMatch(/colspan="\d+"/);
   });
