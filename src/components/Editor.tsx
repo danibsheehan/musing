@@ -68,6 +68,13 @@ export default function Editor({
   const { pages, databases } = useWorkspace();
 
   const [localBlocks, setLocalBlocks] = useState<BlockType[]>(blocks);
+  /**
+   * What `PageDocumentEditor` sees as the external revision. It is bumped in the same state batch
+   * as `localBlocks`, so the document re-seeds when it holds the new blocks. Passing the
+   * `externalWorkspaceRevision` prop straight through makes it re-seed one render earlier, from
+   * the old blocks, and it never runs again.
+   */
+  const [documentRevision, setDocumentRevision] = useState(externalWorkspaceRevision);
   const [showMenu, setShowMenu] = useState(false);
   const [menuBlockId, setMenuBlockId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
@@ -169,6 +176,7 @@ export default function Editor({
     lastExternalRevisionRef.current = externalWorkspaceRevision;
     const next = blocksRef.current;
     setLocalBlocks(next);
+    setDocumentRevision(externalWorkspaceRevision);
   }, [externalWorkspaceRevision]);
 
   const pageEditorRef = useRef<TiptapEditor | null>(null);
@@ -832,7 +840,7 @@ export default function Editor({
       <PageDocumentEditor
         pageId={pageId}
         blocks={localBlocks}
-        externalWorkspaceRevision={externalWorkspaceRevision}
+        externalWorkspaceRevision={documentRevision}
         onBlocksChange={(next) => replaceBlocks(() => next)}
         registerEditor={registerPageEditor}
         onEditorActivity={handlePageEditorActivity}

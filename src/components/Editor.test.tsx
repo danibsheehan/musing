@@ -417,22 +417,38 @@ describe("Editor document sync", () => {
     expect(h.topLevel()).toEqual(["paragraph:"]);
   });
 
-  // EXISTING BUG (not fixed in this PR): when the workspace reloads from elsewhere (another tab, or
-  // the cloud snapshot arriving after mount), `Editor` passes the new revision to
-  // `PageDocumentEditor` in the same render in which its `localBlocks` state still holds the OLD
-  // blocks. The sync effect then re-seeds from the old blocks and does not run again when the new
-  // ones arrive, so the editor shows stale content (one update behind). `it.fails` documents the
-  // intended behavior and will start failing, as a prompt to flip it, once that is fixed.
-  it.fails(
-    "existing bug: re-seeds the document from the new blocks when the external revision changes",
-    async () => {
-      const h = await renderEditor({ blocks: [paragraphBlock("b1", "one")] });
-      expect(h.topLevel()).toEqual(["paragraph:one"]);
+  // Regression: `Editor` used to hand `PageDocumentEditor` the new revision in the same render in
+  // which its `localBlocks` state still held the OLD blocks, so the editor re-seeded from stale
+  // content and never re-ran (one update behind). It now passes a revision bumped together with
+  // `localBlocks`.
+  it("re-seeds the document from the new blocks when the external revision changes", async () => {
+    const h = await renderEditor({ blocks: [paragraphBlock("b1", "one")] });
+    expect(h.topLevel()).toEqual(["paragraph:one"]);
 
-      h.rerender({ blocks: [paragraphBlock("b1", "two")], externalWorkspaceRevision: 1 });
-      await flushFrames();
+    h.rerender({ blocks: [paragraphBlock("b1", "two")], externalWorkspaceRevision: 1 });
+    await flushFrames();
 
-      expect(h.topLevel()).toEqual(["paragraph:two"]);
-    },
-  );
+    expect(h.topLevel()).toEqual(["paragraph:two"]);
+  });
+
+  it("ends on the latest content after several external updates in a row", async () => {
+    const h = await renderEditor({ blocks: [paragraphBlock("b1", "a")] });
+
+    h.rerender({ blocks: [paragraphBlock("b1", "ab")], externalWorkspaceRevision: 1 });
+    await flushFrames();
+    h.rerender({ blocks: [paragraphBlock("b1", "abc")], externalWorkspaceRevision: 2 });
+    await flushFrames();
+
+    expect(h.topLevel()).toEqual(["paragraph:abc"]);
+  });
+
+  it("does not echo an external update back to the workspace as a local edit", async () => {
+    const h = await renderEditor({ blocks: [paragraphBlock("b1", "one")] });
+    h.onBlocksChange.mockClear();
+
+    h.rerender({ blocks: [paragraphBlock("b1", "two")], externalWorkspaceRevision: 1 });
+    await flushFrames();
+
+    expect(h.onBlocksChange).not.toHaveBeenCalled();
+  });
 });
