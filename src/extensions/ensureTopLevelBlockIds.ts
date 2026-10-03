@@ -8,15 +8,18 @@ function ensureBlockIdsTransaction(state: EditorState): Transaction | null {
   const tr = state.tr;
   /** `Transform.setNodeMarkup` uses `doc.nodeAt(pos)` — must be the start of the block (0 for first child; `nodeAt(1)` is null for empty paragraphs). */
   let pos = 0;
+  const seen = new Set<string>();
   for (let i = 0; i < doc.childCount; i++) {
     const node = doc.child(i);
-    const id = node.attrs?.blockId as string | null | undefined;
-    if (!id) {
+    let id = node.attrs?.blockId as string | null | undefined;
+    if (!id || seen.has(id)) {
+      id = uuidv4();
       tr.setNodeMarkup(pos, undefined, {
         ...(node.attrs ?? {}),
-        blockId: uuidv4(),
+        blockId: id,
       });
     }
+    seen.add(id);
     pos += node.nodeSize;
   }
   if (tr.steps.length === 0) return null;
@@ -24,7 +27,9 @@ function ensureBlockIdsTransaction(state: EditorState): Transaction | null {
 }
 
 /**
- * Assigns a `blockId` to any top-level doc child missing one (migration + paste).
+ * Keeps top-level `blockId`s present and unique: assigns one to any child missing one, and a
+ * fresh one to any child whose id repeats an earlier sibling's (split, paste, list lift, or
+ * workspaces saved before this check existed). The first occurrence keeps its id.
  */
 export const ensureTopLevelBlockIds = Extension.create({
   name: "ensureTopLevelBlockIds",
