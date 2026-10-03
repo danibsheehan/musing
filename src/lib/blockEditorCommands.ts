@@ -51,26 +51,6 @@ export function tipTapContentFromBlock(block: Pick<Block, "type" | "content">): 
   }
 }
 
-/**
- * Each musing row is one TipTap doc, but StarterKit allows `block+`, so commands like
- * `setHorizontalRule` or a stray split can leave extra top-level siblings. That looks
- * like an extra "block" under the current one while React still has a single row.
- *
- * Strips extra top-level nodes from serialized HTML, then setContent — avoids fragile
- * doc positions and avoids JSON setContent re-parsing quirks for `horizontalRule`.
- */
-export function collapseEditorToSingleRootBlock(editor: Editor): void {
-  if (editor.state.doc.childCount <= 1) return;
-  if (typeof document === "undefined") return;
-  const html = editor.getHTML();
-  const host = document.createElement("div");
-  host.innerHTML = html;
-  const firstEl = host.firstElementChild;
-  if (!firstEl) return;
-  host.replaceChildren(firstEl);
-  editor.commands.setContent(host.innerHTML, { emitUpdate: false });
-}
-
 /** Applies the block shape for `type` to the current selection (slash menu + type changes). */
 export function applyBlockTypeToEditor(editor: Editor, type: BlockType): void {
   const chain = editor.chain().focus();

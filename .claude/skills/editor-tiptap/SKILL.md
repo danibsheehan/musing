@@ -3,7 +3,7 @@ name: editor-tiptap
 description: >-
   TipTap/ProseMirror conventions for musing’s block editor, slash menu, wiki links,
   and Vite PM aliases. Use when editing or adding tiptap, prosemirror, extensions,
-  Block.tsx, Editor.tsx, PageDocumentEditor.tsx, SlashMenu, PagePickerMenu, wiki links,
+  Editor.tsx, PageDocumentEditor.tsx, SlashMenu, PagePickerMenu, wiki links,
   slash commands, page document serialization, or block types in src/extensions or
   lib/blockEditorCommands.
 ---
@@ -14,7 +14,7 @@ description: >-
 
 - **App-level blocks** are `Block[]` on each `Page` (`types/block.ts`): `id`, `type`, `content` (string).
 - **One TipTap document per page** (`PageDocumentEditor.tsx`): `useEditor` + `EditorContent` for the whole page so **selection can span blocks**. Top-level doc nodes carry **`data-block-id`** (`blockIdOnBlocks`, `ensureTopLevelBlockIds`).
-- **Parent orchestration** (`Editor.tsx`): slash menu, `@` page picker, database picker, focus and keyboard flow; uses **`blockIdAtSelection`** / **`findBlockPositionById`** to target the active block inside the shared doc.
+- **Parent orchestration** (`Editor.tsx`): slash menu, `@` page picker, database picker, focus and keyboard flow; uses **`blockIdAtSelection`** to target the active block inside the shared doc.
 - **Serialization**: `lib/pageDocument/blocksToDocHtml.ts` (blocks → HTML for `setContent`) and `serializeDocToBlocks.ts` (doc → `Block[]`). Changing schema or marks affects stored data.
 
 ## Where things live
@@ -30,7 +30,7 @@ description: >-
 | Doc ↔ blocks                                      | `lib/pageDocument/blocksToDocHtml.ts`, `serializeDocToBlocks.ts`, `blockIdAtSelection.ts` |
 | Floating text format bubble                       | `components/EditorTextFormatBubble.tsx`, `lib/editorBubbleMenuPortal.ts`                  |
 
-`Block.tsx` may remain for legacy or tests; **page editing** goes through `PageDocumentEditor`.
+**Page editing** goes through `PageDocumentEditor` (one TipTap document per page).
 
 ## Vite and `@tiptap/pm/*`
 

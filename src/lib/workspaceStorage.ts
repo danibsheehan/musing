@@ -100,10 +100,6 @@ function isValidDatabase(d: unknown): d is WorkspaceDatabase {
   return o.views.length > 0;
 }
 
-function normalizeDatabase(d: WorkspaceDatabase): WorkspaceDatabase {
-  return d;
-}
-
 /** Sanitizes a validated block's HTML against the known TipTap schema; `databaseEmbed` content is JSON, not HTML. */
 function sanitizeBlock(block: Block): Block {
   if (block.type === "databaseEmbed") return block;
@@ -162,7 +158,7 @@ function migrateV1ToV2(raw: LegacySnapshotV1): WorkspaceSnapshot {
 
 export function normalizeSnapshot(snapshot: WorkspaceSnapshot): WorkspaceSnapshot {
   const databases = Array.isArray(snapshot.databases)
-    ? snapshot.databases.filter(isValidDatabase).map(normalizeDatabase)
+    ? snapshot.databases.filter(isValidDatabase)
     : [];
 
   const pages = snapshot.pages.map((page) => normalizePage(page));

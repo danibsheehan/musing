@@ -455,8 +455,6 @@ export default function Editor({
     [],
   );
 
-  /** Block's useEffect skips one apply — we already ran `applyBlockTypeToEditor` in `applySlashCommand`. */
-  const slashTypeSyncedInEditorRef = useRef<string | null>(null);
   const slashCommandDedupeRef = useRef<{
     at: number;
     blockId: string;
@@ -555,7 +553,6 @@ export default function Editor({
         }
         if (ed && !ed.isDestroyed) {
           applyBlockTypeToEditor(ed, type);
-          slashTypeSyncedInEditorRef.current = blockId;
         }
         flushSync(() => {
           updateBlockType(blockId, type);

@@ -42,22 +42,6 @@ export function insertParagraphBelowBlockAtIndex(editor: Editor, blockIndex: num
     .run();
 }
 
-/**
- * Insert below the last top-level node whose `blockId` equals `afterBlockId`.
- * (Duplicate ids can exist after paste; first-match would insert in the wrong place.)
- */
-export function insertParagraphBelowBlock(editor: Editor, afterBlockId: string): boolean {
-  const { doc } = editor.state;
-  let lastIdx = -1;
-  for (let i = 0; i < doc.childCount; i++) {
-    if ((doc.child(i).attrs?.blockId as string | undefined) === afterBlockId) {
-      lastIdx = i;
-    }
-  }
-  if (lastIdx < 0) return false;
-  return insertParagraphBelowBlockAtIndex(editor, lastIdx);
-}
-
 /** Reorder top-level blocks by index (same semantics as array splice move). */
 export function reorderTopLevelBlocksByIndex(
   editor: Editor,

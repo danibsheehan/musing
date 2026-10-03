@@ -3,7 +3,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { TextSelection } from "@tiptap/pm/state";
 import { afterEach, describe, expect, it } from "vitest";
 import { blockIdOnBlocks } from "../../extensions/blockIdOnBlocks";
-import { blockIdAtSelection, findBlockPositionById } from "./blockIdAtSelection";
+import { blockIdAtSelection } from "./blockIdAtSelection";
 
 function makeEditor(html: string) {
   const el = document.createElement("div");
@@ -37,34 +37,6 @@ describe("blockIdAtSelection", () => {
     }
     editor.view.dispatch(editor.state.tr.setSelection(TextSelection.create(doc, pos)));
     expect(blockIdAtSelection(editor)).toBe("second");
-    editor.destroy();
-    el.remove();
-  });
-});
-
-describe("findBlockPositionById", () => {
-  it("returns 0 for the first top-level block", () => {
-    const { editor, el } = makeEditor(
-      `<p data-block-id="alpha">x</p><p data-block-id="beta">y</p>`,
-    );
-    expect(findBlockPositionById(editor, "alpha")).toBe(0);
-    editor.destroy();
-    el.remove();
-  });
-
-  it("returns the doc offset of the second block", () => {
-    const { editor, el } = makeEditor(
-      `<p data-block-id="alpha">x</p><p data-block-id="beta">y</p>`,
-    );
-    const first = editor.state.doc.child(0);
-    expect(findBlockPositionById(editor, "beta")).toBe(first.nodeSize);
-    editor.destroy();
-    el.remove();
-  });
-
-  it("returns null when no block has the id", () => {
-    const { editor, el } = makeEditor(`<p data-block-id="only">z</p>`);
-    expect(findBlockPositionById(editor, "missing")).toBeNull();
     editor.destroy();
     el.remove();
   });
