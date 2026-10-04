@@ -202,11 +202,10 @@ describe("Editor slash menu", () => {
     expect(h.topLevel()).toEqual(["paragraph:"]);
   });
 
-  // EXISTING QUIRK (fixed in a later PR in this stack): the token is measured from the END of the
-  // block's text, so typing "/head" at the START of a non-empty block makes the whole block text
-  // look like the token and applying the command deletes it. After the fix this should be
-  // ["heading:Title"].
-  it("existing behavior: a command typed at the start of a non-empty block swallows that block's text", async () => {
+  // Regression: the token used to be measured from the END of the block's text, so a command typed
+  // at the start or in the middle of a non-empty block made the rest of the block look like part of
+  // the token, and applying the command deleted it. The menu now remembers where the token is.
+  it("a command typed at the start of a non-empty block keeps that block's text", async () => {
     const h = await renderEditor({ blocks: [paragraphBlock("b1", "Title")] });
     h.setCaret(1);
     h.typeAtCaret("/head");
@@ -216,7 +215,73 @@ describe("Editor slash menu", () => {
     h.pressKey("Enter");
     await wait(80);
 
-    expect(h.topLevel()).toEqual(["heading:"]);
+    expect(h.topLevel()).toEqual(["heading:Title"]);
+  });
+
+  it("removes the whole token when more is typed and Enter is pressed before the next frame", async () => {
+    const h = await renderEditor();
+    h.typeText("/di");
+    await flushFrames();
+    expect(slashMenu()).toBeInTheDocument();
+
+    h.typeText("v"); // the menu has not seen this keystroke yet
+    h.pressKey("Enter");
+    await wait(80);
+
+    expect(h.topLevel()[0]).toBe("horizontalRule:");
+    expect(h.topLevel().slice(1)).toEqual(["paragraph:"]);
+  });
+
+  it("removes the token even when text before it was deleted in the same frame", async () => {
+    const h = await renderEditor({ blocks: [paragraphBlock("b1", "ab")] });
+    h.typeText("/di");
+    await flushFrames();
+    expect(slashMenu()).toBeInTheDocument();
+
+    // Shift the token left and extend it, then press Enter before the menu can refresh.
+    act(() => {
+      h.editor.commands.deleteRange({ from: 2, to: 3 });
+    });
+    h.typeText("v");
+    h.pressKey("Enter");
+    await wait(80);
+
+    expect(h.topLevel()[0]).toBe("paragraph:a");
+    expect(JSON.stringify(h.topLevel())).not.toContain("/");
+  });
+
+  it("a command typed in the middle of a block's text removes only the typed token", async () => {
+    const h = await renderEditor({ blocks: [paragraphBlock("b1", "Title")] });
+    h.setCaret(3);
+    h.typeAtCaret("/head");
+    await flushFrames();
+    expect(slashMenu()).toBeInTheDocument();
+
+    h.pressKey("Enter");
+    await wait(80);
+
+    expect(h.topLevel()).toEqual(["heading:Title"]);
+  });
+
+  it("does not delete unrelated text when the document changed after the menu opened", async () => {
+    const h = await renderEditor({ blocks: [paragraphBlock("b1", "abc")] });
+    h.typeText("/head");
+    await flushFrames();
+    expect(slashMenu()).toBeInTheDocument();
+
+    // Replace the text before the next animation frame can refresh the menu's remembered token.
+    act(() => {
+      h.editor.commands.setContent('<p data-block-id="b1">XYZXYZXYZXYZ</p>');
+    });
+    const option = screen.getByRole("option", { name: "Heading 1" });
+    act(() => {
+      option.dispatchEvent(
+        new MouseEvent("pointerdown", { bubbles: true, cancelable: true, button: 0 }),
+      );
+    });
+    await wait(80);
+
+    expect(h.topLevel()).toEqual(["heading:XYZXYZXYZXYZ"]);
   });
 });
 
