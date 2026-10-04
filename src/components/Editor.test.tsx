@@ -1,0 +1,438 @@
+import { act, screen } from "@testing-library/react";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { SLASH_MENU_ITEMS } from "../lib/slashMenuOptions";
+import {
+  databaseFixture,
+  flushFrames,
+  installLayoutStubs,
+  pageFixture,
+  paragraphBlock,
+  renderEditor,
+  wait,
+} from "../test/editorHarness";
+
+/**
+ * Characterization tests for the floating menus orchestrated by `Editor.tsx` (slash menu,
+ * `@` page picker, linked-database picker). They pin CURRENT behavior, including quirks, so the
+ * menu refactor can be verified as behavior-neutral. jsdom cannot cover real focus/blur on menu
+ * clicks, key repeat from a physical keyboard, IME composition, or real layout coordinates;
+ * those stay manual (see the vitest-tests skill).
+ */
+
+// The emoji extension probes canvas support when its module loads (before any test runs);
+// jsdom logs "not implemented" unless getContext is stubbed first.
+vi.hoisted(() => {
+  HTMLCanvasElement.prototype.getContext = () => null;
+});
+
+let restoreLayout: () => void;
+beforeAll(() => {
+  restoreLayout = installLayoutStubs();
+});
+afterAll(() => {
+  restoreLayout();
+});
+
+const slashMenu = () => screen.queryByRole("listbox", { name: "Block commands" });
+const pagePicker = () => screen.queryByRole("listbox", { name: "Pages" });
+const databasePicker = () => screen.queryByRole("listbox", { name: "Databases" });
+const optionNames = () => screen.getAllByRole("option").map((o) => o.textContent);
+const selectedIndex = () =>
+  screen.getAllByRole("option").findIndex((o) => o.getAttribute("aria-selected") === "true");
+
+const otherPages = [pageFixture("p-alpha", "Alpha"), pageFixture("p-beta", "Beta")];
+const withOthers = [pageFixture("current", "Current"), ...otherPages];
+
+function pointerDown(target: Element) {
+  act(() => {
+    target.dispatchEvent(new Event("pointerdown", { bubbles: true, cancelable: true }));
+  });
+}
+
+describe("Editor slash menu", () => {
+  it("opens on '/' listing every command, first one selected", async () => {
+    const h = await renderEditor();
+    expect(slashMenu()).not.toBeInTheDocument();
+
+    h.typeText("/");
+    await flushFrames();
+
+    expect(slashMenu()).toBeInTheDocument();
+    expect(optionNames()).toHaveLength(SLASH_MENU_ITEMS.length);
+    expect(selectedIndex()).toBe(0);
+  });
+
+  it("filters the commands by the text typed after '/'", async () => {
+    const h = await renderEditor();
+    h.typeText("/head");
+    await flushFrames();
+    expect(optionNames()).toEqual(["Heading 1", "Heading 2"]);
+  });
+
+  it("moves the selection with ArrowDown/ArrowUp and wraps at both ends", async () => {
+    const h = await renderEditor();
+    h.typeText("/head");
+    await flushFrames();
+    expect(selectedIndex()).toBe(0);
+
+    const down = h.pressKey("ArrowDown");
+    expect(down.defaultPrevented).toBe(true);
+    expect(selectedIndex()).toBe(1);
+
+    h.pressKey("ArrowDown");
+    expect(selectedIndex()).toBe(0);
+
+    h.pressKey("ArrowUp");
+    expect(selectedIndex()).toBe(1);
+  });
+
+  it("applies the selected command on Enter: block type changes, token removed, menu closes", async () => {
+    const h = await renderEditor();
+    h.typeText("/head");
+    await flushFrames();
+    h.pressKey("ArrowDown");
+
+    const enter = h.pressKey("Enter");
+    await wait(80);
+
+    expect(enter.defaultPrevented).toBe(true);
+    expect(h.topLevel()).toEqual(["heading:"]);
+    expect(h.editor.state.doc.firstChild?.attrs.level).toBe(2);
+    expect(slashMenu()).not.toBeInTheDocument();
+    const last = h.onBlocksChange.mock.calls.at(-1)?.[0];
+    expect(last?.[0].type).toBe("heading2");
+  });
+
+  it("swallows a repeated Enter (key held down) without applying anything", async () => {
+    const h = await renderEditor();
+    h.typeText("/head");
+    await flushFrames();
+
+    const enter = h.pressKey("Enter", { repeat: true });
+    await wait(80);
+
+    expect(enter.defaultPrevented).toBe(true);
+    expect(h.topLevel()).toEqual(["paragraph:/head"]);
+    expect(slashMenu()).toBeInTheDocument();
+  });
+
+  it("does nothing on Enter when no command matches, and the menu stays open", async () => {
+    const h = await renderEditor();
+    h.typeText("/zzz");
+    await flushFrames();
+    expect(screen.getByText("No matching commands")).toBeInTheDocument();
+
+    const enter = h.pressKey("Enter");
+    await wait(80);
+
+    expect(enter.defaultPrevented).toBe(true);
+    expect(h.topLevel()).toEqual(["paragraph:/zzz"]);
+    expect(slashMenu()).toBeInTheDocument();
+  });
+
+  it("closes on Escape and removes the typed token", async () => {
+    const h = await renderEditor();
+    h.typeText("/he");
+    await flushFrames();
+
+    const esc = h.pressKey("Escape");
+
+    expect(esc.defaultPrevented).toBe(true);
+    expect(slashMenu()).not.toBeInTheDocument();
+    expect(h.topLevel()).toEqual(["paragraph:"]);
+  });
+
+  it("closes without removing text when a space ends the token", async () => {
+    const h = await renderEditor();
+    h.typeText("/he");
+    await flushFrames();
+    expect(slashMenu()).toBeInTheDocument();
+
+    h.typeText(" ");
+    await flushFrames();
+
+    expect(slashMenu()).not.toBeInTheDocument();
+    expect(h.topLevel()).toEqual(["paragraph:/he "]);
+  });
+
+  it("closes on pointerdown outside the menu (removing the token) but not inside it", async () => {
+    const h = await renderEditor();
+    h.typeText("/he");
+    await flushFrames();
+
+    pointerDown(screen.getByRole("listbox", { name: "Block commands" }));
+    expect(slashMenu()).toBeInTheDocument();
+
+    pointerDown(document.body);
+    expect(slashMenu()).not.toBeInTheDocument();
+    expect(h.topLevel()).toEqual(["paragraph:"]);
+  });
+
+  it("Divider inserts a horizontal rule", async () => {
+    const h = await renderEditor();
+    h.typeText("/div");
+    await flushFrames();
+    h.pressKey("Enter");
+    await wait(80);
+
+    expect(h.topLevel()[0]).toBe("horizontalRule:");
+    expect(slashMenu()).not.toBeInTheDocument();
+  });
+
+  it("Emoji removes the token and types ':' after a frame to start the emoji suggestions", async () => {
+    const h = await renderEditor();
+    h.typeText("/emoji");
+    await flushFrames();
+    h.pressKey("Enter");
+    await flushFrames();
+
+    expect(h.topLevel()).toEqual(["paragraph::"]);
+    expect(slashMenu()).not.toBeInTheDocument();
+  });
+
+  it("Linked database closes the slash menu and opens the database picker", async () => {
+    const h = await renderEditor({ databases: [databaseFixture("db1", "Tasks")] });
+    h.typeText("/linked");
+    await flushFrames();
+    h.pressKey("Enter");
+    await flushFrames();
+
+    expect(slashMenu()).not.toBeInTheDocument();
+    expect(databasePicker()).toBeInTheDocument();
+    expect(h.topLevel()).toEqual(["paragraph:"]);
+  });
+
+  // EXISTING QUIRK (fixed in a later PR in this stack): the token is measured from the END of the
+  // block's text, so typing "/head" at the START of a non-empty block makes the whole block text
+  // look like the token and applying the command deletes it. After the fix this should be
+  // ["heading:Title"].
+  it("existing behavior: a command typed at the start of a non-empty block swallows that block's text", async () => {
+    const h = await renderEditor({ blocks: [paragraphBlock("b1", "Title")] });
+    h.setCaret(1);
+    h.typeAtCaret("/head");
+    await flushFrames();
+    expect(slashMenu()).toBeInTheDocument();
+
+    h.pressKey("Enter");
+    await wait(80);
+
+    expect(h.topLevel()).toEqual(["heading:"]);
+  });
+});
+
+describe("Editor @ page picker", () => {
+  it("never opens when the workspace has no other pages", async () => {
+    const h = await renderEditor({ pages: [pageFixture("current", "Current")] });
+    h.typeText("@");
+    await flushFrames();
+    expect(pagePicker()).not.toBeInTheDocument();
+  });
+
+  it("opens on '@' listing other pages alphabetically, excluding the current one", async () => {
+    const h = await renderEditor({
+      pages: [
+        pageFixture("current", "Current"),
+        pageFixture("p-b", "Beta"),
+        pageFixture("p-a", "Alpha"),
+      ],
+    });
+    h.typeText("@");
+    await flushFrames();
+
+    expect(pagePicker()).toBeInTheDocument();
+    expect(optionNames()).toEqual(["Alpha", "Beta"]);
+  });
+
+  it("filters pages by the text typed after '@'", async () => {
+    const h = await renderEditor({ pages: withOthers });
+    h.typeText("@al");
+    await flushFrames();
+    expect(optionNames()).toEqual(["Alpha"]);
+  });
+
+  it("moves the selection with the arrow keys and wraps", async () => {
+    const h = await renderEditor({ pages: withOthers });
+    h.typeText("@");
+    await flushFrames();
+    expect(selectedIndex()).toBe(0);
+
+    h.pressKey("ArrowDown");
+    expect(selectedIndex()).toBe(1);
+    h.pressKey("ArrowDown");
+    expect(selectedIndex()).toBe(0);
+    h.pressKey("ArrowUp");
+    expect(selectedIndex()).toBe(1);
+  });
+
+  it("Enter replaces the token with a wiki link to the selected page and closes the picker", async () => {
+    const h = await renderEditor({ pages: withOthers });
+    h.typeText("@al");
+    await flushFrames();
+
+    const enter = h.pressKey("Enter");
+    await flushFrames();
+
+    expect(enter.defaultPrevented).toBe(true);
+    expect(h.topLevel()).toEqual(["paragraph:Alpha"]);
+    const text = h.editor.getJSON().content?.[0].content?.[0] as
+      { text?: string; marks?: unknown[] } | undefined;
+    expect(text?.text).toBe("Alpha");
+    expect(text?.marks?.[0]).toMatchObject({ type: "wikiLink", attrs: { pageId: "p-alpha" } });
+    expect(pagePicker()).not.toBeInTheDocument();
+  });
+
+  it("closes on Escape and removes the typed '@…' token", async () => {
+    const h = await renderEditor({ pages: withOthers });
+    h.typeText("@al");
+    await flushFrames();
+
+    h.pressKey("Escape");
+
+    expect(pagePicker()).not.toBeInTheDocument();
+    expect(h.topLevel()).toEqual(["paragraph:"]);
+  });
+
+  it("Enter with no matching page just closes the picker", async () => {
+    const h = await renderEditor({ pages: withOthers });
+    h.typeText("@zzz");
+    await flushFrames();
+    expect(screen.getByText("No matching pages")).toBeInTheDocument();
+
+    const enter = h.pressKey("Enter");
+
+    expect(enter.defaultPrevented).toBe(true);
+    expect(pagePicker()).not.toBeInTheDocument();
+  });
+
+  it("existing behavior: typing '@' while the slash menu is open closes the picker path, removes the '@', and leaves the slash menu open", async () => {
+    const h = await renderEditor({ pages: withOthers });
+    h.typeText("/");
+    await flushFrames();
+    expect(slashMenu()).toBeInTheDocument();
+
+    h.typeText("@");
+    await flushFrames();
+
+    expect(pagePicker()).not.toBeInTheDocument();
+    expect(slashMenu()).toBeInTheDocument();
+    expect(h.topLevel()).toEqual(["paragraph:/"]);
+  });
+});
+
+describe("Editor linked-database picker", () => {
+  const openPicker = async (databases = [databaseFixture("db1", "Tasks")]) => {
+    const h = await renderEditor({ databases });
+    h.typeText("/linked");
+    await flushFrames();
+    h.pressKey("Enter");
+    await flushFrames();
+    return h;
+  };
+
+  it("lists the workspace databases", async () => {
+    await openPicker([databaseFixture("db1", "Tasks"), databaseFixture("db2", "Notes")]);
+    expect(optionNames()).toEqual(["Tasks", "Notes"]);
+  });
+
+  it("Enter replaces the slash row with a database embed and closes the picker", async () => {
+    const h = await openPicker();
+    const enter = h.pressKey("Enter");
+    await flushFrames();
+
+    expect(enter.defaultPrevented).toBe(true);
+    expect(h.topLevel()).toEqual(["musingDatabaseEmbed:"]);
+    expect(databasePicker()).not.toBeInTheDocument();
+    const embed = h.onBlocksChange.mock.calls.at(-1)?.[0][0];
+    expect(embed?.type).toBe("databaseEmbed");
+    expect(JSON.parse(embed?.content ?? "{}")).toMatchObject({ databaseId: "db1" });
+  });
+
+  it("moves the selection with the arrow keys before choosing", async () => {
+    const h = await openPicker([databaseFixture("db1", "Tasks"), databaseFixture("db2", "Notes")]);
+    h.pressKey("ArrowDown");
+    expect(selectedIndex()).toBe(1);
+
+    h.pressKey("Enter");
+    await flushFrames();
+
+    const embed = h.onBlocksChange.mock.calls.at(-1)?.[0][0];
+    expect(JSON.parse(embed?.content ?? "{}")).toMatchObject({ databaseId: "db2" });
+  });
+
+  it("closes on Escape without changing the document", async () => {
+    const h = await openPicker();
+    h.pressKey("Escape");
+
+    expect(databasePicker()).not.toBeInTheDocument();
+    expect(h.topLevel()).toEqual(["paragraph:"]);
+  });
+
+  it("closes on pointerdown outside the picker", async () => {
+    await openPicker();
+    pointerDown(screen.getByRole("listbox", { name: "Databases" }));
+    expect(databasePicker()).toBeInTheDocument();
+
+    pointerDown(document.body);
+    expect(databasePicker()).not.toBeInTheDocument();
+  });
+
+  it("existing behavior: with no databases the picker opens but its keyboard handler is inert", async () => {
+    const h = await openPicker([]);
+    expect(databasePicker()).toBeInTheDocument();
+
+    const enter = h.pressKey("Enter");
+
+    expect(enter.defaultPrevented).toBe(false);
+    expect(databasePicker()).toBeInTheDocument();
+  });
+});
+
+describe("Editor document sync", () => {
+  it("emits serialized blocks, keeping the block id, when the user types", async () => {
+    const h = await renderEditor({ blocks: [paragraphBlock("b1")] });
+    h.typeText("hello");
+
+    const blocks = h.onBlocksChange.mock.calls.at(-1)?.[0];
+    expect(blocks).toHaveLength(1);
+    expect(blocks?.[0]).toMatchObject({ id: "b1", type: "paragraph" });
+    expect(blocks?.[0].content).toContain("hello");
+  });
+
+  it("Backspace in an empty row removes that row when the page has other blocks", async () => {
+    const h = await renderEditor({
+      blocks: [paragraphBlock("b1", "a"), paragraphBlock("b2")],
+    });
+    h.setCaret(4);
+
+    const key = h.pressKeyInEditor("Backspace", 8);
+
+    expect(key.defaultPrevented).toBe(true);
+    expect(h.topLevel()).toEqual(["paragraph:a"]);
+  });
+
+  it("Backspace in the only (empty) row keeps that row", async () => {
+    const h = await renderEditor({ blocks: [paragraphBlock("b1")] });
+    h.pressKeyInEditor("Backspace", 8);
+
+    expect(h.topLevel()).toEqual(["paragraph:"]);
+  });
+
+  // EXISTING BUG (not fixed in this PR): when the workspace reloads from elsewhere (another tab, or
+  // the cloud snapshot arriving after mount), `Editor` passes the new revision to
+  // `PageDocumentEditor` in the same render in which its `localBlocks` state still holds the OLD
+  // blocks. The sync effect then re-seeds from the old blocks and does not run again when the new
+  // ones arrive, so the editor shows stale content (one update behind). `it.fails` documents the
+  // intended behavior and will start failing, as a prompt to flip it, once that is fixed.
+  it.fails(
+    "existing bug: re-seeds the document from the new blocks when the external revision changes",
+    async () => {
+      const h = await renderEditor({ blocks: [paragraphBlock("b1", "one")] });
+      expect(h.topLevel()).toEqual(["paragraph:one"]);
+
+      h.rerender({ blocks: [paragraphBlock("b1", "two")], externalWorkspaceRevision: 1 });
+      await flushFrames();
+
+      expect(h.topLevel()).toEqual(["paragraph:two"]);
+    },
+  );
+});

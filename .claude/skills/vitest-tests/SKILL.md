@@ -30,6 +30,8 @@ reference.
 
 3. **Editor / TipTap** — Prefer testing **public helpers** and serialization (`lib/pageDocument/*`, slash/menu helpers) over deep ProseMirror internals. Extend existing suites when changing behavior; see **`.claude/skills/editor-tiptap/SKILL.md`**.
 
+   **Editor menus (slash, `@`, database picker)** — `components/Editor.test.tsx` mounts the real `Editor` in jsdom through **`src/test/editorHarness.tsx`** (`installLayoutStubs`, `renderEditor`, `typeText` / `typeAtCaret`, `pressKey` on `window` where the menus listen, `pressKeyInEditor` for ProseMirror's own key handling, `flushFrames` for the `requestAnimationFrame` open-detection). It pins current behavior, quirks included, so menu refactors can be checked as behavior-neutral; use `it.fails` for a documented known bug so the test flips when it is fixed. **jsdom cannot cover** real focus/blur when clicking a menu, key repeat from a physical keyboard, IME composition, or real layout coordinates — verify those by hand in a browser (with `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` / `VITE_AI_SERVICE_URL` blanked so the app stays localStorage-only).
+
 4. **Router-dependent views** — use **`MemoryRouter`** from **`react-router`** (and `basename` awareness when relevant) like neighboring tests — not `react-router-dom`.
 
 5. **Commands**
