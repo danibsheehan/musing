@@ -7,6 +7,7 @@ import { useEditorState } from "@tiptap/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { getEditorBubbleMenuPortal } from "../lib/editorBubbleMenuPortal";
 import { textBeforeCursorInBlock } from "../lib/editorBlockText";
+import { matchPageToken, matchSlashToken } from "../lib/tiptapMenuOpen";
 
 type Props = {
   editor: Editor;
@@ -18,8 +19,8 @@ function shouldShowFormatBubble({ editor }: { editor: Editor }): boolean {
   if (!isTextSelection(selection) || selection.empty) return false;
   if (editor.isActive("codeBlock")) return false;
   const textBefore = textBeforeCursorInBlock(selection.$from);
-  if (/\/[^ \n]*$/.test(textBefore)) return false;
-  if (/@([^ \n]*)$/.test(textBefore)) return false;
+  if (matchSlashToken(textBefore)) return false;
+  if (matchPageToken(textBefore)) return false;
   return true;
 }
 

@@ -5,6 +5,8 @@ import { blockIdOnBlocks } from "../extensions/blockIdOnBlocks";
 import {
   isPagePickerOpen,
   isSlashMenuOpen,
+  matchPageToken,
+  matchSlashToken,
   removePagePickerToken,
   removeSlashCommandToken,
 } from "./tiptapMenuOpen";
@@ -121,5 +123,55 @@ describe("removePagePickerToken", () => {
     expect(editor.getText()).toBe("note");
     editor.destroy();
     el.remove();
+  });
+});
+
+describe("matchSlashToken", () => {
+  it("matches a lone / with an empty query", () => {
+    expect(matchSlashToken("/")).toEqual({ query: "", length: 1 });
+  });
+
+  it("matches / plus a filter at the end of the text", () => {
+    expect(matchSlashToken("abc /he")).toEqual({ query: "he", length: 3 });
+  });
+
+  it("returns null when a space comes after the token", () => {
+    expect(matchSlashToken("/he llo")).toBeNull();
+  });
+
+  it("returns null when there is no slash", () => {
+    expect(matchSlashToken("hello")).toBeNull();
+    expect(matchSlashToken("")).toBeNull();
+  });
+
+  it("existing behavior: also matches a slash in the middle of a word or URL", () => {
+    expect(matchSlashToken("abc/he")).toEqual({ query: "he", length: 3 });
+    expect(matchSlashToken("see example.com/p")).toEqual({ query: "p", length: 2 });
+  });
+
+  it("uses the last slash, keeping any earlier slash in the query", () => {
+    expect(matchSlashToken("/a/b")).toEqual({ query: "a/b", length: 4 });
+  });
+});
+
+describe("matchPageToken", () => {
+  it("matches a lone @ with an empty query", () => {
+    expect(matchPageToken("@")).toEqual({ query: "", length: 1 });
+  });
+
+  it("matches @ plus a filter at the end of the text", () => {
+    expect(matchPageToken("see @alp")).toEqual({ query: "alp", length: 4 });
+  });
+
+  it("returns null when a space comes after the token", () => {
+    expect(matchPageToken("@alp ha")).toBeNull();
+  });
+
+  it("returns null when there is no @", () => {
+    expect(matchPageToken("hello")).toBeNull();
+  });
+
+  it("existing behavior: also matches an @ inside an email address", () => {
+    expect(matchPageToken("write to a@b.com")).toEqual({ query: "b.com", length: 6 });
   });
 });
