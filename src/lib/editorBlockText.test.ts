@@ -1,3 +1,5 @@
+import { Editor } from "@tiptap/core";
+import StarterKit from "@tiptap/starter-kit";
 import type { ResolvedPos } from "prosemirror-model";
 import { describe, expect, it, vi } from "vitest";
 import type { EditorView } from "@tiptap/pm/view";
@@ -19,7 +21,32 @@ describe("textBeforeCursorInBlock", () => {
       parentOffset: 5,
     } as unknown as ResolvedPos;
     expect(textBeforeCursorInBlock($from)).toBe("hello");
-    expect(textBetween).toHaveBeenCalledWith(0, 5);
+    expect(textBetween).toHaveBeenCalledWith(0, 5, undefined, expect.any(Function));
+  });
+});
+
+describe("textBeforeCursorInBlock with a real editor", () => {
+  const textBeforeEnd = (build: (editor: Editor) => void) => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    const editor = new Editor({ element: el, extensions: [StarterKit], content: "<p></p>" });
+    editor.commands.focus("end");
+    build(editor);
+    const text = textBeforeCursorInBlock(editor.state.selection.$from);
+    editor.destroy();
+    el.remove();
+    return text;
+  };
+
+  it("reports a soft line break as a newline", () => {
+    const text = textBeforeEnd((e) => {
+      e.chain().insertContent("line1").setHardBreak().insertContent("/he").run();
+    });
+    expect(text).toBe("line1\n/he");
+  });
+
+  it("returns plain text unchanged", () => {
+    expect(textBeforeEnd((e) => e.chain().insertContent("hello /he").run())).toBe("hello /he");
   });
 });
 

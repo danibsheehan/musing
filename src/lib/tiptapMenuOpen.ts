@@ -9,19 +9,25 @@ export type TokenMatch = {
   length: number;
 };
 
-const SLASH_TOKEN = /\/[^ \n]*$/;
-const PAGE_TOKEN = /@([^ \n]*)$/;
+/**
+ * A token only starts at the very beginning of the text or right after a regular space, so a
+ * `/` or `@` inside a word (a URL, a date, an email address) is ordinary text, as in Notion. A tab,
+ * a non-breaking space and a soft line break (reported as a newline) do not count as a boundary,
+ * and a token ends at a space or a newline.
+ */
+const SLASH_TOKEN = /(?:^| )\/([^ \n]*)$/;
+const PAGE_TOKEN = /(?:^| )@([^ \n]*)$/;
 
 /** `/query` at the end of `textBefore` (slash menu), or null. */
 export function matchSlashToken(textBefore: string): TokenMatch | null {
   const m = textBefore.match(SLASH_TOKEN);
-  return m ? { query: m[0].slice(1), length: m[0].length } : null;
+  return m ? { query: m[1], length: 1 + m[1].length } : null;
 }
 
 /** `@query` at the end of `textBefore` (page picker), or null. */
 export function matchPageToken(textBefore: string): TokenMatch | null {
   const m = textBefore.match(PAGE_TOKEN);
-  return m ? { query: m[1] ?? "", length: m[0].length } : null;
+  return m ? { query: m[1], length: 1 + m[1].length } : null;
 }
 
 export function isSlashMenuOpen(editor: Editor): boolean {
