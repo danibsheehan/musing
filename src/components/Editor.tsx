@@ -132,11 +132,7 @@ export default function Editor({
     onBlocksChange(localBlocks);
   }, [localBlocks, onBlocksChange]);
 
-  /**
-   * Late-bound, so the menus can close each other and the slash hook can call the slash command
-   * handler before all of them are defined.
-   */
-  const closeSlashMenuRef = useRef<() => void>(() => {});
+  /** Late-bound, so the slash hook can call the slash command handler defined after it. */
   const applySlashCommandRef = useRef<(type: SlashMenuChoice, blockId?: string) => void>(() => {});
 
   const applyPagePickerSelect = useCallback((page: Page, ctx: { close: () => void }) => {
@@ -181,7 +177,6 @@ export default function Editor({
     enabled: otherPageCount > 0,
     getItems: getPickerPages,
     onSelect: applyPagePickerSelect,
-    onBeforeOpen: () => closeSlashMenuRef.current(),
     removeTokenOnClose: removePagePickerToken,
     resetSelectionOnEveryActivity: true,
   });
@@ -247,7 +242,6 @@ export default function Editor({
     enabled: true,
     getItems: getSlashItems,
     onSelect: (item, ctx) => applySlashCommandRef.current(item.type, ctx.blockId),
-    onBeforeOpen: closePagePickerMenu,
     removeTokenOnClose: removeSlashCommandToken,
     blockRepeatedEnter: true,
     onEmptyEnter: "ignore",
@@ -376,7 +370,6 @@ export default function Editor({
 
   useLayoutEffect(() => {
     applySlashCommandRef.current = applySlashCommand;
-    closeSlashMenuRef.current = closeSlashMenu;
   });
 
   useEffect(() => {
