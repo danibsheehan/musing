@@ -292,23 +292,10 @@ export default function Editor({
     [closeSlashMenu, closePagePickerMenu, otherPageCount, showMenuRef, showPagePickerRef],
   );
 
-  const slashCommandDedupeRef = useRef<{
-    at: number;
-    blockId: string;
-    type: SlashMenuChoice | "";
-  }>({ at: 0, blockId: "", type: "" });
-
   const applySlashCommand = useCallback(
     (type: SlashMenuChoice, slashBlockId?: string) => {
       const blockId = slashBlockId ?? slashBlockIdRef.current;
       if (!blockId) return;
-
-      const now = performance.now();
-      const ded = slashCommandDedupeRef.current;
-      if (ded.type === type && ded.blockId === blockId && now - ded.at < 200) {
-        return;
-      }
-      slashCommandDedupeRef.current = { at: now, blockId, type };
 
       const removeSlash = () => {
         const editor = pageEditorRef.current;
