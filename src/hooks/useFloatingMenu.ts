@@ -42,8 +42,6 @@ export type FloatingMenuConfig<TItem> = {
   getItems: (query: string) => TItem[];
   /** Called for the chosen item. Call `close()` when done: it removes the token text and hides the menu. */
   onSelect: (item: TItem, ctx: { blockId: string; close: () => void }) => void;
-  /** Runs just before this menu opens, e.g. to close a sibling menu. */
-  onBeforeOpen?: () => void;
   /** Deletes the typed token from the document when the menu is closed with `close()`. */
   removeTokenOnClose?: (editor: TiptapEditor) => void;
   /** Swallow a repeated Enter (key held down) without selecting anything. */
@@ -196,7 +194,6 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
           cfg.resetSelectionOnEveryActivity ||
           !isOpenRef.current ||
           token.query !== queryRef.current;
-        cfg.onBeforeOpen?.();
         blockIdRef.current = activeBlockId;
         tokenRef.current = { from: from - token.length, to: from, query: token.query };
         setAnchor({ blockId: activeBlockId, position: { top, left } });
