@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import type { Editor as TiptapEditor } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import PageDocumentEditor from "./PageDocumentEditor";
@@ -355,9 +354,7 @@ export default function Editor({
         if (ed && !ed.isDestroyed) {
           applyBlockTypeToEditor(ed, type);
         }
-        flushSync(() => {
-          closeSlashMenu();
-        });
+        closeSlashMenu();
       } finally {
         window.clearTimeout(slashEditableRestoreTimerRef.current);
         slashEditableRestoreTimerRef.current = window.setTimeout(() => {
