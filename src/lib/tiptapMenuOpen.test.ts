@@ -7,8 +7,6 @@ import {
   isSlashMenuOpen,
   matchPageToken,
   matchSlashToken,
-  removePagePickerToken,
-  removeSlashCommandToken,
 } from "./tiptapMenuOpen";
 
 function makeEditor(html: string) {
@@ -117,46 +115,6 @@ describe("isPagePickerOpen", () => {
     const { editor, el } = makeEditor(`<p data-block-id="x"></p>`);
     editor.chain().focus().insertContent("note").run();
     expect(isPagePickerOpen(editor)).toBe(false);
-    editor.destroy();
-    el.remove();
-  });
-});
-
-describe("removeSlashCommandToken", () => {
-  it("deletes the trailing /… range and leaves prior text", () => {
-    const { editor, el } = makeEditor(`<p data-block-id="x"></p>`);
-    editor.chain().focus().insertContent("hello /foo").run();
-    expect(removeSlashCommandToken(editor)).toBe(true);
-    expect(editor.getText()).toBe("hello ");
-    editor.destroy();
-    el.remove();
-  });
-
-  it("returns false when there is no slash token", () => {
-    const { editor, el } = makeEditor(`<p data-block-id="x"></p>`);
-    editor.chain().focus().insertContent("hello").run();
-    expect(removeSlashCommandToken(editor)).toBe(false);
-    expect(editor.getText()).toBe("hello");
-    editor.destroy();
-    el.remove();
-  });
-});
-
-describe("removePagePickerToken", () => {
-  it("deletes the trailing @… range and leaves prior text", () => {
-    const { editor, el } = makeEditor(`<p data-block-id="x"></p>`);
-    editor.chain().focus().insertContent("note @page").run();
-    expect(removePagePickerToken(editor)).toBe(true);
-    expect(editor.getText()).toBe("note ");
-    editor.destroy();
-    el.remove();
-  });
-
-  it("returns false when there is no @ token", () => {
-    const { editor, el } = makeEditor(`<p data-block-id="x"></p>`);
-    editor.chain().focus().insertContent("note").run();
-    expect(removePagePickerToken(editor)).toBe(false);
-    expect(editor.getText()).toBe("note");
     editor.destroy();
     el.remove();
   });
