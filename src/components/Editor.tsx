@@ -20,7 +20,7 @@ import { stringifyDatabaseEmbedPayload } from "../lib/databaseEmbed";
 import { useWorkspace } from "../context/useWorkspace";
 import { useFloatingMenu } from "../hooks/useFloatingMenu";
 import { textBeforeCursorInBlock } from "../lib/editorBlockText";
-import { applyBlockTypeToEditor, isBlockHtmlVisuallyEmpty } from "../lib/blockEditorCommands";
+import { applyBlockTypeToEditor } from "../lib/blockEditorCommands";
 import {
   isPagePickerOpen,
   isSlashMenuOpen,
@@ -30,28 +30,6 @@ import {
   removeSlashCommandToken,
 } from "../lib/tiptapMenuOpen";
 import { tryDeleteEmptyTopLevelBlock } from "../lib/pageDocument/tryDeleteEmptyTopLevelBlock";
-
-/** If two consecutive empty paragraphs sit under the slash row, drop the second (stray Enter / double insert). */
-function trimDuplicateEmptyParagraphBelowSlashAnchor(
-  blocks: BlockType[],
-  wave: { slashAt: number; anchorBlockId: string } | null,
-  now: number,
-): BlockType[] {
-  if (!wave || now - wave.slashAt > 1500) return blocks;
-  const i = blocks.findIndex((b) => b.id === wave.anchorBlockId);
-  if (i === -1 || blocks.length < i + 3) return blocks;
-  const b = blocks[i + 1];
-  const c = blocks[i + 2];
-  if (
-    b.type === "paragraph" &&
-    c.type === "paragraph" &&
-    isBlockHtmlVisuallyEmpty(b.content) &&
-    isBlockHtmlVisuallyEmpty(c.content)
-  ) {
-    return [...blocks.slice(0, i + 2), ...blocks.slice(i + 3)];
-  }
-  return blocks;
-}
 
 const getSlashItems = (query: string) => filterSlashMenuItems(SLASH_MENU_ITEMS, query);
 
@@ -103,10 +81,6 @@ export default function Editor({
   const [documentRevision, setDocumentRevision] = useState(externalWorkspaceRevision);
   /** Re-enable `setEditable(true)` after a slash apply — must clear on unmount. */
   const slashEditableRestoreTimerRef = useRef(0);
-  const postSlashWaveRef = useRef<{
-    slashAt: number;
-    anchorBlockId: string;
-  } | null>(null);
 
   const otherPageCount = useMemo(
     () => pages.filter((p) => p.id !== pageId).length,
@@ -146,15 +120,9 @@ export default function Editor({
 
   const replaceBlocks = useCallback((updater: (prev: BlockType[]) => BlockType[]) => {
     setLocalBlocks((prev) => {
-      let next = updater(prev);
+      const next = updater(prev);
       if (next === prev) return prev;
-      const wave = postSlashWaveRef.current;
-      if (wave) {
-        next = trimDuplicateEmptyParagraphBelowSlashAnchor(next, wave, performance.now());
-      }
-      if (next !== prev) {
-        shouldPersistToWorkspaceRef.current = true;
-      }
+      shouldPersistToWorkspaceRef.current = true;
       return next;
     });
   }, []);
@@ -391,10 +359,6 @@ export default function Editor({
         return;
       }
 
-      postSlashWaveRef.current = {
-        slashAt: performance.now(),
-        anchorBlockId: blockId,
-      };
       const ed = pageEditorRef.current;
       try {
         removeSlash();
