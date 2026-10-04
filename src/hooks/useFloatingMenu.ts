@@ -40,14 +40,10 @@ export type FloatingMenuConfig<TItem> = {
   enabled: boolean;
   /** Items for a query. Called with the live document query on key presses, and with the state query for rendering. */
   getItems: (query: string) => TItem[];
-  /** Called for the chosen item. Call `close()` when done: it removes the token text and hides the menu. */
+  /** Called for the chosen item. Call `close()` when done to hide the menu (the typed token is left to the caller to consume). */
   onSelect: (item: TItem, ctx: { blockId: string; close: () => void }) => void;
-  /** Deletes the typed token from the document when the menu is closed with `close()`. */
-  removeTokenOnClose?: (editor: TiptapEditor) => void;
   /** Swallow a repeated Enter (key held down) without selecting anything. */
   blockRepeatedEnter?: boolean;
-  /** What Enter does when no item matches: close the menu (default) or do nothing. */
-  onEmptyEnter?: "close" | "ignore";
   /**
    * Reset the highlighted item on every editor update while open. By default it resets only when
    * the menu opens or its query changes.
@@ -76,6 +72,12 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
   const selectedIndexRef = useRef(0);
   const queryRef = useRef("");
   const tokenRef = useRef<MenuToken | null>(null);
+  /**
+   * Where the token the user dismissed (Escape, clicking away, Enter with no match) started. The
+   * text stays in the document, so the menu must not reopen for that same token on the next
+   * keystroke; it clears once that token ends or a different one starts.
+   */
+  const dismissedFromRef = useRef<number | null>(null);
   const rafRef = useRef(0);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -99,12 +101,23 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
     [],
   );
 
-  /** Full close: removes the typed token from the document, hides the menu, resets query and index. */
+  /**
+   * Closes the menu and resets its query and selection. The typed token stays in the document, and
+   * the menu stays closed for it until it ends or a new one starts.
+   */
   const close = useCallback(() => {
+    // The token as it is in the document right now, not as the menu last saw it: Escape can arrive
+    // in the same frame as the typing, before the menu has opened or remembered anything. Null when
+    // the token is already gone (a selection consumed it, or Backspace deleted it).
     const ed = editorRef.current;
-    if (ed && !ed.isDestroyed) {
-      configRef.current.removeTokenOnClose?.(ed);
+    const matchToken = configRef.current.matchToken;
+    let dismissedFrom: number | null = null;
+    if (ed && !ed.isDestroyed && matchToken) {
+      const { from, $from } = ed.state.selection;
+      const token = matchToken(textBeforeCursorInBlock($from));
+      if (token) dismissedFrom = from - token.length;
     }
+    dismissedFromRef.current = dismissedFrom;
     isOpenRef.current = false;
     blockIdRef.current = null;
     tokenRef.current = null;
@@ -177,8 +190,13 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
         const token = cfg.matchToken(textBeforeCursorInBlock($from));
         if (!token) {
           if (ed.view.composing) return;
+          dismissedFromRef.current = null;
           hideIfOwned();
           return;
+        }
+        if (dismissedFromRef.current !== null) {
+          if (dismissedFromRef.current === from - token.length) return;
+          dismissedFromRef.current = null;
         }
 
         const coords = viewCoordsForFloatingMenu(ed.view, from - token.length, from);
@@ -216,6 +234,7 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
         if (!ed || ed.isDestroyed) return;
         const token = cfg.matchToken(textBeforeCursorInBlock(ed.state.selection.$from));
         if (!token) return;
+        if (dismissedFromRef.current === ed.state.selection.from - token.length) return;
         query = token.query;
       } else if (!isOpenRef.current) {
         return;
@@ -242,12 +261,13 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
       }
 
       if (e.key === "Enter") {
-        swallow();
-        if (e.repeat && cfg.blockRepeatedEnter) return;
+        // Nothing to choose: close the menu and let Enter make a new line.
         if (n === 0) {
-          if (cfg.onEmptyEnter !== "ignore") close();
+          close();
           return;
         }
+        swallow();
+        if (e.repeat && cfg.blockRepeatedEnter) return;
         select(items[Math.min(selectedIndexRef.current, n - 1)]);
       }
 

@@ -25,8 +25,6 @@ import {
   isSlashMenuOpen,
   matchPageToken,
   matchSlashToken,
-  removePagePickerToken,
-  removeSlashCommandToken,
 } from "../lib/tiptapMenuOpen";
 import { tryDeleteEmptyTopLevelBlock } from "../lib/pageDocument/tryDeleteEmptyTopLevelBlock";
 
@@ -177,7 +175,6 @@ export default function Editor({
     enabled: otherPageCount > 0,
     getItems: getPickerPages,
     onSelect: applyPagePickerSelect,
-    removeTokenOnClose: removePagePickerToken,
     resetSelectionOnEveryActivity: true,
   });
 
@@ -242,9 +239,7 @@ export default function Editor({
     enabled: true,
     getItems: getSlashItems,
     onSelect: (item, ctx) => applySlashCommandRef.current(item.type, ctx.blockId),
-    removeTokenOnClose: removeSlashCommandToken,
     blockRepeatedEnter: true,
-    onEmptyEnter: "ignore",
   });
 
   const registerPageEditor = useCallback((instance: TiptapEditor | null) => {

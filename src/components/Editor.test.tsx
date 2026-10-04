@@ -116,21 +116,20 @@ describe("Editor slash menu", () => {
     expect(slashMenu()).toBeInTheDocument();
   });
 
-  it("does nothing on Enter when no command matches, and the menu stays open", async () => {
+  it("closes the menu on Enter when no command matches and lets Enter make a new line", async () => {
     const h = await renderEditor();
     h.typeText("/zzz");
     await flushFrames();
     expect(screen.getByText("No matching commands")).toBeInTheDocument();
 
-    const enter = h.pressKey("Enter");
-    await wait(80);
+    h.pressKeyInEditor("Enter", 13);
+    await flushFrames();
 
-    expect(enter.defaultPrevented).toBe(true);
-    expect(h.topLevel()).toEqual(["paragraph:/zzz"]);
-    expect(slashMenu()).toBeInTheDocument();
+    expect(slashMenu()).not.toBeInTheDocument();
+    expect(h.topLevel()).toEqual(["paragraph:/zzz", "paragraph:"]);
   });
 
-  it("closes on Escape and removes the typed token", async () => {
+  it("closes on Escape and keeps the typed text", async () => {
     const h = await renderEditor();
     h.typeText("/he");
     await flushFrames();
@@ -139,7 +138,45 @@ describe("Editor slash menu", () => {
 
     expect(esc.defaultPrevented).toBe(true);
     expect(slashMenu()).not.toBeInTheDocument();
-    expect(h.topLevel()).toEqual(["paragraph:"]);
+    expect(h.topLevel()).toEqual(["paragraph:/he"]);
+  });
+
+  it("stays closed after Escape while the same token is edited, and stops swallowing keys", async () => {
+    const h = await renderEditor();
+    h.typeText("/he");
+    await flushFrames();
+    h.pressKey("Escape");
+
+    h.typeText("a");
+    await flushFrames();
+    expect(slashMenu()).not.toBeInTheDocument();
+    expect(h.topLevel()).toEqual(["paragraph:/hea"]);
+
+    expect(h.pressKey("Enter").defaultPrevented).toBe(false);
+    expect(h.pressKey("ArrowDown").defaultPrevented).toBe(false);
+    expect(h.pressKey("Escape").defaultPrevented).toBe(false);
+  });
+
+  it("stays closed when Escape is pressed in the same frame as typing the token", async () => {
+    const h = await renderEditor();
+    h.typeText("/he"); // the menu has not opened yet
+    h.pressKey("Escape");
+    await flushFrames();
+
+    expect(slashMenu()).not.toBeInTheDocument();
+    expect(h.topLevel()).toEqual(["paragraph:/he"]);
+  });
+
+  it("opens again for a new token after the dismissed one has ended", async () => {
+    const h = await renderEditor();
+    h.typeText("/he");
+    await flushFrames();
+    h.pressKey("Escape");
+
+    h.typeText(" /he");
+    await flushFrames();
+
+    expect(slashMenu()).toBeInTheDocument();
   });
 
   it("closes without removing text when a space ends the token", async () => {
@@ -155,7 +192,7 @@ describe("Editor slash menu", () => {
     expect(h.topLevel()).toEqual(["paragraph:/he "]);
   });
 
-  it("closes on pointerdown outside the menu (removing the token) but not inside it", async () => {
+  it("closes on pointerdown outside the menu (keeping the text) but not inside it", async () => {
     const h = await renderEditor();
     h.typeText("/he");
     await flushFrames();
@@ -165,7 +202,20 @@ describe("Editor slash menu", () => {
 
     pointerDown(document.body);
     expect(slashMenu()).not.toBeInTheDocument();
-    expect(h.topLevel()).toEqual(["paragraph:"]);
+    expect(h.topLevel()).toEqual(["paragraph:/he"]);
+  });
+
+  it("stays closed after clicking away while the same token is edited", async () => {
+    const h = await renderEditor();
+    h.typeText("/he");
+    await flushFrames();
+    pointerDown(document.body);
+
+    h.typeText("a");
+    await flushFrames();
+
+    expect(slashMenu()).not.toBeInTheDocument();
+    expect(h.topLevel()).toEqual(["paragraph:/hea"]);
   });
 
   it("Divider inserts a horizontal rule", async () => {
@@ -481,7 +531,7 @@ describe("Editor @ page picker", () => {
     expect(pagePicker()).not.toBeInTheDocument();
   });
 
-  it("closes on Escape and removes the typed '@…' token", async () => {
+  it("closes on Escape and keeps the typed '@…' text", async () => {
     const h = await renderEditor({ pages: withOthers });
     h.typeText("@al");
     await flushFrames();
@@ -489,19 +539,44 @@ describe("Editor @ page picker", () => {
     h.pressKey("Escape");
 
     expect(pagePicker()).not.toBeInTheDocument();
-    expect(h.topLevel()).toEqual(["paragraph:"]);
+    expect(h.topLevel()).toEqual(["paragraph:@al"]);
   });
 
-  it("Enter with no matching page just closes the picker", async () => {
+  it("stays closed after Escape while the same @ token is edited", async () => {
+    const h = await renderEditor({ pages: withOthers });
+    h.typeText("@al");
+    await flushFrames();
+    h.pressKey("Escape");
+
+    h.typeText("p");
+    await flushFrames();
+
+    expect(pagePicker()).not.toBeInTheDocument();
+    expect(h.topLevel()).toEqual(["paragraph:@alp"]);
+  });
+
+  it("closes the picker on Enter when no page matches and lets Enter make a new line", async () => {
     const h = await renderEditor({ pages: withOthers });
     h.typeText("@zzz");
     await flushFrames();
     expect(screen.getByText("No matching pages")).toBeInTheDocument();
 
-    const enter = h.pressKey("Enter");
+    h.pressKeyInEditor("Enter", 13);
+    await flushFrames();
 
-    expect(enter.defaultPrevented).toBe(true);
     expect(pagePicker()).not.toBeInTheDocument();
+    expect(h.topLevel()).toEqual(["paragraph:@zzz", "paragraph:"]);
+  });
+
+  it("closes on pointerdown outside the picker and keeps the typed '@…' text", async () => {
+    const h = await renderEditor({ pages: withOthers });
+    h.typeText("@al");
+    await flushFrames();
+
+    pointerDown(document.body);
+
+    expect(pagePicker()).not.toBeInTheDocument();
+    expect(h.topLevel()).toEqual(["paragraph:@al"]);
   });
 
   it("an @ typed right after a slash is not a trigger: the picker stays closed and the slash menu keeps its text", async () => {

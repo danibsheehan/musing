@@ -39,25 +39,3 @@ export function isPagePickerOpen(editor: Editor): boolean {
   const textBefore = textBeforeCursorInBlock(editor.state.selection.$from);
   return matchPageToken(textBefore) !== null;
 }
-
-/** Removes `/…` before the caret (slash menu filter). Returns whether a range was deleted. */
-export function removeSlashCommandToken(editor: Editor): boolean {
-  const { state } = editor;
-  const { from, $from } = state.selection;
-  const textBefore = textBeforeCursorInBlock($from);
-  const token = matchSlashToken(textBefore);
-  if (!token) return false;
-  const delFrom = from - token.length;
-  return editor.chain().focus().deleteRange({ from: delFrom, to: from }).run();
-}
-
-/** Removes `@…` before the caret (page picker filter). Returns whether a range was deleted. */
-export function removePagePickerToken(editor: Editor): boolean {
-  const { state } = editor;
-  const { from, $from } = state.selection;
-  const textBefore = textBeforeCursorInBlock($from);
-  const token = matchPageToken(textBefore);
-  if (!token) return false;
-  const delFrom = from - token.length;
-  return editor.chain().focus().deleteRange({ from: delFrom, to: from }).run();
-}
