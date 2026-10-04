@@ -8,10 +8,12 @@ import { stringifyDatabaseEmbedPayload } from "../lib/databaseEmbed";
 import { WorkspaceProvider } from "./WorkspaceContext";
 import { useWorkspace } from "./useWorkspace";
 import { isSupabaseConfigured, getSupabase } from "../lib/supabaseClient";
+import { fetchWorkspaceRow, upsertWorkspaceRow } from "../lib/supabaseWorkspace";
 
 const workspaceMocks = vi.hoisted(() => ({
   loadWorkspace: vi.fn(),
   saveWorkspace: vi.fn(),
+  clearSeededMarker: vi.fn(),
 }));
 
 vi.mock("../lib/workspaceStorage", async (importOriginal) => {
@@ -20,6 +22,7 @@ vi.mock("../lib/workspaceStorage", async (importOriginal) => {
     ...actual,
     loadWorkspace: workspaceMocks.loadWorkspace,
     saveWorkspace: workspaceMocks.saveWorkspace,
+    clearSeededMarker: workspaceMocks.clearSeededMarker,
   };
 });
 
@@ -27,6 +30,15 @@ vi.mock("../lib/supabaseClient", () => ({
   isSupabaseConfigured: vi.fn(() => false),
   getSupabase: vi.fn(),
 }));
+
+vi.mock("../lib/supabaseWorkspace", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/supabaseWorkspace")>();
+  return {
+    ...actual,
+    fetchWorkspaceRow: vi.fn(),
+    upsertWorkspaceRow: vi.fn(),
+  };
+});
 
 const paragraph = (id: string): Block => ({
   id,
@@ -57,6 +69,8 @@ function snapshot(overrides: Partial<WorkspaceSnapshot> = {}): WorkspaceSnapshot
     ...overrides,
   };
 }
+
+const loaded = (s: WorkspaceSnapshot, seeded = false) => ({ snapshot: s, seeded });
 
 function StorageConsumer() {
   const { homePageId, externalWorkspaceRevision } = useWorkspace();
@@ -143,14 +157,15 @@ describe("WorkspaceProvider", () => {
     vi.mocked(isSupabaseConfigured).mockReturnValue(false);
     vi.mocked(getSupabase).mockReset();
     workspaceMocks.saveWorkspace.mockClear();
+    workspaceMocks.clearSeededMarker.mockClear();
     workspaceMocks.loadWorkspace.mockReset();
-    workspaceMocks.loadWorkspace.mockImplementation(() => snapshot());
+    workspaceMocks.loadWorkspace.mockImplementation(() => loaded(snapshot()));
   });
 
   it("applies cross-tab storage updates and bumps externalWorkspaceRevision", async () => {
     const snap1 = snapshot({ homePageId: "page-a", pages: [page({ id: "page-a", title: "One" })] });
     const snap2 = snapshot({ homePageId: "page-b", pages: [page({ id: "page-b", title: "Two" })] });
-    workspaceMocks.loadWorkspace.mockReturnValue(snap1);
+    workspaceMocks.loadWorkspace.mockReturnValue(loaded(snap1));
 
     render(
       <WorkspaceProvider>
@@ -178,11 +193,13 @@ describe("WorkspaceProvider", () => {
 
   it("resolveOpenPageId prefers lastOpenedPageId when it exists", () => {
     workspaceMocks.loadWorkspace.mockReturnValue(
-      snapshot({
-        homePageId: "page-a",
-        lastOpenedPageId: "page-b",
-        pages: [page({ id: "page-a", title: "A" }), page({ id: "page-b", title: "B", order: 1 })],
-      }),
+      loaded(
+        snapshot({
+          homePageId: "page-a",
+          lastOpenedPageId: "page-b",
+          pages: [page({ id: "page-a", title: "A" }), page({ id: "page-b", title: "B", order: 1 })],
+        }),
+      ),
     );
 
     render(
@@ -197,7 +214,7 @@ describe("WorkspaceProvider", () => {
   describe("when Supabase is configured", () => {
     beforeEach(() => {
       vi.mocked(isSupabaseConfigured).mockReturnValue(true);
-      workspaceMocks.loadWorkspace.mockReturnValue(snapshot());
+      workspaceMocks.loadWorkspace.mockReturnValue(loaded(snapshot()));
       vi.mocked(getSupabase).mockReturnValue({
         auth: {
           getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
@@ -221,13 +238,208 @@ describe("WorkspaceProvider", () => {
       });
       expect(screen.getByTestId("sync-err")).toHaveTextContent("anon failed");
     });
+
+    describe("on connect with a session", () => {
+      const local = snapshot({ pages: [page({ id: "page-a", title: "Local" })] });
+      const cloud = snapshot({
+        homePageId: "page-r",
+        lastOpenedPageId: "page-r",
+        pages: [page({ id: "page-r", title: "Cloud" })],
+      });
+      const cloudRow = (snap: unknown) => ({
+        user_id: "user-1",
+        snapshot: snap,
+        updated_at: "2020-01-01T00:00:00.000Z",
+      });
+      const client = {
+        auth: {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { id: "user-1" } } },
+            error: null,
+          }),
+        },
+      };
+
+      function renderConnected() {
+        render(
+          <WorkspaceProvider>
+            <TreeConsumer targetId="page-a" />
+            <StorageConsumer />
+            <SyncConsumer />
+          </WorkspaceProvider>,
+        );
+      }
+
+      const synced = () =>
+        waitFor(() => expect(screen.getByTestId("sync")).toHaveTextContent("synced"));
+
+      beforeEach(() => {
+        vi.mocked(getSupabase).mockReturnValue(client as never);
+        vi.mocked(fetchWorkspaceRow).mockReset();
+        vi.mocked(upsertWorkspaceRow).mockReset();
+        vi.mocked(upsertWorkspaceRow).mockResolvedValue(undefined);
+      });
+
+      it("keeps the local workspace and pushes it up when the cloud copy differs", async () => {
+        workspaceMocks.loadWorkspace.mockReturnValue(loaded(local));
+        vi.mocked(fetchWorkspaceRow).mockResolvedValue(cloudRow(cloud));
+
+        renderConnected();
+        await synced();
+
+        expect(getPages().map((p) => p.title)).toEqual(["Local"]);
+        expect(screen.getByTestId("revision")).toHaveTextContent("0");
+        expect(upsertWorkspaceRow).toHaveBeenCalledTimes(1);
+        expect(upsertWorkspaceRow).toHaveBeenCalledWith(client, "user-1", local);
+        expect(workspaceMocks.saveWorkspace).not.toHaveBeenCalled();
+      });
+
+      it("restores the cloud copy when the local workspace was seeded", async () => {
+        workspaceMocks.loadWorkspace.mockReturnValue(loaded(local, true));
+        vi.mocked(fetchWorkspaceRow).mockResolvedValue(cloudRow(cloud));
+
+        renderConnected();
+        await synced();
+
+        expect(getPages().map((p) => p.title)).toEqual(["Cloud"]);
+        expect(screen.getByTestId("revision")).toHaveTextContent("1");
+        expect(workspaceMocks.saveWorkspace).toHaveBeenCalledWith(
+          expect.objectContaining({ homePageId: "page-r" }),
+        );
+        expect(upsertWorkspaceRow).not.toHaveBeenCalled();
+        expect(workspaceMocks.clearSeededMarker).toHaveBeenCalled();
+      });
+
+      it("pushes a seeded workspace up when there is no cloud row", async () => {
+        workspaceMocks.loadWorkspace.mockReturnValue(loaded(local, true));
+        vi.mocked(fetchWorkspaceRow).mockResolvedValue(null);
+
+        renderConnected();
+        await synced();
+
+        expect(getPages().map((p) => p.title)).toEqual(["Local"]);
+        expect(upsertWorkspaceRow).toHaveBeenCalledWith(client, "user-1", local);
+        expect(workspaceMocks.clearSeededMarker).toHaveBeenCalled();
+      });
+
+      it("leaves an unreadable cloud row alone when the workspace was seeded", async () => {
+        workspaceMocks.loadWorkspace.mockReturnValue(loaded(local, true));
+        vi.mocked(fetchWorkspaceRow).mockResolvedValue(cloudRow({ version: 99 }));
+
+        renderConnected();
+
+        await waitFor(() => expect(screen.getByTestId("sync")).toHaveTextContent("error"));
+        expect(screen.getByTestId("sync-err")).toHaveTextContent("can't be read");
+        expect(getPages().map((p) => p.title)).toEqual(["Local"]);
+        expect(upsertWorkspaceRow).not.toHaveBeenCalled();
+        expect(workspaceMocks.clearSeededMarker).not.toHaveBeenCalled();
+      });
+
+      it("keeps sync off for later edits when the cloud row is unreadable", async () => {
+        const user = userEvent.setup();
+        workspaceMocks.loadWorkspace.mockReturnValue(loaded(local));
+        vi.mocked(fetchWorkspaceRow).mockResolvedValue(cloudRow({ version: 99 }));
+
+        renderConnected();
+        await waitFor(() => expect(screen.getByTestId("sync")).toHaveTextContent("error"));
+
+        await user.click(screen.getByRole("button", { name: "rename" }));
+        expect(getPages()[0].title).toBe("New Title");
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        });
+
+        expect(upsertWorkspaceRow).not.toHaveBeenCalled();
+      });
+
+      it("restores the cloud copy even when the seeded workspace was edited before it arrived", async () => {
+        const user = userEvent.setup();
+        workspaceMocks.loadWorkspace.mockReturnValue(loaded(local, true));
+        let resolveFetch!: (row: ReturnType<typeof cloudRow>) => void;
+        vi.mocked(fetchWorkspaceRow).mockReturnValue(
+          new Promise((resolve) => {
+            resolveFetch = resolve;
+          }),
+        );
+
+        renderConnected();
+        await user.click(screen.getByRole("button", { name: "rename" }));
+        expect(getPages()[0].title).toBe("New Title");
+
+        await act(async () => {
+          resolveFetch(cloudRow(cloud));
+        });
+        await synced();
+
+        expect(getPages().map((p) => p.title)).toEqual(["Cloud"]);
+        expect(upsertWorkspaceRow).not.toHaveBeenCalled();
+      });
+
+      it("saves again when the workspace was edited while the connect push was in flight", async () => {
+        const user = userEvent.setup();
+        workspaceMocks.loadWorkspace.mockReturnValue(loaded(local));
+        vi.mocked(fetchWorkspaceRow).mockResolvedValue(null);
+        let resolvePush!: () => void;
+        vi.mocked(upsertWorkspaceRow).mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolvePush = resolve;
+          }),
+        );
+
+        renderConnected();
+        await waitFor(() => expect(upsertWorkspaceRow).toHaveBeenCalledTimes(1));
+        await user.click(screen.getByRole("button", { name: "rename" }));
+
+        await act(async () => {
+          resolvePush();
+        });
+        await synced();
+
+        await waitFor(() => expect(upsertWorkspaceRow).toHaveBeenCalledTimes(2), {
+          timeout: 2000,
+        });
+        const pushed = vi.mocked(upsertWorkspaceRow).mock.calls[1][2];
+        expect(pushed.pages[0].title).toBe("New Title");
+      });
+
+      it("keeps the seeded marker when the cloud fetch fails", async () => {
+        workspaceMocks.loadWorkspace.mockReturnValue(loaded(local, true));
+        vi.mocked(fetchWorkspaceRow).mockRejectedValue(new Error("fetch failed"));
+
+        renderConnected();
+
+        await waitFor(() => expect(screen.getByTestId("sync")).toHaveTextContent("error"));
+        expect(workspaceMocks.clearSeededMarker).not.toHaveBeenCalled();
+        expect(upsertWorkspaceRow).not.toHaveBeenCalled();
+      });
+
+      it("keeps saving later edits when the connect push fails", async () => {
+        const user = userEvent.setup();
+        workspaceMocks.loadWorkspace.mockReturnValue(loaded(local));
+        vi.mocked(fetchWorkspaceRow).mockResolvedValue(cloudRow(cloud));
+        vi.mocked(upsertWorkspaceRow).mockRejectedValueOnce(new Error("push failed"));
+
+        renderConnected();
+
+        await waitFor(() => expect(screen.getByTestId("sync")).toHaveTextContent("error"));
+        expect(screen.getByTestId("sync-err")).toHaveTextContent("push failed");
+
+        await user.click(screen.getByRole("button", { name: "rename" }));
+
+        await waitFor(() => expect(upsertWorkspaceRow).toHaveBeenCalledTimes(2), {
+          timeout: 2000,
+        });
+        await synced();
+        expect(screen.getByTestId("sync-err")).toHaveTextContent("");
+      });
+    });
   });
 
   describe("page creation and edits", () => {
     it("createPage appends a child under the given parent as the new lastOpenedPageId", async () => {
       const user = userEvent.setup();
       workspaceMocks.loadWorkspace.mockReturnValue(
-        snapshot({ pages: [page({ id: "page-a", title: "A" })] }),
+        loaded(snapshot({ pages: [page({ id: "page-a", title: "A" })] })),
       );
 
       render(
@@ -250,13 +462,15 @@ describe("WorkspaceProvider", () => {
     it("createPage assigns the next order among existing siblings", async () => {
       const user = userEvent.setup();
       workspaceMocks.loadWorkspace.mockReturnValue(
-        snapshot({
-          pages: [
-            page({ id: "root", title: "Root" }),
-            page({ id: "page-a", title: "A", parentId: "root", order: 0 }),
-            page({ id: "page-b", title: "B", parentId: "root", order: 2 }),
-          ],
-        }),
+        loaded(
+          snapshot({
+            pages: [
+              page({ id: "root", title: "Root" }),
+              page({ id: "page-a", title: "A", parentId: "root", order: 0 }),
+              page({ id: "page-b", title: "B", parentId: "root", order: 2 }),
+            ],
+          }),
+        ),
       );
 
       render(
@@ -275,7 +489,7 @@ describe("WorkspaceProvider", () => {
     it("createDatabasePage adds a database-layout page with a matching database entry", async () => {
       const user = userEvent.setup();
       workspaceMocks.loadWorkspace.mockReturnValue(
-        snapshot({ pages: [page({ id: "page-a", title: "A" })] }),
+        loaded(snapshot({ pages: [page({ id: "page-a", title: "A" })] })),
       );
 
       render(
@@ -300,7 +514,7 @@ describe("WorkspaceProvider", () => {
     it("updatePageTitle trims whitespace and defaults an empty title to 'Untitled'", async () => {
       const user = userEvent.setup();
       workspaceMocks.loadWorkspace.mockReturnValue(
-        snapshot({ pages: [page({ id: "page-a", title: "A" })] }),
+        loaded(snapshot({ pages: [page({ id: "page-a", title: "A" })] })),
       );
 
       render(
@@ -319,10 +533,12 @@ describe("WorkspaceProvider", () => {
     it("updatePageTitle cascades to a page's linked database title", async () => {
       const user = userEvent.setup();
       workspaceMocks.loadWorkspace.mockReturnValue(
-        snapshot({
-          pages: [page({ id: "page-a", title: "A", layout: "database", databaseId: "db-1" })],
-          databases: [{ id: "db-1", title: "A", properties: [], rows: [], views: [] }],
-        }),
+        loaded(
+          snapshot({
+            pages: [page({ id: "page-a", title: "A", layout: "database", databaseId: "db-1" })],
+            databases: [{ id: "db-1", title: "A", properties: [], rows: [], views: [] }],
+          }),
+        ),
       );
 
       render(
@@ -339,7 +555,7 @@ describe("WorkspaceProvider", () => {
     it("updatePageBlocks replaces a page's blocks", async () => {
       const user = userEvent.setup();
       workspaceMocks.loadWorkspace.mockReturnValue(
-        snapshot({ pages: [page({ id: "page-a", title: "A" })] }),
+        loaded(snapshot({ pages: [page({ id: "page-a", title: "A" })] })),
       );
 
       render(
@@ -358,12 +574,14 @@ describe("WorkspaceProvider", () => {
     it("movePageWithinSiblings swaps order with the previous sibling on 'up'", async () => {
       const user = userEvent.setup();
       workspaceMocks.loadWorkspace.mockReturnValue(
-        snapshot({
-          pages: [
-            page({ id: "page-a", title: "A", order: 0 }),
-            page({ id: "page-b", title: "B", order: 1 }),
-          ],
-        }),
+        loaded(
+          snapshot({
+            pages: [
+              page({ id: "page-a", title: "A", order: 0 }),
+              page({ id: "page-b", title: "B", order: 1 }),
+            ],
+          }),
+        ),
       );
 
       render(
@@ -382,12 +600,14 @@ describe("WorkspaceProvider", () => {
     it("movePageWithinSiblings is a no-op at the first position", async () => {
       const user = userEvent.setup();
       workspaceMocks.loadWorkspace.mockReturnValue(
-        snapshot({
-          pages: [
-            page({ id: "page-a", title: "A", order: 0 }),
-            page({ id: "page-b", title: "B", order: 1 }),
-          ],
-        }),
+        loaded(
+          snapshot({
+            pages: [
+              page({ id: "page-a", title: "A", order: 0 }),
+              page({ id: "page-b", title: "B", order: 1 }),
+            ],
+          }),
+        ),
       );
 
       render(
@@ -406,12 +626,14 @@ describe("WorkspaceProvider", () => {
     it("movePageWithinSiblings is a no-op at the last position on 'down'", async () => {
       const user = userEvent.setup();
       workspaceMocks.loadWorkspace.mockReturnValue(
-        snapshot({
-          pages: [
-            page({ id: "page-a", title: "A", order: 0 }),
-            page({ id: "page-b", title: "B", order: 1 }),
-          ],
-        }),
+        loaded(
+          snapshot({
+            pages: [
+              page({ id: "page-a", title: "A", order: 0 }),
+              page({ id: "page-b", title: "B", order: 1 }),
+            ],
+          }),
+        ),
       );
 
       render(
@@ -430,7 +652,7 @@ describe("WorkspaceProvider", () => {
     it("movePageWithinSiblings is a no-op for an unknown page id", async () => {
       const user = userEvent.setup();
       workspaceMocks.loadWorkspace.mockReturnValue(
-        snapshot({ pages: [page({ id: "page-a", title: "A", order: 0 })] }),
+        loaded(snapshot({ pages: [page({ id: "page-a", title: "A", order: 0 })] })),
       );
 
       render(
@@ -448,15 +670,17 @@ describe("WorkspaceProvider", () => {
     it("deletePageSubtree removes the target and its descendants, falling back to the parent", async () => {
       const user = userEvent.setup();
       workspaceMocks.loadWorkspace.mockReturnValue(
-        snapshot({
-          homePageId: "root",
-          lastOpenedPageId: "child",
-          pages: [
-            page({ id: "root", title: "Root" }),
-            page({ id: "target", title: "Target", parentId: "root" }),
-            page({ id: "child", title: "Child", parentId: "target" }),
-          ],
-        }),
+        loaded(
+          snapshot({
+            homePageId: "root",
+            lastOpenedPageId: "child",
+            pages: [
+              page({ id: "root", title: "Root" }),
+              page({ id: "target", title: "Target", parentId: "root" }),
+              page({ id: "child", title: "Child", parentId: "target" }),
+            ],
+          }),
+        ),
       );
 
       render(
@@ -475,14 +699,16 @@ describe("WorkspaceProvider", () => {
     it("deletePageSubtree falls back to a remaining root when the parent is also removed", async () => {
       const user = userEvent.setup();
       workspaceMocks.loadWorkspace.mockReturnValue(
-        snapshot({
-          homePageId: "target",
-          pages: [
-            page({ id: "target", title: "Target" }),
-            page({ id: "child", title: "Child", parentId: "target" }),
-            page({ id: "other-root", title: "Other", order: 1 }),
-          ],
-        }),
+        loaded(
+          snapshot({
+            homePageId: "target",
+            pages: [
+              page({ id: "target", title: "Target" }),
+              page({ id: "child", title: "Child", parentId: "target" }),
+              page({ id: "other-root", title: "Other", order: 1 }),
+            ],
+          }),
+        ),
       );
 
       render(
@@ -505,20 +731,28 @@ describe("WorkspaceProvider", () => {
         content: stringifyDatabaseEmbedPayload("db-1"),
       };
       workspaceMocks.loadWorkspace.mockReturnValue(
-        snapshot({
-          pages: [
-            page({ id: "root", title: "Root" }),
-            page({
-              id: "target",
-              title: "Target",
-              parentId: "root",
-              layout: "database",
-              databaseId: "db-1",
-            }),
-            page({ id: "other", title: "Other", parentId: "root", order: 1, blocks: [embedBlock] }),
-          ],
-          databases: [{ id: "db-1", title: "Target", properties: [], rows: [], views: [] }],
-        }),
+        loaded(
+          snapshot({
+            pages: [
+              page({ id: "root", title: "Root" }),
+              page({
+                id: "target",
+                title: "Target",
+                parentId: "root",
+                layout: "database",
+                databaseId: "db-1",
+              }),
+              page({
+                id: "other",
+                title: "Other",
+                parentId: "root",
+                order: 1,
+                blocks: [embedBlock],
+              }),
+            ],
+            databases: [{ id: "db-1", title: "Target", properties: [], rows: [], views: [] }],
+          }),
+        ),
       );
 
       render(
@@ -536,13 +770,15 @@ describe("WorkspaceProvider", () => {
 
     it("ancestryFor returns the chain from root to the given page", () => {
       workspaceMocks.loadWorkspace.mockReturnValue(
-        snapshot({
-          pages: [
-            page({ id: "root", title: "Root" }),
-            page({ id: "mid", title: "Mid", parentId: "root" }),
-            page({ id: "leaf", title: "Leaf", parentId: "mid" }),
-          ],
-        }),
+        loaded(
+          snapshot({
+            pages: [
+              page({ id: "root", title: "Root" }),
+              page({ id: "mid", title: "Mid", parentId: "root" }),
+              page({ id: "leaf", title: "Leaf", parentId: "mid" }),
+            ],
+          }),
+        ),
       );
 
       render(
@@ -560,13 +796,15 @@ describe("WorkspaceProvider", () => {
 
     it("childrenOf returns the direct children of the given parent, ordered", () => {
       workspaceMocks.loadWorkspace.mockReturnValue(
-        snapshot({
-          pages: [
-            page({ id: "root", title: "Root" }),
-            page({ id: "b", title: "B", parentId: "root", order: 1 }),
-            page({ id: "a", title: "A", parentId: "root", order: 0 }),
-          ],
-        }),
+        loaded(
+          snapshot({
+            pages: [
+              page({ id: "root", title: "Root" }),
+              page({ id: "b", title: "B", parentId: "root", order: 1 }),
+              page({ id: "a", title: "A", parentId: "root", order: 0 }),
+            ],
+          }),
+        ),
       );
 
       render(

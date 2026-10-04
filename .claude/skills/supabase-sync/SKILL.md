@@ -24,7 +24,7 @@ description: >-
 
 - **`fetchWorkspaceRow`**: read one row by `user_id`.
 - **`upsertWorkspaceRow`**: upsert on `user_id` conflict with full snapshot + `updated_at`.
-- On first sync with empty remote: **push** current local snapshot; if remote has data: **replace** local state with remote (and persist to localStorage).
+- On connect: **local wins**. The local snapshot is pushed to the cloud row. The cloud row replaces local state only when `loadWorkspace()` reported `seeded` (no usable local workspace at startup), including when the user edited the fresh workspace before the row arrived. `seeded` is persisted (`musing:workspace:seeded` in localStorage) until the first cloud fetch resolves, so a reload before then still restores the backup. A failed connect push leaves sync ready with status `error`; the next edit saves again. A cloud row this build cannot parse is left untouched: sync stays off for the session with status `error`, and the seeded marker is kept.
 - **Debounced remote save** (~800ms) after local commits when sync is ready.
 
 ## SQL vs TypeScript

@@ -22,7 +22,7 @@ reference.
 ## Conventions
 
 1. **Workspace / storage** — Prefer patterns from **`context/WorkspaceContext.test.tsx`**:
-   - `vi.hoisted` + `vi.mock` for `lib/workspaceStorage` (`loadWorkspace` / `saveWorkspace`) while keeping other exports.
+   - `vi.hoisted` + `vi.mock` for `lib/workspaceStorage` (`loadWorkspace` / `saveWorkspace`) while keeping other exports. The `loadWorkspace` mock returns `{ snapshot, seeded }`.
    - Mock **`lib/supabaseClient`** (`isSupabaseConfigured`, `getSupabase`) so unit tests never hit a real project.
    - Use small **`WorkspaceSnapshot` / `Page` / `Block` fixtures** shaped like `types/page.ts` and `types/block.ts`.
 

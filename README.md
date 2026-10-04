@@ -44,7 +44,7 @@
 
 musing is a block-based note app in the spirit of Notion — write in blocks, link pages to each other by name, and embed small databases (as a table or a freeform canvas) right inside a page.
 
-It runs entirely in your browser. By default your notes are saved to **localStorage** on your own device — there's nothing to sign up for, and nothing leaves your machine. If you want the same notes to follow you across devices, add a free **Supabase** project and musing will sync that workspace to the cloud behind an anonymous sign-in, with no separate account system to set up.
+It runs entirely in your browser. By default your notes are saved to **localStorage** on your own device — there's nothing to sign up for, and nothing leaves your machine. If you want a cloud backup, add a free **Supabase** project and musing will save a copy of that workspace behind an anonymous sign-in, with no separate account system to set up. The sign-in belongs to this browser, so it does not carry notes to another device.
 
 If you also add **`musing-ai-service`** (see [Deploy](#deploy)), musing gains an AI layer on top of your own notes: semantic search, one-click page summaries, and a "related pages" list that finds connections you never explicitly linked. It's entirely optional and additive — nothing about the core note-taking experience changes without it.
 
