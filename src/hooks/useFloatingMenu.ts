@@ -43,6 +43,15 @@ export type FloatingMenuConfig<TItem> = {
   onBeforeOpen?: () => void;
   /** Deletes the typed token from the document when the menu is closed with `close()`. */
   removeTokenOnClose?: (editor: TiptapEditor) => void;
+  /** Swallow a repeated Enter (key held down) without selecting anything. */
+  blockRepeatedEnter?: boolean;
+  /** What Enter does when no item matches: close the menu (default) or do nothing. */
+  onEmptyEnter?: "close" | "ignore";
+  /**
+   * Reset the highlighted item on every editor update while open. By default it resets only when
+   * the menu opens or its query changes.
+   */
+  resetSelectionOnEveryActivity?: boolean;
 };
 
 /**
@@ -64,6 +73,7 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
   const isOpenRef = useRef(false);
   const blockIdRef = useRef<string | null>(null);
   const selectedIndexRef = useRef(0);
+  const queryRef = useRef("");
   const rafRef = useRef(0);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -77,7 +87,8 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
     isOpenRef.current = anchor !== null;
     blockIdRef.current = anchor?.blockId ?? null;
     selectedIndexRef.current = selectedIndex;
-  }, [anchor, selectedIndex]);
+    queryRef.current = query;
+  }, [anchor, selectedIndex, query]);
 
   useEffect(
     () => () => {
@@ -92,6 +103,8 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
     if (ed && !ed.isDestroyed) {
       configRef.current.removeTokenOnClose?.(ed);
     }
+    isOpenRef.current = false;
+    blockIdRef.current = null;
     setAnchor(null);
     setQuery("");
     setSelectedIndex(0);
@@ -154,11 +167,15 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
           return;
         }
 
+        const resetSelection =
+          cfg.resetSelectionOnEveryActivity ||
+          !isOpenRef.current ||
+          token.query !== queryRef.current;
         cfg.onBeforeOpen?.();
         blockIdRef.current = activeBlockId;
         setAnchor({ blockId: activeBlockId, position: { top, left } });
         setQuery(token.query);
-        setSelectedIndex(0);
+        if (resetSelection) setSelectedIndex(0);
       });
     },
     [hide],
@@ -203,8 +220,9 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
 
       if (e.key === "Enter") {
         swallow();
+        if (e.repeat && cfg.blockRepeatedEnter) return;
         if (n === 0) {
-          close();
+          if (cfg.onEmptyEnter !== "ignore") close();
           return;
         }
         select(items[Math.min(selectedIndexRef.current, n - 1)]);
@@ -226,6 +244,8 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
     isOpen: anchor !== null,
     /** Synchronous mirror of `isOpen`, for handlers that run before React commits. */
     isOpenRef: isOpenRef as RefObject<boolean>,
+    /** Synchronous mirror of the anchor block id. */
+    blockIdRef: blockIdRef as RefObject<string | null>,
     blockId: anchor?.blockId ?? null,
     position: anchor?.position ?? null,
     query,
