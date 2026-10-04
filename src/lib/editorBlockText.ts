@@ -1,11 +1,21 @@
-import type { ResolvedPos } from "prosemirror-model";
+import type { Node as PMNode, ResolvedPos } from "prosemirror-model";
 import type { EditorView } from "@tiptap/pm/view";
+
+/**
+ * Text a leaf node (hard break, emoji, …) contributes. A soft line break is reported as a newline
+ * so a typed `/` or `@` right after one is not mistaken for the start of a word; every other leaf
+ * keeps the text it would have contributed anyway.
+ */
+function leafTextBeforeCursor(leaf: PMNode): string {
+  if (leaf.type.name === "hardBreak") return "\n";
+  return leaf.type.spec.leafText?.(leaf) ?? "";
+}
 
 /** Plain text from the start of the current textblock through the cursor (for slash / @ menus). */
 export function textBeforeCursorInBlock($from: ResolvedPos): string {
   const parent = $from.parent;
   if (!parent.isTextblock) return "";
-  return parent.textBetween(0, $from.parentOffset);
+  return parent.textBetween(0, $from.parentOffset, undefined, leafTextBeforeCursor);
 }
 
 /**

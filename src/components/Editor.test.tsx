@@ -233,7 +233,7 @@ describe("Editor slash menu", () => {
   });
 
   it("removes the token even when text before it was deleted in the same frame", async () => {
-    const h = await renderEditor({ blocks: [paragraphBlock("b1", "ab")] });
+    const h = await renderEditor({ blocks: [paragraphBlock("b1", "ab ")] });
     h.typeText("/di");
     await flushFrames();
     expect(slashMenu()).toBeInTheDocument();
@@ -246,13 +246,13 @@ describe("Editor slash menu", () => {
     h.pressKey("Enter");
     await wait(80);
 
-    expect(h.topLevel()[0]).toBe("paragraph:a");
+    expect(h.topLevel()[0]).toBe("paragraph:a ");
     expect(JSON.stringify(h.topLevel())).not.toContain("/");
   });
 
   it("a command typed in the middle of a block's text removes only the typed token", async () => {
-    const h = await renderEditor({ blocks: [paragraphBlock("b1", "Title")] });
-    h.setCaret(3);
+    const h = await renderEditor({ blocks: [paragraphBlock("b1", "Hello world")] });
+    h.setCaret(7);
     h.typeAtCaret("/head");
     await flushFrames();
     expect(slashMenu()).toBeInTheDocument();
@@ -260,11 +260,11 @@ describe("Editor slash menu", () => {
     h.pressKey("Enter");
     await wait(80);
 
-    expect(h.topLevel()).toEqual(["heading:Title"]);
+    expect(h.topLevel()).toEqual(["heading:Hello world"]);
   });
 
   it("does not delete unrelated text when the document changed after the menu opened", async () => {
-    const h = await renderEditor({ blocks: [paragraphBlock("b1", "abc")] });
+    const h = await renderEditor({ blocks: [paragraphBlock("b1", "abc ")] });
     h.typeText("/head");
     await flushFrames();
     expect(slashMenu()).toBeInTheDocument();
@@ -282,6 +282,80 @@ describe("Editor slash menu", () => {
     await wait(80);
 
     expect(h.topLevel()).toEqual(["heading:XYZXYZXYZXYZ"]);
+  });
+});
+
+describe("Editor menu triggers", () => {
+  it.each(["see http://www.google.com", "and/or", "10/3/2026", "C:/Users/me", "TCP/IP"])(
+    "a slash inside %s does not open the menu, and Enter, Escape and clicking away keep the text",
+    async (text) => {
+      const h = await renderEditor();
+      h.typeText(text);
+      await flushFrames();
+      expect(slashMenu()).not.toBeInTheDocument();
+
+      const enter = h.pressKey("Enter");
+      h.pressKey("Escape");
+      pointerDown(document.body);
+
+      expect(enter.defaultPrevented).toBe(false);
+      expect(h.topLevel()).toEqual([`paragraph:${text}`]);
+    },
+  );
+
+  it("an @ inside an email address does not open the page picker, and Enter, Escape and clicking away keep the text", async () => {
+    const h = await renderEditor({ pages: withOthers });
+    h.typeText("Email me at jane@gmail.com");
+    await flushFrames();
+    expect(pagePicker()).not.toBeInTheDocument();
+
+    h.pressKey("Enter");
+    h.pressKey("Escape");
+    pointerDown(document.body);
+
+    expect(h.topLevel()).toEqual(["paragraph:Email me at jane@gmail.com"]);
+  });
+
+  it("a slash right after a space still opens the menu", async () => {
+    const h = await renderEditor();
+    h.typeText("see /he");
+    await flushFrames();
+    expect(slashMenu()).toBeInTheDocument();
+  });
+
+  it("an @ right after a space still opens the page picker", async () => {
+    const h = await renderEditor({ pages: withOthers });
+    h.typeText("mail @al");
+    await flushFrames();
+    expect(optionNames()).toEqual(["Alpha"]);
+  });
+
+  it.each(["line1", "line1 "])(
+    "a slash after %j and a soft line break does not open the menu",
+    async (before) => {
+      const h = await renderEditor();
+      h.typeText(before);
+      act(() => {
+        h.editor.commands.setHardBreak();
+      });
+      h.typeText("/he");
+      await flushFrames();
+      expect(slashMenu()).not.toBeInTheDocument();
+    },
+  );
+
+  it("an open menu closes when a soft line break follows its token", async () => {
+    const h = await renderEditor();
+    h.typeText("/he");
+    await flushFrames();
+    expect(slashMenu()).toBeInTheDocument();
+
+    act(() => {
+      h.editor.commands.setHardBreak();
+    });
+    await flushFrames();
+
+    expect(slashMenu()).not.toBeInTheDocument();
   });
 });
 
@@ -430,7 +504,7 @@ describe("Editor @ page picker", () => {
     expect(pagePicker()).not.toBeInTheDocument();
   });
 
-  it("existing behavior: typing '@' while the slash menu is open closes the picker path, removes the '@', and leaves the slash menu open", async () => {
+  it("an @ typed right after a slash is not a trigger: the picker stays closed and the slash menu keeps its text", async () => {
     const h = await renderEditor({ pages: withOthers });
     h.typeText("/");
     await flushFrames();
@@ -441,7 +515,7 @@ describe("Editor @ page picker", () => {
 
     expect(pagePicker()).not.toBeInTheDocument();
     expect(slashMenu()).toBeInTheDocument();
-    expect(h.topLevel()).toEqual(["paragraph:/"]);
+    expect(h.topLevel()).toEqual(["paragraph:/@"]);
   });
 });
 
@@ -475,14 +549,14 @@ describe("Editor linked-database picker", () => {
 
   it("existing behavior: choosing a database replaces the whole row, including any other text in it", async () => {
     const h = await renderEditor({
-      blocks: [paragraphBlock("b1", "Keep?")],
+      blocks: [paragraphBlock("b1", "Keep? ")],
       databases: [databaseFixture("db1", "Tasks")],
     });
     h.typeText("/linked");
     await flushFrames();
     h.pressKey("Enter");
     await flushFrames();
-    expect(h.topLevel()).toEqual(["paragraph:Keep?"]);
+    expect(h.topLevel()).toEqual(["paragraph:Keep? "]);
 
     h.pressKey("Enter");
     await flushFrames();

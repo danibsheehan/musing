@@ -29,7 +29,7 @@ afterEach(() => {
 describe("isSlashMenuOpen", () => {
   it("is true when the textblock ends with / and an optional filter", () => {
     const { editor, el } = makeEditor(`<p data-block-id="x"></p>`);
-    editor.chain().focus().insertContent("hello/w").run();
+    editor.chain().focus().insertContent("hello /w").run();
     expect(isSlashMenuOpen(editor)).toBe(true);
     editor.destroy();
     el.remove();
@@ -60,10 +60,46 @@ describe("isSlashMenuOpen", () => {
   });
 });
 
+describe("triggers after a soft line break", () => {
+  it("does not open the slash menu for / typed right after a soft break", () => {
+    const { editor, el } = makeEditor(`<p data-block-id="x"></p>`);
+    editor.chain().focus().insertContent("line1").setHardBreak().insertContent("/he").run();
+    expect(isSlashMenuOpen(editor)).toBe(false);
+    editor.destroy();
+    el.remove();
+  });
+
+  it("does not open it when a space precedes the soft break either", () => {
+    const { editor, el } = makeEditor(`<p data-block-id="x"></p>`);
+    editor.chain().focus().insertContent("line1 ").setHardBreak().insertContent("/he").run();
+    expect(isSlashMenuOpen(editor)).toBe(false);
+    editor.destroy();
+    el.remove();
+  });
+
+  it("closes once a soft break follows the typed token", () => {
+    const { editor, el } = makeEditor(`<p data-block-id="x"></p>`);
+    editor.chain().focus().insertContent("/he").run();
+    expect(isSlashMenuOpen(editor)).toBe(true);
+    editor.chain().focus().setHardBreak().run();
+    expect(isSlashMenuOpen(editor)).toBe(false);
+    editor.destroy();
+    el.remove();
+  });
+
+  it("does not open the page picker for @ typed right after a soft break", () => {
+    const { editor, el } = makeEditor(`<p data-block-id="x"></p>`);
+    editor.chain().focus().insertContent("line1 ").setHardBreak().insertContent("@al").run();
+    expect(isPagePickerOpen(editor)).toBe(false);
+    editor.destroy();
+    el.remove();
+  });
+});
+
 describe("isPagePickerOpen", () => {
   it("is true when the textblock ends with @filter", () => {
     const { editor, el } = makeEditor(`<p data-block-id="x"></p>`);
-    editor.chain().focus().insertContent("note@pag").run();
+    editor.chain().focus().insertContent("note @pag").run();
     expect(isPagePickerOpen(editor)).toBe(true);
     editor.destroy();
     el.remove();
@@ -109,9 +145,9 @@ describe("removeSlashCommandToken", () => {
 describe("removePagePickerToken", () => {
   it("deletes the trailing @… range and leaves prior text", () => {
     const { editor, el } = makeEditor(`<p data-block-id="x"></p>`);
-    editor.chain().focus().insertContent("note@page").run();
+    editor.chain().focus().insertContent("note @page").run();
     expect(removePagePickerToken(editor)).toBe(true);
-    expect(editor.getText()).toBe("note");
+    expect(editor.getText()).toBe("note ");
     editor.destroy();
     el.remove();
   });
@@ -144,9 +180,26 @@ describe("matchSlashToken", () => {
     expect(matchSlashToken("")).toBeNull();
   });
 
-  it("existing behavior: also matches a slash in the middle of a word or URL", () => {
-    expect(matchSlashToken("abc/he")).toEqual({ query: "he", length: 3 });
-    expect(matchSlashToken("see example.com/p")).toEqual({ query: "p", length: 2 });
+  it("does not match a slash in the middle of a word, URL, date or path", () => {
+    expect(matchSlashToken("abc/he")).toBeNull();
+    expect(matchSlashToken("http://www.google.com")).toBeNull();
+    expect(matchSlashToken("see example.com/p")).toBeNull();
+    expect(matchSlashToken("10/3/2026")).toBeNull();
+    expect(matchSlashToken("and/or")).toBeNull();
+    expect(matchSlashToken("(/he")).toBeNull();
+  });
+
+  it("matches only at the start of the text or right after a space", () => {
+    expect(matchSlashToken("/he")).toEqual({ query: "he", length: 3 });
+    expect(matchSlashToken("see /he")).toEqual({ query: "he", length: 3 });
+    expect(matchSlashToken("a\t/he")).toBeNull();
+    expect(matchSlashToken("a\u00a0/he")).toBeNull();
+  });
+
+  it("does not match after a line break, and a token cannot run across one", () => {
+    expect(matchSlashToken("line1\n/he")).toBeNull();
+    expect(matchSlashToken("line1 \n/he")).toBeNull();
+    expect(matchSlashToken("/he\n")).toBeNull();
   });
 
   it("uses the last slash, keeping any earlier slash in the query", () => {
@@ -171,7 +224,20 @@ describe("matchPageToken", () => {
     expect(matchPageToken("hello")).toBeNull();
   });
 
-  it("existing behavior: also matches an @ inside an email address", () => {
-    expect(matchPageToken("write to a@b.com")).toEqual({ query: "b.com", length: 6 });
+  it("does not match an @ inside an email address or word", () => {
+    expect(matchPageToken("write to a@b.com")).toBeNull();
+    expect(matchPageToken("jane@gmail.com")).toBeNull();
+    expect(matchPageToken('"@alp')).toBeNull();
+  });
+
+  it("matches only at the start of the text or right after a space", () => {
+    expect(matchPageToken("@alp")).toEqual({ query: "alp", length: 4 });
+    expect(matchPageToken("mail @alp")).toEqual({ query: "alp", length: 4 });
+    expect(matchPageToken("a\t@alp")).toBeNull();
+  });
+
+  it("does not match after a line break", () => {
+    expect(matchPageToken("line1\n@alp")).toBeNull();
+    expect(matchPageToken("line1 \n@alp")).toBeNull();
   });
 });
