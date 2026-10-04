@@ -16,6 +16,7 @@ import {
 import { filterPagesForPicker } from "../lib/resolveWikiPage";
 import { stringifyDatabaseEmbedPayload } from "../lib/databaseEmbed";
 import { useWorkspace } from "../context/useWorkspace";
+import { useFloatingMenu } from "../hooks/useFloatingMenu";
 import { textBeforeCursorInBlock, viewCoordsForFloatingMenu } from "../lib/editorBlockText";
 import { applyBlockTypeToEditor, isBlockHtmlVisuallyEmpty } from "../lib/blockEditorCommands";
 import { blockIdAtSelection } from "../lib/pageDocument/blockIdAtSelection";
@@ -96,17 +97,7 @@ export default function Editor({
     slashAt: number;
     anchorBlockId: string;
   } | null>(null);
-  const showPagePickerRef = useRef(false);
   const showDatabasePickerRef = useRef(false);
-
-  const [showPagePicker, setShowPagePicker] = useState(false);
-  const [pagePickerBlockId, setPagePickerBlockId] = useState<string | null>(null);
-  const [pagePickerPosition, setPagePickerPosition] = useState<{
-    top: number;
-    left: number;
-  } | null>(null);
-  const [pagePickerQuery, setPagePickerQueryState] = useState("");
-  const [pagePickerSelectedIndex, setPagePickerSelectedIndex] = useState(0);
 
   const [showDatabasePicker, setShowDatabasePicker] = useState(false);
   const [databasePickerBlockId, setDatabasePickerBlockId] = useState<string | null>(null);
@@ -117,25 +108,14 @@ export default function Editor({
   const [databasePickerSelectedIndex, setDatabasePickerSelectedIndex] = useState(0);
 
   const slashMenuQueryRef = useRef("");
-  const pagePickerBlockIdRef = useRef<string | null>(null);
 
   useLayoutEffect(() => {
     showMenuRef.current = showMenu;
     menuBlockIdRef.current = menuBlockId;
     slashSelectedIndexRef.current = selectedIndex;
     slashMenuQueryRef.current = slashMenuQuery;
-    showPagePickerRef.current = showPagePicker;
     showDatabasePickerRef.current = showDatabasePicker;
-    pagePickerBlockIdRef.current = pagePickerBlockId;
-  }, [
-    showMenu,
-    menuBlockId,
-    selectedIndex,
-    slashMenuQuery,
-    showPagePicker,
-    showDatabasePicker,
-    pagePickerBlockId,
-  ]);
+  }, [showMenu, menuBlockId, selectedIndex, slashMenuQuery, showDatabasePicker]);
 
   const otherPageCount = useMemo(
     () => pages.filter((p) => p.id !== pageId).length,
@@ -155,13 +135,9 @@ export default function Editor({
     setSelectedIndex(0);
   }, [slashMenuQuery, showMenu]);
 
-  const pickerPages = useMemo(
-    () =>
-      filterPagesForPicker(pages, {
-        query: pagePickerQuery,
-        excludePageId: pageId,
-      }),
-    [pages, pagePickerQuery, pageId],
+  const getPickerPages = useCallback(
+    (query: string) => filterPagesForPicker(pages, { query, excludePageId: pageId }),
+    [pages, pageId],
   );
 
   const blocksRef = useRef(blocks);
@@ -183,7 +159,6 @@ export default function Editor({
 
   const pageEditorRef = useRef<TiptapEditor | null>(null);
   const slashMenuActivityRafRef = useRef(0);
-  const pagePickerActivityRafRef = useRef(0);
   const slashMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(
@@ -193,7 +168,6 @@ export default function Editor({
     [],
   );
 
-  const pagePickerRef = useRef<HTMLDivElement>(null);
   const databasePickerRef = useRef<HTMLDivElement>(null);
 
   const replaceBlocks = useCallback((updater: (prev: BlockType[]) => BlockType[]) => {
@@ -238,28 +212,57 @@ export default function Editor({
     slashAnchorBlockIdRef.current = blockId;
   }, []);
 
-  const closePagePickerMenu = useCallback(() => {
+  const applyPagePickerSelect = useCallback((page: Page, ctx: { close: () => void }) => {
     const ed = pageEditorRef.current;
     if (ed && !ed.isDestroyed) {
-      removePagePickerToken(ed);
+      ed.chain()
+        .focus()
+        .command(({ tr, state }) => {
+          const { $from } = state.selection;
+          const textBefore = textBeforeCursorInBlock($from);
+          const token = matchPageToken(textBefore);
+          if (!token) return false;
+          const delFrom = $from.pos - token.length;
+          const markType = state.schema.marks.wikiLink;
+          if (!markType) return false;
+          const textNode = state.schema.text(page.title, [markType.create({ pageId: page.id })]);
+          tr.replaceWith(delFrom, $from.pos, textNode);
+          return true;
+        })
+        .run();
     }
-    setShowPagePicker(false);
-    setPagePickerBlockId(null);
-    setPagePickerPosition(null);
-    setPagePickerQueryState("");
-    setPagePickerSelectedIndex(0);
+    ctx.close();
+    requestAnimationFrame(() => {
+      pageEditorRef.current?.commands.focus();
+    });
   }, []);
+
+  const {
+    isOpen: showPagePicker,
+    isOpenRef: showPagePickerRef,
+    blockId: pagePickerBlockId,
+    position: pagePickerPosition,
+    items: pickerPages,
+    selectedIndex: safePagePickerIndex,
+    menuRef: pagePickerRef,
+    handleEditorActivity: queuePagePickerFromEditor,
+    select: selectPagePickerItem,
+    close: closePagePickerMenu,
+  } = useFloatingMenu<Page>({
+    editorRef: pageEditorRef,
+    matchToken: matchPageToken,
+    enabled: otherPageCount > 0,
+    getItems: getPickerPages,
+    onSelect: applyPagePickerSelect,
+    onBeforeOpen: closeSlashMenu,
+    removeTokenOnClose: removePagePickerToken,
+  });
 
   const closeDatabasePicker = useCallback(() => {
     setShowDatabasePicker(false);
     setDatabasePickerBlockId(null);
     setDatabasePickerPosition(null);
     setDatabasePickerSelectedIndex(0);
-  }, []);
-
-  const setPagePickerQuery = useCallback((query: string) => {
-    setPagePickerQueryState(query);
-    setPagePickerSelectedIndex(0);
   }, []);
 
   const registerPageEditor = useCallback((instance: TiptapEditor | null) => {
@@ -334,78 +337,6 @@ export default function Editor({
     ],
   );
 
-  const queuePagePickerFromEditor = useCallback(
-    (ed: TiptapEditor) => {
-      cancelAnimationFrame(pagePickerActivityRafRef.current);
-      pagePickerActivityRafRef.current = requestAnimationFrame(() => {
-        if (ed.isDestroyed) return;
-        if (otherPageCount === 0) {
-          if (pagePickerBlockIdRef.current) {
-            setShowPagePicker(false);
-            setPagePickerBlockId(null);
-            setPagePickerPosition(null);
-          }
-          return;
-        }
-        const activeBlockId = blockIdAtSelection(ed) ?? pagePickerBlockIdRef.current;
-        if (!activeBlockId) return;
-
-        const thisBlockOwnsPagePicker = () =>
-          pagePickerBlockId === activeBlockId || pagePickerBlockIdRef.current === activeBlockId;
-
-        const closePickerForThisRow = () => {
-          if (!thisBlockOwnsPagePicker()) return;
-          pagePickerBlockIdRef.current = null;
-          setShowPagePicker(false);
-          setPagePickerBlockId(null);
-          setPagePickerPosition(null);
-        };
-
-        const open = isPagePickerOpen(ed);
-        if (!open) {
-          if (ed.view.composing) return;
-          closePickerForThisRow();
-          return;
-        }
-
-        const { from, $from } = ed.state.selection;
-        const textBefore = textBeforeCursorInBlock($from);
-        const token = matchPageToken(textBefore);
-        if (!token) {
-          if (ed.view.composing) return;
-          closePickerForThisRow();
-          return;
-        }
-
-        const atPos = from - token.length;
-        const coords = viewCoordsForFloatingMenu(ed.view, atPos, from);
-        const top = coords.bottom + 4;
-        const left = coords.left;
-        if (!Number.isFinite(top) || !Number.isFinite(left)) {
-          if (ed.view.composing) return;
-          closePickerForThisRow();
-          return;
-        }
-
-        closeSlashMenu();
-        pagePickerBlockIdRef.current = activeBlockId;
-        setPagePickerPosition({ top, left });
-        setPagePickerQuery(token.query);
-        setShowPagePicker(true);
-        setPagePickerBlockId(activeBlockId);
-      });
-    },
-    [
-      otherPageCount,
-      pagePickerBlockId,
-      closeSlashMenu,
-      setPagePickerBlockId,
-      setPagePickerPosition,
-      setPagePickerQuery,
-      setShowPagePicker,
-    ],
-  );
-
   const handlePageEditorActivity = useCallback(
     (ed: TiptapEditor) => {
       queueSlashMenuFromEditor(ed);
@@ -437,13 +368,12 @@ export default function Editor({
       }
       return false;
     },
-    [closeSlashMenu, closePagePickerMenu, otherPageCount],
+    [closeSlashMenu, closePagePickerMenu, otherPageCount, showPagePickerRef],
   );
 
   useEffect(
     () => () => {
       cancelAnimationFrame(slashMenuActivityRafRef.current);
-      cancelAnimationFrame(pagePickerActivityRafRef.current);
     },
     [],
   );
@@ -582,36 +512,6 @@ export default function Editor({
     [databasePickerBlockId, replaceBlocks, closeDatabasePicker],
   );
 
-  const applyPagePickerSelect = useCallback(
-    (page: Page, forcedBlockId?: string) => {
-      const blockId = forcedBlockId ?? pagePickerBlockId;
-      if (!blockId) return;
-      const ed = pageEditorRef.current;
-      if (ed && !ed.isDestroyed) {
-        ed.chain()
-          .focus()
-          .command(({ tr, state }) => {
-            const { $from } = state.selection;
-            const textBefore = textBeforeCursorInBlock($from);
-            const token = matchPageToken(textBefore);
-            if (!token) return false;
-            const delFrom = $from.pos - token.length;
-            const markType = state.schema.marks.wikiLink;
-            if (!markType) return false;
-            const textNode = state.schema.text(page.title, [markType.create({ pageId: page.id })]);
-            tr.replaceWith(delFrom, $from.pos, textNode);
-            return true;
-          })
-          .run();
-      }
-      closePagePickerMenu();
-      requestAnimationFrame(() => {
-        pageEditorRef.current?.commands.focus();
-      });
-    },
-    [pagePickerBlockId, closePagePickerMenu],
-  );
-
   useLayoutEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const ed = pageEditorRef.current;
@@ -674,79 +574,8 @@ export default function Editor({
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [applySlashCommand, closeSlashMenu]);
 
-  const safePagePickerIndex =
-    pickerPages.length === 0 ? 0 : Math.min(pagePickerSelectedIndex, pickerPages.length - 1);
-
   const safeDatabasePickerIndex =
     databases.length === 0 ? 0 : Math.min(databasePickerSelectedIndex, databases.length - 1);
-
-  useEffect(() => {
-    if (otherPageCount === 0) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const ed = pageEditorRef.current;
-      if (!ed || ed.isDestroyed) return;
-      // Same rAF lag as slash: listener must not wait for `showPagePicker`.
-      if (!isPagePickerOpen(ed)) return;
-
-      const textBefore = textBeforeCursorInBlock(ed.state.selection.$from);
-      const pageQuery = matchPageToken(textBefore)?.query ?? "";
-      const livePickerPages = filterPagesForPicker(pages, {
-        query: pageQuery,
-        excludePageId: pageId,
-      });
-      const n = livePickerPages.length;
-
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        if (n === 0) return;
-        setPagePickerSelectedIndex((prev) => {
-          const cur = Math.min(prev, n - 1);
-          return (cur + 1) % n;
-        });
-      }
-
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        if (n === 0) return;
-        setPagePickerSelectedIndex((prev) => {
-          const cur = Math.min(prev, n - 1);
-          return cur === 0 ? n - 1 : cur - 1;
-        });
-      }
-
-      if (e.key === "Enter") {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        const idx = n === 0 ? 0 : Math.min(pagePickerSelectedIndex, n - 1);
-        const pick = livePickerPages[idx];
-        if (pick) applyPagePickerSelect(pick);
-        else closePagePickerMenu();
-      }
-
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        closePagePickerMenu();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [
-    otherPageCount,
-    pagePickerSelectedIndex,
-    pages,
-    pageId,
-    applyPagePickerSelect,
-    closePagePickerMenu,
-  ]);
 
   useEffect(() => {
     if (databases.length === 0) return;
@@ -829,6 +658,7 @@ export default function Editor({
   }, [
     showMenu,
     showPagePicker,
+    pagePickerRef,
     showDatabasePicker,
     closeSlashMenu,
     closePagePickerMenu,
@@ -864,7 +694,7 @@ export default function Editor({
             position={pagePickerPosition}
             pages={pickerPages}
             selectedIndex={safePagePickerIndex}
-            onSelect={applyPagePickerSelect}
+            onSelect={selectPagePickerItem}
           />
         </div>
       )}
