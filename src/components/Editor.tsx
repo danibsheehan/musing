@@ -97,15 +97,6 @@ export default function Editor({
     slashAt: number;
     anchorBlockId: string;
   } | null>(null);
-  const showDatabasePickerRef = useRef(false);
-
-  const [showDatabasePicker, setShowDatabasePicker] = useState(false);
-  const [databasePickerBlockId, setDatabasePickerBlockId] = useState<string | null>(null);
-  const [databasePickerPosition, setDatabasePickerPosition] = useState<{
-    top: number;
-    left: number;
-  } | null>(null);
-  const [databasePickerSelectedIndex, setDatabasePickerSelectedIndex] = useState(0);
 
   const slashMenuQueryRef = useRef("");
 
@@ -114,8 +105,7 @@ export default function Editor({
     menuBlockIdRef.current = menuBlockId;
     slashSelectedIndexRef.current = selectedIndex;
     slashMenuQueryRef.current = slashMenuQuery;
-    showDatabasePickerRef.current = showDatabasePicker;
-  }, [showMenu, menuBlockId, selectedIndex, slashMenuQuery, showDatabasePicker]);
+  }, [showMenu, menuBlockId, selectedIndex, slashMenuQuery]);
 
   const otherPageCount = useMemo(
     () => pages.filter((p) => p.id !== pageId).length,
@@ -167,8 +157,6 @@ export default function Editor({
     },
     [],
   );
-
-  const databasePickerRef = useRef<HTMLDivElement>(null);
 
   const replaceBlocks = useCallback((updater: (prev: BlockType[]) => BlockType[]) => {
     setLocalBlocks((prev) => {
@@ -258,12 +246,44 @@ export default function Editor({
     removeTokenOnClose: removePagePickerToken,
   });
 
-  const closeDatabasePicker = useCallback(() => {
-    setShowDatabasePicker(false);
-    setDatabasePickerBlockId(null);
-    setDatabasePickerPosition(null);
-    setDatabasePickerSelectedIndex(0);
-  }, []);
+  const applyDatabasePickerSelect = useCallback(
+    (db: WorkspaceDatabase, ctx: { blockId: string; close: () => void }) => {
+      const viewId = db.views[0]?.id ?? null;
+      const content = stringifyDatabaseEmbedPayload(db.id, viewId);
+      let nextBlocks: BlockType[] = [];
+      replaceBlocks((prev) => {
+        nextBlocks = prev.map((b) =>
+          b.id === ctx.blockId ? { ...b, type: "databaseEmbed", content } : b,
+        );
+        return nextBlocks;
+      });
+      ctx.close();
+      requestAnimationFrame(() => {
+        pageEditorRef.current?.commands.setContent(blocksToDocHtml(nextBlocks), {
+          emitUpdate: false,
+        });
+      });
+    },
+    [replaceBlocks],
+  );
+
+  const getDatabases = useCallback(() => databases, [databases]);
+
+  const {
+    isOpen: showDatabasePicker,
+    blockId: databasePickerBlockId,
+    position: databasePickerPosition,
+    selectedIndex: safeDatabasePickerIndex,
+    menuRef: databasePickerRef,
+    open: openDatabasePicker,
+    select: selectDatabasePickerItem,
+    close: closeDatabasePicker,
+  } = useFloatingMenu<WorkspaceDatabase>({
+    editorRef: pageEditorRef,
+    enabled: databases.length > 0,
+    getItems: getDatabases,
+    onSelect: applyDatabasePickerSelect,
+  });
 
   const registerPageEditor = useCallback((instance: TiptapEditor | null) => {
     pageEditorRef.current = instance;
@@ -448,10 +468,7 @@ export default function Editor({
         const pos = menuPosition ?? { top: 120, left: 24 };
         removeSlash();
         closeSlashMenu();
-        setDatabasePickerBlockId(blockId);
-        setDatabasePickerPosition(pos);
-        setDatabasePickerSelectedIndex(0);
-        setShowDatabasePicker(true);
+        openDatabasePicker({ blockId, position: pos });
         requestAnimationFrame(() => {
           pageEditorRef.current?.commands.focus();
         });
@@ -486,30 +503,7 @@ export default function Editor({
         }, 48);
       }
     },
-    [menuPosition, updateBlockType, closeSlashMenu],
-  );
-
-  const applyDatabasePickerSelect = useCallback(
-    (db: WorkspaceDatabase) => {
-      if (!databasePickerBlockId) return;
-      const blockId = databasePickerBlockId;
-      const viewId = db.views[0]?.id ?? null;
-      const content = stringifyDatabaseEmbedPayload(db.id, viewId);
-      let nextBlocks: BlockType[] = [];
-      replaceBlocks((prev) => {
-        nextBlocks = prev.map((b) =>
-          b.id === blockId ? { ...b, type: "databaseEmbed", content } : b,
-        );
-        return nextBlocks;
-      });
-      closeDatabasePicker();
-      requestAnimationFrame(() => {
-        pageEditorRef.current?.commands.setContent(blocksToDocHtml(nextBlocks), {
-          emitUpdate: false,
-        });
-      });
-    },
-    [databasePickerBlockId, replaceBlocks, closeDatabasePicker],
+    [menuPosition, updateBlockType, closeSlashMenu, openDatabasePicker],
   );
 
   useLayoutEffect(() => {
@@ -574,61 +568,6 @@ export default function Editor({
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [applySlashCommand, closeSlashMenu]);
 
-  const safeDatabasePickerIndex =
-    databases.length === 0 ? 0 : Math.min(databasePickerSelectedIndex, databases.length - 1);
-
-  useEffect(() => {
-    if (databases.length === 0) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!showDatabasePickerRef.current) return;
-
-      const n = databases.length;
-
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        if (n === 0) return;
-        setDatabasePickerSelectedIndex((prev) => {
-          const cur = Math.min(prev, n - 1);
-          return (cur + 1) % n;
-        });
-      }
-
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        if (n === 0) return;
-        setDatabasePickerSelectedIndex((prev) => {
-          const cur = Math.min(prev, n - 1);
-          return cur === 0 ? n - 1 : cur - 1;
-        });
-      }
-
-      if (e.key === "Enter") {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        const idx = n === 0 ? 0 : Math.min(databasePickerSelectedIndex, n - 1);
-        const pick = databases[idx];
-        if (pick) applyDatabasePickerSelect(pick);
-        else closeDatabasePicker();
-      }
-
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        closeDatabasePicker();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [databasePickerSelectedIndex, databases, applyDatabasePickerSelect, closeDatabasePicker]);
-
   useEffect(() => {
     if (!showMenu && !showPagePicker && !showDatabasePicker) return;
 
@@ -660,6 +599,7 @@ export default function Editor({
     showPagePicker,
     pagePickerRef,
     showDatabasePicker,
+    databasePickerRef,
     closeSlashMenu,
     closePagePickerMenu,
     closeDatabasePicker,
@@ -705,7 +645,7 @@ export default function Editor({
             position={databasePickerPosition}
             databases={databases}
             selectedIndex={safeDatabasePickerIndex}
-            onSelect={applyDatabasePickerSelect}
+            onSelect={selectDatabasePickerItem}
           />
         </div>
       )}
