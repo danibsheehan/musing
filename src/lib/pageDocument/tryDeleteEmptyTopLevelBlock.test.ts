@@ -59,6 +59,27 @@ describe("tryDeleteEmptyTopLevelBlock", () => {
     el.remove();
   });
 
+  it("removes the empty paragraph the caret is in even when another block shares its id", () => {
+    const { editor, el } = makeEditor(`<p data-block-id="x">keep</p><p data-block-id="x"></p>`);
+    // Caret inside the second paragraph: after "keep" (nodeSize 6) plus the paragraph's open token.
+    editor.commands.setTextSelection(7);
+    expect(tryDeleteEmptyTopLevelBlock(editor)).toBe(true);
+    expect(editor.state.doc.childCount).toBe(1);
+    expect(editor.getText()).toBe("keep");
+    editor.destroy();
+    el.remove();
+  });
+
+  it("removes an empty paragraph that has no block id", () => {
+    const { editor, el } = makeEditor(`<p>keep</p><p></p>`);
+    editor.commands.setTextSelection(7);
+    expect(editor.state.doc.child(1).attrs.blockId).toBeNull();
+    expect(tryDeleteEmptyTopLevelBlock(editor)).toBe(true);
+    expect(editor.state.doc.childCount).toBe(1);
+    editor.destroy();
+    el.remove();
+  });
+
   it("returns false with a single top-level block", () => {
     const { editor, el } = makeEditor(`<p data-block-id="a"></p>`);
     caretInBlockWithId(editor, "a");
