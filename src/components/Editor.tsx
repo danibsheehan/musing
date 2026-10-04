@@ -348,6 +348,10 @@ export default function Editor({
       const ed = pageEditorRef.current;
       try {
         removeSlash();
+        // Briefly lock the editor while the command applies. This is what stops a held-down Enter
+        // (key repeat) from adding empty paragraphs right after a command; the cost is that anything
+        // typed in the next ~48ms is dropped. Without it, typing right after a command lands and a
+        // held Enter adds paragraphs. Restored by the timer below.
         if (ed && !ed.isDestroyed) {
           ed.setEditable(false);
         }
