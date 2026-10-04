@@ -21,6 +21,9 @@ export function stepMenuIndex(prev: number, count: number, direction: "down" | "
   return cur === 0 ? count - 1 : cur - 1;
 }
 
+/** Where a menu last saw its typed token: document positions of the trigger character through the caret. */
+export type MenuToken = { from: number; to: number; query: string };
+
 type OpenState = { blockId: string; position: MenuPosition };
 
 export type FloatingMenuConfig<TItem> = {
@@ -74,6 +77,7 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
   const blockIdRef = useRef<string | null>(null);
   const selectedIndexRef = useRef(0);
   const queryRef = useRef("");
+  const tokenRef = useRef<MenuToken | null>(null);
   const rafRef = useRef(0);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -105,6 +109,7 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
     }
     isOpenRef.current = false;
     blockIdRef.current = null;
+    tokenRef.current = null;
     setAnchor(null);
     setQuery("");
     setSelectedIndex(0);
@@ -113,6 +118,7 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
   /** The token is already gone from the document, so just hide the menu. */
   const hide = useCallback(() => {
     blockIdRef.current = null;
+    tokenRef.current = null;
     setAnchor(null);
   }, []);
 
@@ -121,6 +127,25 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
     setAnchor(args);
     setQuery("");
     setSelectedIndex(0);
+  }, []);
+
+  /**
+   * The typed token as it is right now. The remembered token only refreshes once per animation
+   * frame, so when the user types or edits and acts within the same frame it can be out of date;
+   * the live token at the caret is used whenever the caret is still in the block the menu is
+   * anchored to. Otherwise (the caret moved to another block, e.g. while the editor was blurred)
+   * the remembered range is returned, and the caller should check that its text is still there.
+   */
+  const getToken = useCallback((editor: TiptapEditor): MenuToken | null => {
+    const stored = tokenRef.current;
+    const matchToken = configRef.current.matchToken;
+    if (!stored || !matchToken) return stored;
+    const { from, $from } = editor.state.selection;
+    const live = matchToken(textBeforeCursorInBlock($from));
+    if (live && blockIdAtSelection(editor) === blockIdRef.current) {
+      return { from: from - live.length, to: from, query: live.query };
+    }
+    return stored;
   }, []);
 
   const select = useCallback(
@@ -173,6 +198,7 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
           token.query !== queryRef.current;
         cfg.onBeforeOpen?.();
         blockIdRef.current = activeBlockId;
+        tokenRef.current = { from: from - token.length, to: from, query: token.query };
         setAnchor({ blockId: activeBlockId, position: { top, left } });
         setQuery(token.query);
         if (resetSelection) setSelectedIndex(0);
@@ -246,6 +272,8 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
     isOpenRef: isOpenRef as RefObject<boolean>,
     /** Synchronous mirror of the anchor block id. */
     blockIdRef: blockIdRef as RefObject<string | null>,
+    /** The typed token right now (see above); null for a menu opened with `open()`. */
+    getToken,
     blockId: anchor?.blockId ?? null,
     position: anchor?.position ?? null,
     query,

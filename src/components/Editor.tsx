@@ -21,7 +21,6 @@ import { useFloatingMenu } from "../hooks/useFloatingMenu";
 import { textBeforeCursorInBlock } from "../lib/editorBlockText";
 import { applyBlockTypeToEditor, isBlockHtmlVisuallyEmpty } from "../lib/blockEditorCommands";
 import { blocksToDocHtml } from "../lib/pageDocument/blocksToDocHtml";
-import { findSlashMenuFilterDeleteRange } from "../lib/pageDocument/slashMenuDeleteRange";
 import {
   isPagePickerOpen,
   isSlashMenuOpen,
@@ -241,6 +240,7 @@ export default function Editor({
     isOpen: showMenu,
     isOpenRef: showMenuRef,
     blockIdRef: slashBlockIdRef,
+    getToken: getSlashToken,
     position: menuPosition,
     items: filteredSlashItems,
     selectedIndex: safeSlashIndex,
@@ -325,29 +325,22 @@ export default function Editor({
 
       const removeSlash = () => {
         const editor = pageEditorRef.current;
-        if (!editor || editor.isDestroyed) return;
-        /** Slash menu click blurs the editor — selection-based delete targets the wrong block. */
-        const del = findSlashMenuFilterDeleteRange(editor.state.doc, blockId);
-        if (del) {
-          editor
-            .chain()
-            .focus()
-            .deleteRange({ from: del.from, to: del.to })
-            .setTextSelection(del.from)
-            .run();
+        const token = editor && !editor.isDestroyed ? getSlashToken(editor) : null;
+        if (!editor || !token) return;
+        // Clicking the menu blurs the editor, so don't rely on the selection: delete the token where
+        // the menu last saw it, and only if that text is still there.
+        const { doc } = editor.state;
+        if (
+          token.to > doc.content.size ||
+          doc.textBetween(token.from, token.to) !== `/${token.query}`
+        ) {
           return;
         }
         editor
           .chain()
           .focus()
-          .command(({ tr, state }) => {
-            const { $from } = state.selection;
-            const textBefore = textBeforeCursorInBlock($from);
-            const token = matchSlashToken(textBefore);
-            if (!token) return false;
-            tr.delete($from.pos - token.length, $from.pos);
-            return true;
-          })
+          .deleteRange({ from: token.from, to: token.to })
+          .setTextSelection(token.from)
           .run();
       };
 
@@ -402,7 +395,14 @@ export default function Editor({
         }, 48);
       }
     },
-    [menuPosition, slashBlockIdRef, updateBlockType, closeSlashMenu, openDatabasePicker],
+    [
+      menuPosition,
+      slashBlockIdRef,
+      getSlashToken,
+      updateBlockType,
+      closeSlashMenu,
+      openDatabasePicker,
+    ],
   );
 
   useLayoutEffect(() => {
