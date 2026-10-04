@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import type { Editor as TiptapEditor } from "@tiptap/core";
+import type { Node as PMNode } from "@tiptap/pm/model";
 import PageDocumentEditor from "./PageDocumentEditor";
 import type { Block as BlockType } from "../types/block";
 import type { Page } from "../types/page";
@@ -20,7 +21,6 @@ import { useWorkspace } from "../context/useWorkspace";
 import { useFloatingMenu } from "../hooks/useFloatingMenu";
 import { textBeforeCursorInBlock } from "../lib/editorBlockText";
 import { applyBlockTypeToEditor, isBlockHtmlVisuallyEmpty } from "../lib/blockEditorCommands";
-import { blocksToDocHtml } from "../lib/pageDocument/blocksToDocHtml";
 import {
   isPagePickerOpen,
   isSlashMenuOpen,
@@ -54,6 +54,28 @@ function trimDuplicateEmptyParagraphBelowSlashAnchor(
 }
 
 const getSlashItems = (query: string) => filterSlashMenuItems(SLASH_MENU_ITEMS, query);
+
+/** Start position of the top-level block that contains `pos`, or null. */
+function topLevelBlockStart(doc: PMNode, pos: number): number | null {
+  if (pos < 0 || pos > doc.content.size) return null;
+  const $pos = doc.resolve(pos);
+  return $pos.depth >= 1 ? $pos.before(1) : null;
+}
+
+/** The top-level block at `pos` if it carries `blockId`; otherwise the one that does (ids are unique per page). */
+function findTopLevelBlock(
+  doc: PMNode,
+  pos: number | null,
+  blockId: string,
+): { pos: number; node: PMNode } | null {
+  const at = pos === null ? null : doc.nodeAt(pos);
+  if (pos !== null && at && at.attrs.blockId === blockId) return { pos, node: at };
+  let found: { pos: number; node: PMNode } | null = null;
+  doc.forEach((node, offset) => {
+    if (!found && node.attrs.blockId === blockId) found = { pos: offset, node };
+  });
+  return found;
+}
 
 type Props = {
   pageId: string;
@@ -197,25 +219,30 @@ export default function Editor({
     resetSelectionOnEveryActivity: true,
   });
 
+  /** Document position of the row the database picker was opened from (see `applySlashCommand`). */
+  const databaseRowPosRef = useRef<number | null>(null);
+
   const applyDatabasePickerSelect = useCallback(
     (db: WorkspaceDatabase, ctx: { blockId: string; close: () => void }) => {
-      const viewId = db.views[0]?.id ?? null;
-      const content = stringifyDatabaseEmbedPayload(db.id, viewId);
-      let nextBlocks: BlockType[] = [];
-      replaceBlocks((prev) => {
-        nextBlocks = prev.map((b) =>
-          b.id === ctx.blockId ? { ...b, type: "databaseEmbed", content } : b,
-        );
-        return nextBlocks;
-      });
+      const ed = pageEditorRef.current;
+      const embedType = ed?.schema.nodes.musingDatabaseEmbed;
+      if (ed && !ed.isDestroyed && embedType) {
+        // The remembered position first; if text above shifted it, find the row by its id. Either
+        // way only replace the row the picker was opened from.
+        const row = findTopLevelBlock(ed.state.doc, databaseRowPosRef.current, ctx.blockId);
+        if (row) {
+          const payload = stringifyDatabaseEmbedPayload(db.id, db.views[0]?.id ?? null);
+          const embed = embedType.create({ blockId: ctx.blockId, payload });
+          ed.commands.command(({ tr }) => {
+            tr.replaceWith(row.pos, row.pos + row.node.nodeSize, embed);
+            return true;
+          });
+        }
+      }
+      databaseRowPosRef.current = null;
       ctx.close();
-      requestAnimationFrame(() => {
-        pageEditorRef.current?.commands.setContent(blocksToDocHtml(nextBlocks), {
-          emitUpdate: false,
-        });
-      });
     },
-    [replaceBlocks],
+    [],
   );
 
   const getDatabases = useCallback(() => databases, [databases]);
@@ -303,14 +330,6 @@ export default function Editor({
     type: SlashMenuChoice | "";
   }>({ at: 0, blockId: "", type: "" });
 
-  const updateBlockType = useCallback(
-    (id: string, type: BlockType["type"]) => {
-      replaceBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, type } : b)));
-      closeSlashMenu();
-    },
-    [closeSlashMenu, replaceBlocks],
-  );
-
   const applySlashCommand = useCallback(
     (type: SlashMenuChoice, slashBlockId?: string) => {
       const blockId = slashBlockId ?? slashBlockIdRef.current;
@@ -358,6 +377,11 @@ export default function Editor({
 
       if (type === "databaseEmbed") {
         const pos = menuPosition ?? { top: 120, left: 24 };
+        const ed = pageEditorRef.current;
+        const live = ed && !ed.isDestroyed ? ed : null;
+        const anchorPos = live ? (getSlashToken(live)?.from ?? live.state.selection.from) : null;
+        databaseRowPosRef.current =
+          live && anchorPos !== null ? topLevelBlockStart(live.state.doc, anchorPos) : null;
         removeSlash();
         closeSlashMenu();
         openDatabasePicker({ blockId, position: pos });
@@ -381,7 +405,7 @@ export default function Editor({
           applyBlockTypeToEditor(ed, type);
         }
         flushSync(() => {
-          updateBlockType(blockId, type);
+          closeSlashMenu();
         });
       } finally {
         window.clearTimeout(slashEditableRestoreTimerRef.current);
@@ -395,14 +419,7 @@ export default function Editor({
         }, 48);
       }
     },
-    [
-      menuPosition,
-      slashBlockIdRef,
-      getSlashToken,
-      updateBlockType,
-      closeSlashMenu,
-      openDatabasePicker,
-    ],
+    [menuPosition, slashBlockIdRef, getSlashToken, closeSlashMenu, openDatabasePicker],
   );
 
   useLayoutEffect(() => {

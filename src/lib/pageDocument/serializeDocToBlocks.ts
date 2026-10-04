@@ -1,5 +1,5 @@
 import type { Editor } from "@tiptap/core";
-import { DOMSerializer } from "@tiptap/pm/model";
+import { DOMSerializer, type Node as PMNode } from "@tiptap/pm/model";
 import { v4 as uuidv4 } from "uuid";
 import type { Block, BlockType } from "../../types/block";
 
@@ -27,6 +27,13 @@ function pmNodeToBlockType(node: {
     default:
       return "paragraph";
   }
+}
+
+/** HTML for one document node, as stored in a `Block`'s `content`. */
+export function serializeNodeToHtml(editor: Editor, node: PMNode): string {
+  const wrap = document.createElement("div");
+  wrap.appendChild(DOMSerializer.fromSchema(editor.state.schema).serializeNode(node));
+  return wrap.innerHTML;
 }
 
 /**

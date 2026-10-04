@@ -285,6 +285,45 @@ describe("Editor slash menu", () => {
   });
 });
 
+describe("Editor slash commands emit the matching block type", () => {
+  it.each([
+    ["/para", 0, "paragraph"],
+    ["/head", 0, "heading"],
+    ["/head", 1, "heading2"],
+    ["/quote", 0, "blockquote"],
+    ["/code", 0, "codeBlock"],
+    ["/bullet", 0, "bulletList"],
+    ["/numbered", 0, "orderedList"],
+    ["/div", 0, "horizontalRule"],
+  ])("%s (item %i) leaves the first block as %s", async (typed, downs, expectedType) => {
+    const h = await renderEditor();
+    h.typeText(typed);
+    await flushFrames();
+    for (let i = 0; i < downs; i++) h.pressKey("ArrowDown");
+
+    h.pressKey("Enter");
+
+    // Asserted right after the key press, before any timer runs: the type must not depend on timing.
+    const blocks = h.onBlocksChange.mock.calls.at(-1)?.[0];
+    expect(blocks?.[0].type).toBe(expectedType);
+    await wait(80);
+    expect(slashMenu()).not.toBeInTheDocument();
+  });
+});
+
+describe("Editor slash commands persisted shape", () => {
+  it("Divider persists a horizontal rule followed by an empty paragraph", async () => {
+    const h = await renderEditor();
+    h.typeText("/div");
+    await flushFrames();
+    h.pressKey("Enter");
+    await wait(80);
+
+    const blocks = h.onBlocksChange.mock.calls.at(-1)?.[0];
+    expect(blocks?.map((b) => b.type)).toEqual(["horizontalRule", "paragraph"]);
+  });
+});
+
 describe("Editor @ page picker", () => {
   it("never opens when the workspace has no other pages", async () => {
     const h = await renderEditor({ pages: [pageFixture("current", "Current")] });
@@ -410,6 +449,94 @@ describe("Editor linked-database picker", () => {
     const embed = h.onBlocksChange.mock.calls.at(-1)?.[0][0];
     expect(embed?.type).toBe("databaseEmbed");
     expect(JSON.parse(embed?.content ?? "{}")).toMatchObject({ databaseId: "db1" });
+  });
+
+  it("existing behavior: choosing a database replaces the whole row, including any other text in it", async () => {
+    const h = await renderEditor({
+      blocks: [paragraphBlock("b1", "Keep?")],
+      databases: [databaseFixture("db1", "Tasks")],
+    });
+    h.typeText("/linked");
+    await flushFrames();
+    h.pressKey("Enter");
+    await flushFrames();
+    expect(h.topLevel()).toEqual(["paragraph:Keep?"]);
+
+    h.pressKey("Enter");
+    await flushFrames();
+
+    expect(h.topLevel()).toEqual(["musingDatabaseEmbed:"]);
+  });
+
+  it("does not touch another row when the row the picker was opened from is gone", async () => {
+    const h = await renderEditor({
+      blocks: [paragraphBlock("b1", "keep"), paragraphBlock("b2")],
+      databases: [databaseFixture("db1", "Tasks")],
+    });
+    h.typeText("/linked");
+    await flushFrames();
+    h.pressKey("Enter");
+    await flushFrames();
+    expect(databasePicker()).toBeInTheDocument();
+
+    // Replace the row with a different block at the same position, then choose a database.
+    act(() => {
+      h.editor.commands.deleteRange({ from: 6, to: 8 });
+      h.editor.commands.insertContentAt(6, '<p data-block-id="other">x</p>');
+    });
+    h.pressKey("Enter");
+    await flushFrames();
+
+    expect(h.topLevel()).toEqual(["paragraph:keep", "paragraph:x"]);
+    expect(databasePicker()).not.toBeInTheDocument();
+  });
+
+  it("still replaces the right row when text above it changed while the picker was open", async () => {
+    const h = await renderEditor({
+      blocks: [paragraphBlock("b1", "keep"), paragraphBlock("b2")],
+      databases: [databaseFixture("db1", "Tasks")],
+    });
+    h.typeText("/linked");
+    await flushFrames();
+    h.pressKey("Enter");
+    await flushFrames();
+    expect(databasePicker()).toBeInTheDocument();
+
+    // Insert text in the first row, which shifts the second row's position.
+    act(() => {
+      h.editor.commands.insertContentAt(1, "more ");
+    });
+    h.pressKey("Enter");
+    await flushFrames();
+
+    expect(h.topLevel()).toEqual(["paragraph:more keep", "musingDatabaseEmbed:"]);
+  });
+
+  it("anchors the row on where the slash token was, not on the current selection", async () => {
+    const h = await renderEditor({
+      blocks: [paragraphBlock("b1", "keep"), paragraphBlock("b2")],
+      databases: [databaseFixture("db1", "Tasks")],
+    });
+    h.typeText("/linked");
+    await flushFrames();
+    // Move the caret to the first row without letting the menu refresh, then run the command.
+    act(() => {
+      h.editor.commands.setTextSelection(2);
+    });
+    const option = screen.getByRole("option", { name: "Linked database" });
+    act(() => {
+      option.dispatchEvent(
+        new MouseEvent("pointerdown", { bubbles: true, cancelable: true, button: 0 }),
+      );
+    });
+    await flushFrames();
+    expect(databasePicker()).toBeInTheDocument();
+
+    h.pressKey("Enter");
+    await flushFrames();
+
+    expect(h.topLevel()[0]).toBe("paragraph:keep");
+    expect(h.topLevel()).toContain("musingDatabaseEmbed:");
   });
 
   it("moves the selection with the arrow keys before choosing", async () => {
