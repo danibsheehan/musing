@@ -311,6 +311,28 @@ describe("Editor slash commands emit the matching block type", () => {
   });
 });
 
+describe("Editor persisted blocks match the document", () => {
+  // Regression: a guard that ran for 1.5s after a slash command trimmed the SAVED blocks when two
+  // empty paragraphs followed the command's row, while the editor kept showing both, so the saved
+  // page lost a paragraph on reload.
+  it("persists every block the editor shows when Enter is pressed twice right after a command", async () => {
+    const h = await renderEditor();
+    h.typeText("/head");
+    await flushFrames();
+    h.pressKey("Enter");
+    await wait(80);
+
+    act(() => {
+      h.editor.commands.splitBlock();
+      h.editor.commands.splitBlock();
+    });
+
+    expect(h.topLevel()).toEqual(["heading:", "paragraph:", "paragraph:"]);
+    const blocks = h.onBlocksChange.mock.calls.at(-1)?.[0];
+    expect(blocks?.map((b) => b.type)).toEqual(["heading", "paragraph", "paragraph"]);
+  });
+});
+
 describe("Editor slash commands persisted shape", () => {
   it("Divider persists a horizontal rule followed by an empty paragraph", async () => {
     const h = await renderEditor();

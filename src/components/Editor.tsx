@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import type { Editor as TiptapEditor } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import PageDocumentEditor from "./PageDocumentEditor";
@@ -20,7 +19,7 @@ import { stringifyDatabaseEmbedPayload } from "../lib/databaseEmbed";
 import { useWorkspace } from "../context/useWorkspace";
 import { useFloatingMenu } from "../hooks/useFloatingMenu";
 import { textBeforeCursorInBlock } from "../lib/editorBlockText";
-import { applyBlockTypeToEditor, isBlockHtmlVisuallyEmpty } from "../lib/blockEditorCommands";
+import { applyBlockTypeToEditor } from "../lib/blockEditorCommands";
 import {
   isPagePickerOpen,
   isSlashMenuOpen,
@@ -30,28 +29,6 @@ import {
   removeSlashCommandToken,
 } from "../lib/tiptapMenuOpen";
 import { tryDeleteEmptyTopLevelBlock } from "../lib/pageDocument/tryDeleteEmptyTopLevelBlock";
-
-/** If two consecutive empty paragraphs sit under the slash row, drop the second (stray Enter / double insert). */
-function trimDuplicateEmptyParagraphBelowSlashAnchor(
-  blocks: BlockType[],
-  wave: { slashAt: number; anchorBlockId: string } | null,
-  now: number,
-): BlockType[] {
-  if (!wave || now - wave.slashAt > 1500) return blocks;
-  const i = blocks.findIndex((b) => b.id === wave.anchorBlockId);
-  if (i === -1 || blocks.length < i + 3) return blocks;
-  const b = blocks[i + 1];
-  const c = blocks[i + 2];
-  if (
-    b.type === "paragraph" &&
-    c.type === "paragraph" &&
-    isBlockHtmlVisuallyEmpty(b.content) &&
-    isBlockHtmlVisuallyEmpty(c.content)
-  ) {
-    return [...blocks.slice(0, i + 2), ...blocks.slice(i + 3)];
-  }
-  return blocks;
-}
 
 const getSlashItems = (query: string) => filterSlashMenuItems(SLASH_MENU_ITEMS, query);
 
@@ -103,10 +80,6 @@ export default function Editor({
   const [documentRevision, setDocumentRevision] = useState(externalWorkspaceRevision);
   /** Re-enable `setEditable(true)` after a slash apply — must clear on unmount. */
   const slashEditableRestoreTimerRef = useRef(0);
-  const postSlashWaveRef = useRef<{
-    slashAt: number;
-    anchorBlockId: string;
-  } | null>(null);
 
   const otherPageCount = useMemo(
     () => pages.filter((p) => p.id !== pageId).length,
@@ -146,15 +119,9 @@ export default function Editor({
 
   const replaceBlocks = useCallback((updater: (prev: BlockType[]) => BlockType[]) => {
     setLocalBlocks((prev) => {
-      let next = updater(prev);
+      const next = updater(prev);
       if (next === prev) return prev;
-      const wave = postSlashWaveRef.current;
-      if (wave) {
-        next = trimDuplicateEmptyParagraphBelowSlashAnchor(next, wave, performance.now());
-      }
-      if (next !== prev) {
-        shouldPersistToWorkspaceRef.current = true;
-      }
+      shouldPersistToWorkspaceRef.current = true;
       return next;
     });
   }, []);
@@ -324,23 +291,10 @@ export default function Editor({
     [closeSlashMenu, closePagePickerMenu, otherPageCount, showMenuRef, showPagePickerRef],
   );
 
-  const slashCommandDedupeRef = useRef<{
-    at: number;
-    blockId: string;
-    type: SlashMenuChoice | "";
-  }>({ at: 0, blockId: "", type: "" });
-
   const applySlashCommand = useCallback(
     (type: SlashMenuChoice, slashBlockId?: string) => {
       const blockId = slashBlockId ?? slashBlockIdRef.current;
       if (!blockId) return;
-
-      const now = performance.now();
-      const ded = slashCommandDedupeRef.current;
-      if (ded.type === type && ded.blockId === blockId && now - ded.at < 200) {
-        return;
-      }
-      slashCommandDedupeRef.current = { at: now, blockId, type };
 
       const removeSlash = () => {
         const editor = pageEditorRef.current;
@@ -391,22 +345,20 @@ export default function Editor({
         return;
       }
 
-      postSlashWaveRef.current = {
-        slashAt: performance.now(),
-        anchorBlockId: blockId,
-      };
       const ed = pageEditorRef.current;
       try {
         removeSlash();
+        // Briefly lock the editor while the command applies. This is what stops a held-down Enter
+        // (key repeat) from adding empty paragraphs right after a command; the cost is that anything
+        // typed in the next ~48ms is dropped. Without it, typing right after a command lands and a
+        // held Enter adds paragraphs. Restored by the timer below.
         if (ed && !ed.isDestroyed) {
           ed.setEditable(false);
         }
         if (ed && !ed.isDestroyed) {
           applyBlockTypeToEditor(ed, type);
         }
-        flushSync(() => {
-          closeSlashMenu();
-        });
+        closeSlashMenu();
       } finally {
         window.clearTimeout(slashEditableRestoreTimerRef.current);
         slashEditableRestoreTimerRef.current = window.setTimeout(() => {
