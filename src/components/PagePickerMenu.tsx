@@ -5,14 +5,22 @@ type Props = {
   pages: Page[];
   selectedIndex: number;
   onSelect: (page: Page) => void;
+  /** Called when the "no matches" row is clicked. */
+  onClose: () => void;
 };
 
-export default function PagePickerMenu({ position, pages, selectedIndex, onSelect }: Props) {
+export default function PagePickerMenu({
+  position,
+  pages,
+  selectedIndex,
+  onSelect,
+  onClose,
+}: Props) {
   return (
     <div
       data-musing-page-picker-menu
       className="musing-dropdown musing-dropdown--picker"
-      role="listbox"
+      role={pages.length > 0 ? "listbox" : undefined}
       aria-label="Pages"
       onMouseDown={(e) => e.preventDefault()}
       style={{
@@ -22,7 +30,14 @@ export default function PagePickerMenu({ position, pages, selectedIndex, onSelec
       }}
     >
       {pages.length === 0 ? (
-        <div className="musing-dropdown-empty musing-dropdown-empty--sm">No matching pages</div>
+        <button
+          type="button"
+          className="musing-dropdown-empty musing-dropdown-empty--sm"
+          onClick={onClose}
+        >
+          <span>No matching pages</span>
+          <span className="musing-dropdown-hint">esc to close</span>
+        </button>
       ) : (
         pages.map((page, index) => (
           <div

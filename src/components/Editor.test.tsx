@@ -33,8 +33,13 @@ afterAll(() => {
   restoreLayout();
 });
 
-const slashMenu = () => screen.queryByRole("listbox", { name: "Block commands" });
-const pagePicker = () => screen.queryByRole("listbox", { name: "Pages" });
+/** With nothing to list, a menu is not a listbox: it shows one button that closes it. */
+const emptySlashMenu = () => screen.queryByRole("button", { name: /No matching commands/ });
+const emptyPagePicker = () => screen.queryByRole("button", { name: /No matching pages/ });
+/** The menu in either state, so "not in the document" means it is really closed. */
+const slashMenu = () =>
+  screen.queryByRole("listbox", { name: "Block commands" }) ?? emptySlashMenu();
+const pagePicker = () => screen.queryByRole("listbox", { name: "Pages" }) ?? emptyPagePicker();
 const databasePicker = () => screen.queryByRole("listbox", { name: "Databases" });
 const optionNames = () => screen.getAllByRole("option").map((o) => o.textContent);
 const selectedIndex = () =>
@@ -133,7 +138,7 @@ describe("Editor slash menu", () => {
     const h = await renderEditor();
     h.typeText("/hxab");
     await flushFrames();
-    expect(slashMenu()).toBeInTheDocument();
+    expect(emptySlashMenu()).toBeInTheDocument();
     expect(screen.getByText("No matching commands")).toBeInTheDocument();
 
     h.typeText("c");
@@ -161,7 +166,7 @@ describe("Editor slash menu", () => {
     const h = await renderEditor();
     h.typeText("/zzz");
     await flushFrames();
-    expect(slashMenu()).toBeInTheDocument();
+    expect(emptySlashMenu()).toBeInTheDocument();
 
     h.typeText("z"); // the menu has not seen this keystroke yet
     h.pressKeyInEditor("Enter", 13);
@@ -179,9 +184,9 @@ describe("Editor slash menu", () => {
     h.typeText("/zzzzz");
     await flushFrames();
 
-    expect(slashMenu()).toBeInTheDocument();
+    expect(emptySlashMenu()).toBeInTheDocument();
     expect(h.pressKey("ArrowDown").defaultPrevented).toBe(true);
-    expect(slashMenu()).toBeInTheDocument();
+    expect(emptySlashMenu()).toBeInTheDocument();
   });
 
   it("stays closed after giving up when the text is deleted back to something that matches", async () => {
@@ -208,6 +213,24 @@ describe("Editor slash menu", () => {
 
     expect(slashMenu()).toBeInTheDocument();
     expect(optionNames()).toContain("Heading 1");
+  });
+
+  it("closes when the 'no matches' row is clicked, keeps the text and stays closed", async () => {
+    const h = await renderEditor();
+    h.typeText("/hx");
+    await flushFrames();
+
+    act(() => {
+      emptySlashMenu()!.click();
+    });
+
+    expect(emptySlashMenu()).not.toBeInTheDocument();
+    expect(h.topLevel()).toEqual(["paragraph:/hx"]);
+
+    h.typeText("a");
+    await flushFrames();
+    expect(emptySlashMenu()).not.toBeInTheDocument();
+    expect(slashMenu()).not.toBeInTheDocument();
   });
 
   it("closes on Escape and keeps the typed text", async () => {
@@ -649,11 +672,25 @@ describe("Editor @ page picker", () => {
     expect(h.topLevel()).toEqual(["paragraph:@zzz", "paragraph:"]);
   });
 
+  it("closes the picker when the 'no matches' row is clicked and keeps the text", async () => {
+    const h = await renderEditor({ pages: withOthers });
+    h.typeText("@zz");
+    await flushFrames();
+
+    act(() => {
+      emptyPagePicker()!.click();
+    });
+
+    expect(emptyPagePicker()).not.toBeInTheDocument();
+    expect(pagePicker()).not.toBeInTheDocument();
+    expect(h.topLevel()).toEqual(["paragraph:@zz"]);
+  });
+
   it("closes the picker by itself four characters past the last match", async () => {
     const h = await renderEditor({ pages: withOthers });
     h.typeText("@alxyz");
     await flushFrames();
-    expect(pagePicker()).toBeInTheDocument();
+    expect(emptyPagePicker()).toBeInTheDocument();
     expect(screen.getByText("No matching pages")).toBeInTheDocument();
 
     h.typeText("w");
@@ -684,7 +721,7 @@ describe("Editor @ page picker", () => {
     await flushFrames();
 
     expect(pagePicker()).not.toBeInTheDocument();
-    expect(slashMenu()).toBeInTheDocument();
+    expect(emptySlashMenu()).toBeInTheDocument();
     expect(h.topLevel()).toEqual(["paragraph:/@"]);
   });
 });

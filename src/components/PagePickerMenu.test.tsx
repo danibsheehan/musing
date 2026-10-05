@@ -24,6 +24,7 @@ describe("PagePickerMenu", () => {
         pages={[]}
         selectedIndex={0}
         onSelect={vi.fn()}
+        onClose={vi.fn()}
       />,
     );
     expect(screen.getByText("No matching pages")).toBeInTheDocument();
@@ -43,6 +44,7 @@ describe("PagePickerMenu", () => {
         pages={pages}
         selectedIndex={0}
         onSelect={onSelect}
+        onClose={vi.fn()}
       />,
     );
 
@@ -59,9 +61,30 @@ describe("PagePickerMenu", () => {
         pages={pages}
         selectedIndex={1}
         onSelect={vi.fn()}
+        onClose={vi.fn()}
       />,
     );
 
     expect(screen.getByRole("option", { name: "B" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("closes when the 'no matches' row is clicked", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(
+      <PagePickerMenu
+        position={{ top: 0, left: 0 }}
+        pages={[]}
+        selectedIndex={0}
+        onSelect={vi.fn()}
+        onClose={onClose}
+      />,
+    );
+
+    const row = screen.getByRole("button", { name: /No matching pages/ });
+    expect(row).toHaveTextContent("esc to close");
+
+    await user.click(row);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

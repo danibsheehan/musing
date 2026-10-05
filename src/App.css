@@ -875,6 +875,31 @@ html[data-theme="dark"] .page-summarize-error {
   font-size: 0.85rem;
 }
 
+/* The slash and @ menus render the empty row as a button that closes the menu. */
+button.musing-dropdown-empty {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.musing-dropdown-empty:hover,
+button.musing-dropdown-empty:focus-visible {
+  background: var(--interactive-hover);
+}
+
+.musing-dropdown-hint {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
 .musing-dropdown-option {
   padding: 4px 8px;
   border-radius: 4px;
