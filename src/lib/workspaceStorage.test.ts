@@ -2,7 +2,14 @@ import type { Block } from "../types/block";
 import type { WorkspaceDatabase } from "../types/database";
 import type { Page, WorkspaceSnapshot } from "../types/page";
 import { stringifyDatabaseEmbedPayload } from "./databaseEmbed";
-import { normalizeSnapshot, parseWorkspaceJson } from "./workspaceStorage";
+import {
+  clearSeededMarker,
+  loadWorkspace,
+  normalizeSnapshot,
+  parseWorkspaceJson,
+  saveWorkspace,
+  STORAGE_KEY,
+} from "./workspaceStorage";
 
 vi.mock("uuid", () => ({
   v4: vi.fn(() => "00000000-0000-4000-8000-000000000001"),
@@ -236,5 +243,57 @@ describe("normalizeSnapshot", () => {
     };
     const out = normalizeSnapshot(snap);
     expect(out.pages[0].databaseId).toBeNull();
+  });
+});
+
+describe("loadWorkspace", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("seeds a one-page workspace and reports it when storage is empty", () => {
+    const { snapshot, seeded } = loadWorkspace();
+    expect(seeded).toBe(true);
+    expect(snapshot.pages).toHaveLength(1);
+    expect(snapshot.homePageId).toBe(snapshot.pages[0].id);
+  });
+
+  it("seeds and reports it when the stored JSON is invalid", () => {
+    localStorage.setItem(STORAGE_KEY, "{not json");
+    const { snapshot, seeded } = loadWorkspace();
+    expect(seeded).toBe(true);
+    expect(snapshot.pages).toHaveLength(1);
+  });
+
+  // Regression: the app saves the fresh workspace almost at once, so without a persisted marker a
+  // reload before the first cloud fetch would treat the seed as a real local workspace.
+  it("still reports the seed after the seeded workspace was saved and loaded again", () => {
+    const first = loadWorkspace();
+    saveWorkspace(first.snapshot);
+
+    const second = loadWorkspace();
+    expect(second.seeded).toBe(true);
+    expect(second.snapshot.pages.map((p) => p.id)).toEqual(first.snapshot.pages.map((p) => p.id));
+  });
+
+  it("stops reporting the seed once the marker is cleared", () => {
+    saveWorkspace(loadWorkspace().snapshot);
+    clearSeededMarker();
+
+    expect(loadWorkspace().seeded).toBe(false);
+  });
+
+  it("returns the stored workspace without reporting a seed", () => {
+    const stored: WorkspaceSnapshot = {
+      version: 2,
+      homePageId: "page-1",
+      lastOpenedPageId: null,
+      pages: [minimalPage({ title: "Stored" })],
+      databases: [],
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+    const { snapshot, seeded } = loadWorkspace();
+    expect(seeded).toBe(false);
+    expect(snapshot.pages.map((p) => p.title)).toEqual(["Stored"]);
   });
 });

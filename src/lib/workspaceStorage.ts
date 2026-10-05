@@ -7,6 +7,7 @@ import { parseDatabaseEmbedPayload } from "./databaseEmbed";
 import { sanitizeBlockHtml } from "./sanitizeBlockHtml";
 
 export const STORAGE_KEY = "musing:workspace";
+const SEEDED_KEY = "musing:workspace:seeded";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -219,13 +220,33 @@ export function parseWorkspaceJson(raw: string): WorkspaceSnapshot | null {
   }
 }
 
-export function loadWorkspace(): WorkspaceSnapshot {
+/**
+ * `seeded` is true when there was no usable stored workspace and a fresh one was made. It is
+ * persisted, so it stays true across reloads until `clearSeededMarker()` is called.
+ */
+export type LoadedWorkspace = { snapshot: WorkspaceSnapshot; seeded: boolean };
+
+export function loadWorkspace(): LoadedWorkspace {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return seedWorkspace();
-    return parseWorkspaceJson(raw) ?? seedWorkspace();
+    const stored = raw ? parseWorkspaceJson(raw) : null;
+    if (stored) return { snapshot: stored, seeded: localStorage.getItem(SEEDED_KEY) !== null };
   } catch {
-    return seedWorkspace();
+    /* fall through to a fresh workspace */
+  }
+  try {
+    localStorage.setItem(SEEDED_KEY, "1");
+  } catch {
+    /* storage unavailable: the flag lasts for this load only */
+  }
+  return { snapshot: seedWorkspace(), seeded: true };
+}
+
+export function clearSeededMarker(): void {
+  try {
+    localStorage.removeItem(SEEDED_KEY);
+  } catch {
+    /* ignore */
   }
 }
 

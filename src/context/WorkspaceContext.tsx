@@ -7,6 +7,7 @@ import { createEmptyBlocks } from "../lib/defaultBlocks";
 import { createWorkspaceDatabase } from "../lib/databaseFactory";
 import { parseDatabaseEmbedPayload } from "../lib/databaseEmbed";
 import {
+  clearSeededMarker,
   loadWorkspace,
   parseWorkspaceJson,
   saveWorkspace,
@@ -34,7 +35,8 @@ function persist(snapshot: WorkspaceSnapshot) {
 }
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const [snapshot, setSnapshot] = useState<WorkspaceSnapshot>(() => loadWorkspace());
+  const [initialLoad] = useState(() => loadWorkspace());
+  const [snapshot, setSnapshot] = useState<WorkspaceSnapshot>(initialLoad.snapshot);
   const [externalWorkspaceRevision, setExternalWorkspaceRevision] = useState(0);
   const [remoteSyncStatus, setRemoteSyncStatus] = useState<RemoteSyncStatus>(() =>
     isSupabaseConfigured() ? "connecting" : "disabled",
@@ -42,6 +44,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [remoteSyncError, setRemoteSyncError] = useState<string | null>(null);
 
   const snapshotRef = useRef(snapshot);
+  const localSeededRef = useRef(initialLoad.seeded);
   const remoteReadyRef = useRef(false);
   const remoteUserIdRef = useRef<string | null>(null);
   const remoteSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -128,22 +131,51 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         const row = await fetchWorkspaceRow(client, s.user.id);
         if (cancelled) return;
 
-        if (row?.snapshot != null) {
-          const snap = snapshotFromRemoteJson(row.snapshot);
-          if (snap) {
-            setSnapshot(snap);
-            saveWorkspace(snap);
-            setExternalWorkspaceRevision((n) => n + 1);
-          }
-        } else {
-          await upsertWorkspaceRow(client, s.user.id, snapshotRef.current);
+        // Local wins: only this browser writes the cloud row, so it is a backup. It is restored only
+        // when this browser had no usable workspace of its own at startup.
+        const remote = row?.snapshot != null ? snapshotFromRemoteJson(row.snapshot) : null;
+        if (row?.snapshot != null && !remote) {
+          // A row this build cannot read (e.g. written by a newer build) is left alone, and sync stays
+          // off so nothing here overwrites it. The seeded marker is kept for the build that can read it.
+          setRemoteSyncStatus("error");
+          setRemoteSyncError(
+            "The cloud copy can't be read by this version of the app, so it was left unchanged.",
+          );
+          return;
         }
+        const restore = localSeededRef.current && remote;
+        if (restore) {
+          setSnapshot(restore);
+          saveWorkspace(restore);
+          setExternalWorkspaceRevision((n) => n + 1);
+        }
+        // Decided: from here a stale marker would let an older cloud copy replace local on a later load.
+        localSeededRef.current = false;
+        clearSeededMarker();
 
-        if (!cancelled) {
-          remoteReadyRef.current = true;
+        let pushed: WorkspaceSnapshot | null = null;
+        let pushError: unknown = null;
+        if (!restore) {
+          pushed = snapshotRef.current;
+          try {
+            await upsertWorkspaceRow(client, s.user.id, pushed);
+          } catch (e) {
+            pushError = e;
+          }
+        }
+        if (cancelled) return;
+
+        // A failed push must not leave sync off: the next edit saves again.
+        remoteReadyRef.current = true;
+        if (pushError) {
+          setRemoteSyncStatus("error");
+          setRemoteSyncError(pushError instanceof Error ? pushError.message : "Cloud save failed");
+        } else {
           setRemoteSyncStatus("synced");
           setRemoteSyncError(null);
         }
+        // Edits made while the push was in flight were not scheduled (sync was not ready yet).
+        if (pushed && snapshotRef.current !== pushed) scheduleRemoteSave();
       } catch (e) {
         if (!cancelled) {
           setRemoteSyncStatus("error");
@@ -161,7 +193,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       remoteReadyRef.current = false;
       remoteUserIdRef.current = null;
     };
-  }, []);
+  }, [scheduleRemoteSave]);
 
   const commit = useCallback(
     (updater: (prev: WorkspaceSnapshot) => WorkspaceSnapshot) => {
