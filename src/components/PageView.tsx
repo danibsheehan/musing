@@ -26,9 +26,12 @@ export default function PageView() {
   const page = pageId ? getPage(pageId) : undefined;
   const isDocumentPage = page?.layout === "document";
 
+  // Keyed on the id, not the page object: the object is replaced on every workspace update,
+  // including ones received from another tab, and re-saving then would echo a stale copy back.
+  const openPageId = page?.id;
   useEffect(() => {
-    if (page) setLastOpenedPageId(page.id);
-  }, [page, setLastOpenedPageId]);
+    if (openPageId) setLastOpenedPageId(openPageId);
+  }, [openPageId, setLastOpenedPageId]);
 
   usePageIndexing(page?.id ?? "", isDocumentPage ? (page?.blocks ?? []) : []);
 
