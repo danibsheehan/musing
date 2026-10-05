@@ -135,6 +135,8 @@ export type EditorHarness = {
   typeAtCaret: (text: string) => void;
   /** Places the caret at a document position. */
   setCaret: (pos: number) => void;
+  /** Delete `count` characters before the caret, as Backspace would. */
+  deleteBackward: (count?: number) => void;
   /** Dispatches a keydown on `window`, where the menus' capture-phase handlers listen. */
   pressKey: (key: string, init?: KeyboardEventInit) => KeyboardEvent;
   /** Dispatches a keydown on the ProseMirror element, so the editor's own key handling runs. */
@@ -189,6 +191,12 @@ export async function renderEditor(options: RenderOptions = {}): Promise<EditorH
     setCaret: (pos) => {
       act(() => {
         editor.commands.setTextSelection(pos);
+      });
+    },
+    deleteBackward: (count = 1) => {
+      act(() => {
+        const { from } = editor.state.selection;
+        editor.commands.deleteRange({ from: from - count, to: from });
       });
     },
     pressKey: (key, init = {}) => {

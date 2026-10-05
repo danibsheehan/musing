@@ -21,6 +21,23 @@ export function stepMenuIndex(prev: number, count: number, direction: "down" | "
   return cur === 0 ? count - 1 : cur - 1;
 }
 
+/** Characters typed past the last query that still matched before a menu gives up and closes. */
+export const NO_MATCH_CLOSE_AFTER = 4;
+
+/**
+ * True once `limit` characters have been typed past the last point where the query matched
+ * anything. Relies on a shorter query never matching less than a longer one (both menus filter
+ * by "label contains the query").
+ */
+export function typedPastLastMatch<TItem>(
+  query: string,
+  getItems: (query: string) => TItem[],
+  limit = NO_MATCH_CLOSE_AFTER,
+): boolean {
+  if (query.length < limit) return false;
+  return getItems(query.slice(0, query.length - (limit - 1))).length === 0;
+}
+
 /** Where a menu last saw its typed token: document positions of the trigger character through the caret. */
 export type MenuToken = { from: number; to: number; query: string };
 
@@ -58,6 +75,9 @@ export type FloatingMenuConfig<TItem> = {
  * to one animation frame), because React state lags a frame behind typing. The arrow/Enter/Escape
  * keys are handled in a capture-phase `window` listener that reads the document, not React state,
  * for the same reason, so they run before ProseMirror moves the caret.
+ *
+ * A menu with nothing to show stays open while the user is still close to a query that matched,
+ * and closes by itself once `NO_MATCH_CLOSE_AFTER` characters have been typed past it.
  */
 export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
   const { editorRef, enabled, getItems } = config;
@@ -198,6 +218,12 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
           if (dismissedFromRef.current === from - token.length) return;
           dismissedFromRef.current = null;
         }
+        // Nothing has matched for a while: give up, and stay closed for this token as after Escape.
+        // Not while an input method is composing: its interim text is not what the user will keep.
+        if (!ed.view.composing && typedPastLastMatch(token.query, cfg.getItems)) {
+          close();
+          return;
+        }
 
         const coords = viewCoordsForFloatingMenu(ed.view, from - token.length, from);
         const top = coords.bottom + 4;
@@ -219,7 +245,7 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
         if (resetSelection) setSelectedIndex(0);
       });
     },
-    [hide],
+    [hide, close],
   );
 
   useLayoutEffect(() => {
@@ -236,6 +262,12 @@ export function useFloatingMenu<TItem>(config: FloatingMenuConfig<TItem>) {
         if (!token) return;
         if (dismissedFromRef.current === ed.state.selection.from - token.length) return;
         query = token.query;
+        // Past the give-up point but the menu has not caught up yet: close it now, since the key
+        // may move the caret to another block, where the menu would no longer be hidden.
+        if (!ed.view.composing && typedPastLastMatch(query, cfg.getItems)) {
+          close();
+          return;
+        }
       } else if (!isOpenRef.current) {
         return;
       }

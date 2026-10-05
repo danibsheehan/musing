@@ -129,6 +129,87 @@ describe("Editor slash menu", () => {
     expect(h.topLevel()).toEqual(["paragraph:/zzz", "paragraph:"]);
   });
 
+  it("stays open with the message for three characters past the last match, then closes", async () => {
+    const h = await renderEditor();
+    h.typeText("/hxab");
+    await flushFrames();
+    expect(slashMenu()).toBeInTheDocument();
+    expect(screen.getByText("No matching commands")).toBeInTheDocument();
+
+    h.typeText("c");
+    await flushFrames();
+
+    expect(slashMenu()).not.toBeInTheDocument();
+    expect(h.topLevel()).toEqual(["paragraph:/hxabc"]);
+    expect(h.pressKey("Enter").defaultPrevented).toBe(false);
+    expect(h.pressKey("ArrowDown").defaultPrevented).toBe(false);
+  });
+
+  it("does not swallow keys pressed in the same frame as the character that closes it", async () => {
+    const h = await renderEditor();
+    h.typeText("/hxab");
+    await flushFrames();
+
+    h.typeText("c"); // the menu has not seen this keystroke yet
+    expect(h.pressKey("ArrowDown").defaultPrevented).toBe(false);
+    expect(h.pressKey("Escape").defaultPrevented).toBe(false);
+  });
+
+  // Regression: Enter pressed before the menu had seen the closing character moved the caret to a
+  // new block, and the menu (still open on the old block) was never hidden.
+  it("closes when Enter is pressed in the same frame as the character that closes it", async () => {
+    const h = await renderEditor();
+    h.typeText("/zzz");
+    await flushFrames();
+    expect(slashMenu()).toBeInTheDocument();
+
+    h.typeText("z"); // the menu has not seen this keystroke yet
+    h.pressKeyInEditor("Enter", 13);
+    await flushFrames();
+
+    expect(h.topLevel()).toEqual(["paragraph:/zzzz", "paragraph:"]);
+    expect(slashMenu()).not.toBeInTheDocument();
+  });
+
+  // jsdom has no input method, so the editor's composing flag is forced on here.
+  it("does not give up while an input method is composing", async () => {
+    const h = await renderEditor();
+    Object.defineProperty(h.editor.view, "composing", { get: () => true, configurable: true });
+
+    h.typeText("/zzzzz");
+    await flushFrames();
+
+    expect(slashMenu()).toBeInTheDocument();
+    expect(h.pressKey("ArrowDown").defaultPrevented).toBe(true);
+    expect(slashMenu()).toBeInTheDocument();
+  });
+
+  it("stays closed after giving up when the text is deleted back to something that matches", async () => {
+    const h = await renderEditor();
+    h.typeText("/hxabc");
+    await flushFrames();
+    expect(slashMenu()).not.toBeInTheDocument();
+
+    h.deleteBackward(4);
+    await flushFrames();
+
+    expect(h.topLevel()).toEqual(["paragraph:/h"]);
+    expect(slashMenu()).not.toBeInTheDocument();
+  });
+
+  it("shows the commands again when the text is deleted back while the message is still showing", async () => {
+    const h = await renderEditor();
+    h.typeText("/hx");
+    await flushFrames();
+    expect(screen.getByText("No matching commands")).toBeInTheDocument();
+
+    h.deleteBackward();
+    await flushFrames();
+
+    expect(slashMenu()).toBeInTheDocument();
+    expect(optionNames()).toContain("Heading 1");
+  });
+
   it("closes on Escape and keeps the typed text", async () => {
     const h = await renderEditor();
     h.typeText("/he");
@@ -566,6 +647,20 @@ describe("Editor @ page picker", () => {
 
     expect(pagePicker()).not.toBeInTheDocument();
     expect(h.topLevel()).toEqual(["paragraph:@zzz", "paragraph:"]);
+  });
+
+  it("closes the picker by itself four characters past the last match", async () => {
+    const h = await renderEditor({ pages: withOthers });
+    h.typeText("@alxyz");
+    await flushFrames();
+    expect(pagePicker()).toBeInTheDocument();
+    expect(screen.getByText("No matching pages")).toBeInTheDocument();
+
+    h.typeText("w");
+    await flushFrames();
+
+    expect(pagePicker()).not.toBeInTheDocument();
+    expect(h.topLevel()).toEqual(["paragraph:@alxyzw"]);
   });
 
   it("closes on pointerdown outside the picker and keeps the typed '@…' text", async () => {
