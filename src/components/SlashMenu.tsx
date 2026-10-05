@@ -7,12 +7,15 @@ import {
 type Props = {
   position: { top: number; left: number };
   onSelect: (type: SlashMenuChoice) => void;
+  /** Called when the "no matches" row is clicked. */
+  onClose: () => void;
   selectedIndex: number;
   items?: SlashMenuItem[];
 };
 
 export default function SlashMenu({
   onSelect,
+  onClose,
   position,
   selectedIndex,
   items = SLASH_MENU_ITEMS,
@@ -21,7 +24,7 @@ export default function SlashMenu({
     <div
       data-musing-slash-menu
       className="musing-dropdown musing-dropdown--slash"
-      role="listbox"
+      role={items.length > 0 ? "listbox" : undefined}
       aria-label="Block commands"
       onPointerDown={(e) => e.preventDefault()}
       style={{
@@ -31,7 +34,16 @@ export default function SlashMenu({
       }}
     >
       {items.length === 0 ? (
-        <div className="musing-dropdown-empty">No matching commands</div>
+        <button
+          type="button"
+          className="musing-dropdown-empty"
+          // Keep focus in the editor: the button is gone as soon as it is clicked.
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={onClose}
+        >
+          <span>No matching commands</span>
+          <span className="musing-dropdown-hint">esc to close</span>
+        </button>
       ) : (
         items.map((item, index) => (
           <div

@@ -422,6 +422,7 @@ export default function Editor({
           <SlashMenu
             position={menuPosition}
             onSelect={applySlashCommand}
+            onClose={closeSlashMenu}
             selectedIndex={safeSlashIndex}
             items={filteredSlashItems}
           />
@@ -435,6 +436,7 @@ export default function Editor({
             pages={pickerPages}
             selectedIndex={safePagePickerIndex}
             onSelect={selectPagePickerItem}
+            onClose={closePagePickerMenu}
           />
         </div>
       )}
