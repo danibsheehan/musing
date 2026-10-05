@@ -1,8 +1,6 @@
 import type { Editor } from "@tiptap/core";
 import { TextSelection } from "@tiptap/pm/state";
 import { v4 as uuidv4 } from "uuid";
-import { blocksToDocHtml } from "./blocksToDocHtml";
-import { serializeDocToBlocks } from "./serializeDocToBlocks";
 
 /**
  * Insert a new empty paragraph immediately after the top-level block at `blockIndex` (0-based).
@@ -42,7 +40,10 @@ export function insertParagraphBelowBlockAtIndex(editor: Editor, blockIndex: num
     .run();
 }
 
-/** Reorder top-level blocks by index (same semantics as array splice move). */
+/**
+ * Reorder top-level blocks by index (same semantics as array splice move). The block's node is
+ * moved as it is, in one transaction, so no other block is touched; the editor is then blurred.
+ */
 export function reorderTopLevelBlocksByIndex(
   editor: Editor,
   fromIndex: number,
@@ -53,10 +54,22 @@ export function reorderTopLevelBlocksByIndex(
   if (fromIndex < 0 || toIndex < 0 || fromIndex >= doc.childCount || toIndex >= doc.childCount) {
     return false;
   }
-  const blocks = serializeDocToBlocks(editor);
-  if (blocks.length !== doc.childCount) return false;
-  const next = [...blocks];
-  const [removed] = next.splice(fromIndex, 1);
-  next.splice(toIndex, 0, removed);
-  return editor.commands.setContent(blocksToDocHtml(next), { emitUpdate: true });
+  const moved = editor
+    .chain()
+    .command(({ tr, dispatch }) => {
+      if (!dispatch) return true;
+      const node = tr.doc.child(fromIndex);
+      let from = 0;
+      for (let j = 0; j < fromIndex; j++) from += tr.doc.child(j).nodeSize;
+      tr.delete(from, from + node.nodeSize);
+      // `toIndex` counts positions in the document as it is now, with the block taken out.
+      let insertPos = 0;
+      for (let j = 0; j < toIndex; j++) insertPos += tr.doc.child(j).nodeSize;
+      tr.insert(insertPos, node);
+      return true;
+    })
+    .run();
+  // As in Notion, no caret is left behind after a move.
+  if (moved) editor.commands.blur();
+  return moved;
 }
