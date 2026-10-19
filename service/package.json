@@ -13,8 +13,8 @@
     "test:run": "vitest run"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.133.0",
-    "@supabase/supabase-js": "^2.117.3",
+    "@anthropic-ai/sdk": "^0.135.0",
+    "@supabase/supabase-js": "^2.118.0",
     "cors": "^2.8.6",
     "express": "^5.3.0"
   },
@@ -30,6 +30,6 @@
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.2",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.5"
   }
 }
